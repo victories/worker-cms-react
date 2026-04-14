@@ -1,6 +1,6 @@
 name = "wp-cms-v2"
 main = "src/index.ts"
-compatibility_date = "2026-04-15"
+compatibility_date = "2025-02-14"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
@@ -31,7 +31,7 @@ ADMIN_DOMAIN = "wp-cms-v2.workers.dev"
 [[d1_databases]]
 binding = "DB"
 database_name = "cms-db-v2"
-database_id = "__REPLACE_AFTER_D1_CREATE__"
+database_id = "d8d0b0b5-4e1a-4097-a110-f8c7b0dc8c63"
 
 [[r2_buckets]]
 binding = "R2"
