@@ -1,0 +1,41 @@
+{
+  "slug": "contact-form",
+  "name": "Contact Form",
+  "version": "1.1.0",
+  "description": "Sayfalarınıza iletişim formu ekler. Kullanım: Sayfa içeriğine [contact-form] shortcode'unu yazın veya İçerik Enjektörü'nden [iletisim-formu] bloğunu ekleyin. Gelen mesajlar admin panelindeki İletişim menüsünden görüntülenebilir. / Adds a contact form to your pages. Usage: Add [contact-form] shortcode to your page content or use [iletisim-formu] block from Content Injector. Incoming messages can be viewed from the Messages menu in admin panel.",
+  "author": "WP-CMS",
+  "hooks": ["post.beforeRender", "page.bodyEnd"],
+  "settings": {
+    "recipientEmail": {
+      "type": "string",
+      "default": "",
+      "label": "Alıcı E-posta / Recipient Email",
+      "description": "İletişim formu mesajlarının gönderileceği e-posta adresi / Email address to receive contact form notifications"
+    },
+    "senderEmail": {
+      "type": "string",
+      "default": "",
+      "label": "Gönderici E-posta / Sender Email",
+      "description": "E-posta bildirimlerinde kullanılacak gönderici adresi (Resend'de doğrulanmış domain gerekir) / Sender address for email notifications (requires verified domain in Resend)"
+    },
+    "formTitle": {
+      "type": "string",
+      "default": "Contact Us",
+      "label": "Form Başlığı / Form Title",
+      "description": "Formun üstünde gösterilen başlık / Title displayed above the form"
+    },
+    "successMessage": {
+      "type": "string",
+      "default": "Thank you for your message!",
+      "label": "Başarı Mesajı / Success Message",
+      "description": "Form gönderildikten sonra gösterilen mesaj / Message shown after successful submission"
+    },
+    "enableCaptcha": {
+      "type": "boolean",
+      "default": false,
+      "label": "Captcha Etkinleştir / Enable Captcha",
+      "description": "Basit matematik captcha etkinleştir / Enable simple math captcha"
+    }
+  },
+  "permissions": ["posts:read"]
+}

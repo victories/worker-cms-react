@@ -1,0 +1,916 @@
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
+import { useSiteStore } from '@/stores/siteStore';
+import { api } from '@/lib/api';
+import { t } from '@/lib/i18n';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Save, Home, FileText, List, Type, Blocks, Shield, MessageSquare, Globe, RotateCcw, BarChart3, Code, Clock, Layers, PenTool, Edit3, ChevronDown } from 'lucide-react';
+import { useToast } from '@/components/ui/toast-notification';
+
+function AccordionCard({ icon, title, description, children, defaultOpen = false }: {
+  icon: React.ReactNode;
+  title: React.ReactNode;
+  description?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card>
+      <button type="button" onClick={() => setOpen(!open)} className="w-full text-left">
+        <CardHeader className="cursor-pointer select-none hover:bg-muted/30 transition-colors rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-base">
+            {icon}
+            <span className="flex-1">{title}</span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          </CardTitle>
+          {description && !open && (
+            <CardDescription className="text-xs mt-1 line-clamp-1">{description}</CardDescription>
+          )}
+        </CardHeader>
+      </button>
+      {open && (
+        <>
+          {description && (
+            <div className="px-6 pb-2">
+              <p className="text-xs text-muted-foreground">{description}</p>
+            </div>
+          )}
+          <CardContent>{children}</CardContent>
+        </>
+      )}
+    </Card>
+  );
+}
+
+export function GeneralSettings() {
+  const { lang } = useAuthStore();
+  const { activeSite } = useSiteStore();
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [inherited, setInherited] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pages, setPages] = useState<{ id: number; title: string }[]>([]);
+
+  useEffect(() => {
+    if (!activeSite) return;
+    loadSettings();
+    loadPages();
+  }, [activeSite]);
+
+  const applySettingsResponse = (res: any) => {
+    if (res.success && res.data) {
+      setSettings(res.data as Record<string, string>);
+      setInherited(Array.isArray(res._inherited) ? res._inherited : []);
+    }
+  };
+
+  const loadSettings = async () => {
+    setLoading(true);
+    const res = await api.getSettings();
+    setLoading(false);
+    applySettingsResponse(res);
+  };
+
+  const loadPages = async () => {
+    try {
+      const res = await api.getPosts({ post_type: 'page', status: 'publish', per_page: '100' });
+      if (res?.success && res?.data) {
+        const list = (res.data || []).map((p: any) => ({ id: p.id, title: p.title }));
+        setPages(list);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const updateSetting = (key: string, value: string) => {
+    setSettings({ ...settings, [key]: value });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.updateSettings(settings);
+      toast(lang === 'tr' ? 'Ayarlar kaydedildi' : 'Settings saved', 'success');
+    } catch {
+      toast(lang === 'tr' ? 'Kaydetme başarısız' : 'Save failed', 'error');
+    }
+    setSaving(false);
+  };
+
+  const resetToGlobal = async (key: string) => {
+    try {
+      await api.deleteSiteSetting(key);
+      // Soft reload — no loading spinner so UI stays mounted
+      const res = await api.getSettings();
+      applySettingsResponse(res);
+      toast(lang === 'tr' ? 'Global değere döndürüldü' : 'Reset to global value', 'success');
+    } catch {
+      toast(lang === 'tr' ? 'İşlem başarısız' : 'Operation failed', 'error');
+    }
+  };
+
+  const GlobalBadge = ({ settingKey }: { settingKey: string }) => {
+    if (!inherited.includes(settingKey)) return null;
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+        title={lang === 'tr' ? 'Bu değer global ayarlardan alınıyor' : 'This value is inherited from global settings'}
+      >
+        <Globe className="h-3 w-3" />
+        Global
+      </span>
+    );
+  };
+
+  const ResetToGlobalButton = ({ settingKey }: { settingKey: string }) => {
+    if (inherited.includes(settingKey)) return null;
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); resetToGlobal(settingKey); }}
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+        title={lang === 'tr' ? 'Site değerini sil, global ayara dön' : 'Remove site override, revert to global value'}
+      >
+        <RotateCcw className="h-3 w-3" />
+        {lang === 'tr' ? 'Globale Dön' : 'Reset to Global'}
+      </button>
+    );
+  };
+
+  if (loading) return <div className="p-4">{t('common.loading', lang)}</div>;
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">{t('nav.settings', lang)}</h1>
+        <Button onClick={handleSave} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? t('common.loading', lang) : t('action.save', lang)}
+        </Button>
+      </div>
+
+      {/* Genel Ayarlar */}
+      <AccordionCard
+        icon={<Globe className="h-5 w-5" />}
+        title={lang === 'tr' ? 'Genel Ayarlar' : 'General Settings'}
+        description={`${activeSite?.name} - ${lang === 'tr' ? 'site ayarları' : 'site settings'}`}
+        defaultOpen={true}
+      >
+        <div className="space-y-4">
+          <div>
+            <Label>{lang === 'tr' ? 'Site Başlığı' : 'Site Title'}</Label>
+            <Input
+              value={settings.site_title || ''}
+              onChange={(e) => updateSetting('site_title', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>{lang === 'tr' ? 'Site Açıklaması' : 'Site Description'}</Label>
+            <Textarea
+              value={settings.site_description || ''}
+              onChange={(e) => updateSetting('site_description', e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div>
+            <Label>{lang === 'tr' ? 'Varsayılan Dil' : 'Default Language'}</Label>
+            <Select
+              value={settings.default_language || 'tr'}
+              onValueChange={(v) => updateSetting('default_language', v)}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tr">Türkçe</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="inline-flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {lang === 'tr' ? 'Saat Dilimi' : 'Timezone'}
+              <GlobalBadge settingKey="timezone" />
+              <ResetToGlobalButton settingKey="timezone" />
+            </Label>
+            <select
+              value={settings.timezone || 'Europe/Istanbul'}
+              onChange={(e) => updateSetting('timezone', e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mt-1"
+            >
+              <option value="Europe/Istanbul">Europe/Istanbul (GMT+3)</option>
+              <option value="Europe/London">Europe/London (GMT+0)</option>
+              <option value="Europe/Berlin">Europe/Berlin (GMT+1)</option>
+              <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
+              <option value="Europe/Moscow">Europe/Moscow (GMT+3)</option>
+              <option value="America/New_York">America/New_York (GMT-5)</option>
+              <option value="America/Chicago">America/Chicago (GMT-6)</option>
+              <option value="America/Denver">America/Denver (GMT-7)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (GMT-8)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (GMT+9)</option>
+              <option value="Asia/Shanghai">Asia/Shanghai (GMT+8)</option>
+              <option value="Asia/Dubai">Asia/Dubai (GMT+4)</option>
+              <option value="Asia/Kolkata">Asia/Kolkata (GMT+5:30)</option>
+              <option value="Australia/Sydney">Australia/Sydney (GMT+11)</option>
+              <option value="Pacific/Auckland">Pacific/Auckland (GMT+13)</option>
+              <option value="UTC">UTC (GMT+0)</option>
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              {lang === 'tr'
+                ? 'Rich Snippets tarih/saat bilgilerinde kullanılır. Boş bırakılırsa global ayar geçerlidir.'
+                : 'Used for Rich Snippets date/time. Falls back to global setting if empty.'}
+            </p>
+          </div>
+        </div>
+      </AccordionCard>
+
+      {/* Ana Sayfa Görünümü */}
+      <AccordionCard
+        icon={<Home className="h-5 w-5" />}
+        title={lang === 'tr' ? 'Ana Sayfa Görünümü' : 'Homepage Display'}
+        description={lang === 'tr'
+          ? 'Ana sayfanızda ne gösterilsin? Son yazıları veya sabit bir sayfayı seçebilirsiniz.'
+          : 'What should your homepage display? You can show latest posts or a static page.'}
+      >
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer flex-1 transition-colors ${
+              (settings.show_on_front || 'posts') === 'posts' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+            }`}>
+              <input
+                type="radio"
+                name="show_on_front"
+                value="posts"
+                checked={(settings.show_on_front || 'posts') === 'posts'}
+                onChange={() => updateSetting('show_on_front', 'posts')}
+                className="accent-blue-500"
+              />
+              <div>
+                <div className="flex items-center gap-2 font-medium">
+                  <List className="h-4 w-4" />
+                  {lang === 'tr' ? 'Son Yazılar' : 'Latest Posts'}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === 'tr' ? 'Blog yazıları listesi gösterilir' : 'Shows a list of your blog posts'}
+                </p>
+              </div>
+            </label>
+            <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer flex-1 transition-colors ${
+              settings.show_on_front === 'page' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+            }`}>
+              <input
+                type="radio"
+                name="show_on_front"
+                value="page"
+                checked={settings.show_on_front === 'page'}
+                onChange={() => updateSetting('show_on_front', 'page')}
+                className="accent-blue-500"
+              />
+              <div>
+                <div className="flex items-center gap-2 font-medium">
+                  <FileText className="h-4 w-4" />
+                  {lang === 'tr' ? 'Sabit Sayfa' : 'Static Page'}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === 'tr' ? 'Seçtiğiniz sayfa ana sayfa olur' : 'A page of your choice becomes the homepage'}
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {settings.show_on_front === 'page' && (
+            <div className="pl-1">
+              <Label>{lang === 'tr' ? 'Ana Sayfa' : 'Homepage'}</Label>
+              <Select
+                value={settings.page_on_front || ''}
+                onValueChange={(v) => updateSetting('page_on_front', v)}
+              >
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder={lang === 'tr' ? 'Sayfa seçin...' : 'Select a page...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pages.length === 0 ? (
+                    <SelectItem value="0" disabled>
+                      {lang === 'tr' ? 'Yayınlanmış sayfa yok' : 'No published pages'}
+                    </SelectItem>
+                  ) : (
+                    pages.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.title}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                {lang === 'tr'
+                  ? 'İpucu: Sayfanızda [son-yazilar], [slider], [kategori slug="..."] gibi shortcode\'lar kullanarak dinamik içerik ekleyebilirsiniz.'
+                  : 'Tip: Use shortcodes like [son-yazilar], [slider], [kategori slug="..."] in your page to add dynamic content.'}
+              </p>
+            </div>
+          )}
+        </div>
+      </AccordionCard>
+
+      {/* Editör Tercihi */}
+      <AccordionCard
+        icon={<Type className="h-5 w-5" />}
+        title={<>
+          {lang === 'tr' ? 'Editör Tercihi' : 'Editor Preference'}
+          {' '}<GlobalBadge settingKey="editor_type" />
+          {' '}<ResetToGlobalButton settingKey="editor_type" />
+        </>}
+        description={lang === 'tr'
+          ? 'Yazı ve sayfa düzenlemede kullanılacak editörü seçin.'
+          : 'Choose the editor used for editing posts and pages.'}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+            (settings.editor_type || 'classic') === 'classic' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+          }`}>
+            <input type="radio" name="editor_type" value="classic"
+              checked={(settings.editor_type || 'classic') === 'classic'}
+              onChange={() => updateSetting('editor_type', 'classic')}
+              className="accent-blue-500" />
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Type className="h-4 w-4" />
+                {lang === 'tr' ? 'Klasik Editör' : 'Classic Editor'}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === 'tr' ? 'Araç çubuğu tabanlı zengin metin editörü' : 'Toolbar-based rich text editor'}
+              </p>
+            </div>
+          </label>
+
+          <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+            settings.editor_type === 'blocknote' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+          }`}>
+            <input type="radio" name="editor_type" value="blocknote"
+              checked={settings.editor_type === 'blocknote'}
+              onChange={() => updateSetting('editor_type', 'blocknote')}
+              className="accent-blue-500" />
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Blocks className="h-4 w-4" />
+                {lang === 'tr' ? 'Blok Editör' : 'Block Editor'}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === 'tr' ? 'Gutenberg benzeri blok tabanlı editör' : 'Gutenberg-like block-based editor'}
+              </p>
+            </div>
+          </label>
+
+          <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+            settings.editor_type === 'tiptap' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+          }`}>
+            <input type="radio" name="editor_type" value="tiptap"
+              checked={settings.editor_type === 'tiptap'}
+              onChange={() => updateSetting('editor_type', 'tiptap')}
+              className="accent-blue-500" />
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <PenTool className="h-4 w-4" />
+                Tiptap
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === 'tr' ? 'Gelişmiş özellikler: renk, highlight, YouTube, kod bloğu' : 'Advanced: color, highlight, YouTube, code blocks'}
+              </p>
+            </div>
+          </label>
+
+          <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+            settings.editor_type === 'plate' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+          }`}>
+            <input type="radio" name="editor_type" value="plate"
+              checked={settings.editor_type === 'plate'}
+              onChange={() => updateSetting('editor_type', 'plate')}
+              className="accent-blue-500" />
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Layers className="h-4 w-4" />
+                Plate.js
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === 'tr' ? 'Slate tabanlı modern editör, eklenti desteği' : 'Slate-based modern editor with plugin system'}
+              </p>
+            </div>
+          </label>
+
+          <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-colors ${
+            settings.editor_type === 'tinymce' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'hover:border-gray-400'
+          }`}>
+            <input type="radio" name="editor_type" value="tinymce"
+              checked={settings.editor_type === 'tinymce'}
+              onChange={() => updateSetting('editor_type', 'tinymce')}
+              className="accent-blue-500" />
+            <div>
+              <div className="flex items-center gap-2 font-medium">
+                <Edit3 className="h-4 w-4" />
+                TinyMCE
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === 'tr' ? 'Klasik WordPress editörü, tam özellikli' : 'Classic WordPress-style editor, full-featured'}
+              </p>
+            </div>
+          </label>
+        </div>
+      </AccordionCard>
+
+      {/* SEO */}
+      <AccordionCard
+        icon={<Globe className="h-5 w-5" />}
+        title="SEO"
+        description={lang === 'tr'
+          ? 'Meta başlık, açıklama, robots.txt ve WWW yönlendirmesi.'
+          : 'Meta title, description, robots.txt and WWW redirect.'}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium inline-flex items-center gap-2">
+                {lang === 'tr' ? 'Okuma Süresi Göster' : 'Show Reading Time'}
+                <GlobalBadge settingKey="show_reading_time" />
+                <ResetToGlobalButton settingKey="show_reading_time" />
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'tr'
+                  ? 'Yazılarda tahmini okuma süresini gösterir (Ana sayfada her zaman gizlenir)'
+                  : 'Show estimated reading time on posts (Always hidden on homepage)'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.show_reading_time === 'true'}
+              onCheckedChange={(checked) => updateSetting('show_reading_time', checked ? 'true' : 'false')}
+            />
+          </div>
+          <Separator />
+          <div>
+            <Label>{lang === 'tr' ? 'Meta Başlık Şablonu' : 'Meta Title Template'}</Label>
+            <Input
+              value={settings.seo_title_template || ''}
+              onChange={(e) => updateSetting('seo_title_template', e.target.value)}
+              placeholder="{title} - {site_name}"
+            />
+          </div>
+          <div>
+            <Label>{lang === 'tr' ? 'Varsayılan Meta Açıklama' : 'Default Meta Description'}</Label>
+            <Textarea
+              value={settings.seo_default_description || ''}
+              onChange={(e) => updateSetting('seo_default_description', e.target.value)}
+              rows={2}
+            />
+          </div>
+          <div>
+            <Label>robots.txt</Label>
+            <Textarea
+              value={settings.robots_txt || ''}
+              onChange={(e) => updateSetting('robots_txt', e.target.value)}
+              rows={4}
+              className="font-mono text-xs"
+              placeholder="User-agent: *&#10;Allow: /"
+            />
+          </div>
+          <Separator />
+          <div>
+            <Label className="inline-flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              {lang === 'tr' ? 'WWW Yönlendirmesi' : 'WWW Redirect'}
+            </Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              {lang === 'tr'
+                ? 'Sitenize www ile mi yoksa www\'suz mu erisilsin? Seciminize gore otomatik 301 yonlendirme yapilir.'
+                : 'Should your site be accessed with or without www? A 301 redirect is applied automatically.'}
+            </p>
+            <Select
+              value={settings.www_preference || 'none'}
+              onValueChange={(v) => updateSetting('www_preference', v)}
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{lang === 'tr' ? 'Yönlendirme Yok' : 'No Redirect'}</SelectItem>
+                <SelectItem value="non-www">{lang === 'tr' ? 'www \u2192 non-www (örn: example.com)' : 'www \u2192 non-www (e.g. example.com)'}</SelectItem>
+                <SelectItem value="www">{lang === 'tr' ? 'non-www \u2192 www (örn: www.example.com)' : 'non-www \u2192 www (e.g. www.example.com)'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </AccordionCard>
+
+      {/* Rich Snippets */}
+      <AccordionCard
+        icon={<Code className="h-5 w-5" />}
+        title="Rich Snippets (Schema.org)"
+        description={lang === 'tr'
+          ? 'Google arama sonuçlarında zengin sonuçlar (rich results) için yapılandırılmış veri (JSON-LD).'
+          : 'Structured data (JSON-LD) for rich results in Google search.'}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium">
+                {lang === 'tr' ? 'Rich Snippets Aktif' : 'Enable Rich Snippets'}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'tr'
+                  ? 'Tüm site genelinde yapılandırılmış veri (JSON-LD) eklenmesini etkinleştirir'
+                  : 'Enables JSON-LD structured data injection site-wide'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.rs_enabled === 'true'}
+              onCheckedChange={(checked) => updateSetting('rs_enabled', checked ? 'true' : 'false')}
+            />
+          </div>
+
+          {settings.rs_enabled === 'true' && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <p className="text-sm font-medium">
+                  {lang === 'tr' ? 'Sayfa Türleri' : 'Page Types'}
+                </p>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">
+                      {lang === 'tr' ? 'Yazılar (Article/BlogPosting)' : 'Posts (Article/BlogPosting)'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'tr' ? 'Yazı detay sayfalarına makale şeması ekler' : 'Adds article schema to post detail pages'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.rs_posts !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('rs_posts', checked ? 'true' : 'false')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">
+                      {lang === 'tr' ? 'Sayfalar (WebPage)' : 'Pages (WebPage)'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'tr' ? 'Statik sayfalara web sayfası şeması ekler' : 'Adds webpage schema to static pages'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.rs_pages !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('rs_pages', checked ? 'true' : 'false')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">
+                      {lang === 'tr' ? 'Ana Sayfa (WebSite + Organization)' : 'Homepage (WebSite + Organization)'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'tr' ? 'Ana sayfaya site ve kuruluş şeması ekler' : 'Adds website & organization schema to homepage'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.rs_homepage !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('rs_homepage', checked ? 'true' : 'false')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">
+                      {lang === 'tr' ? 'Arşiv Sayfaları (CollectionPage)' : 'Archive Pages (CollectionPage)'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'tr' ? 'Kategori ve etiket arşiv sayfalarına şema ekler' : 'Adds schema to category & tag archive pages'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.rs_archives !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('rs_archives', checked ? 'true' : 'false')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">
+                      {lang === 'tr' ? 'Breadcrumb (BreadcrumbList)' : 'Breadcrumbs (BreadcrumbList)'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'tr' ? 'Gezinme yol haritası şeması ekler' : 'Adds breadcrumb navigation schema'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.rs_breadcrumbs !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('rs_breadcrumbs', checked ? 'true' : 'false')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">
+                      {lang === 'tr' ? 'AMP Sayfaları' : 'AMP Pages'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {lang === 'tr' ? 'AMP versiyonlarına da yapılandırılmış veri ekler' : 'Adds structured data to AMP versions too'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.rs_amp !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('rs_amp', checked ? 'true' : 'false')}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+              <div>
+                <Label>{lang === 'tr' ? 'Yayıncı / Kuruluş Adı' : 'Publisher / Organization Name'}</Label>
+                <Input
+                  value={settings.rs_publisher_name || ''}
+                  onChange={(e) => updateSetting('rs_publisher_name', e.target.value)}
+                  placeholder={lang === 'tr' ? 'Site adınız (boş bırakılırsa site başlığı kullanılır)' : 'Your site name (defaults to site title if empty)'}
+                />
+              </div>
+              <div>
+                <Label>{lang === 'tr' ? 'Yayıncı Logo URL' : 'Publisher Logo URL'}</Label>
+                <Input
+                  value={settings.rs_publisher_logo || ''}
+                  onChange={(e) => updateSetting('rs_publisher_logo', e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === 'tr'
+                    ? 'Google için önerilen boyut: 600x60 piksel veya 112x112 piksel kare logo'
+                    : 'Recommended by Google: 600x60px or 112x112px square logo'}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </AccordionCard>
+
+      {/* Analytics */}
+      <AccordionCard
+        icon={<BarChart3 className="h-5 w-5" />}
+        title={lang === 'tr' ? 'Analytics / İzleme Kodları' : 'Analytics / Tracking Codes'}
+        description={lang === 'tr'
+          ? 'Google Analytics, Tag Manager veya diğer izleme kodlarını ekleyin.'
+          : 'Add Google Analytics, Tag Manager or other tracking codes.'}
+      >
+        <div className="space-y-4">
+          <div>
+            <Label className="inline-flex items-center gap-2">
+              {lang === 'tr' ? '<head> İçine Eklenecek Kod' : 'Code for <head> Section'}
+              <GlobalBadge settingKey="analytics_head_code" />
+              <ResetToGlobalButton settingKey="analytics_head_code" />
+            </Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              {lang === 'tr'
+                ? '<script> etiketleri dahil yapıştırın.'
+                : 'Paste including <script> tags.'}
+            </p>
+            <Textarea
+              value={settings.analytics_head_code || ''}
+              onChange={(e) => updateSetting('analytics_head_code', e.target.value)}
+              rows={4}
+              className="font-mono text-xs"
+              placeholder={'<!-- Google tag (gtag.js) -->\n<script async src="..."></script>'}
+            />
+          </div>
+          <Separator />
+          <div>
+            <Label className="inline-flex items-center gap-2">
+              {lang === 'tr' ? '</body> Öncesine Eklenecek Kod' : 'Code Before </body>'}
+              <GlobalBadge settingKey="analytics_body_code" />
+              <ResetToGlobalButton settingKey="analytics_body_code" />
+            </Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              {lang === 'tr'
+                ? 'Sayfa yüklendikten sonra çalışması gereken scriptler.'
+                : 'Scripts that should run after page load.'}
+            </p>
+            <Textarea
+              value={settings.analytics_body_code || ''}
+              onChange={(e) => updateSetting('analytics_body_code', e.target.value)}
+              rows={4}
+              className="font-mono text-xs"
+              placeholder={'<!-- Facebook Pixel, Hotjar, etc. -->'}
+            />
+          </div>
+        </div>
+      </AccordionCard>
+
+      {/* reCAPTCHA */}
+      <AccordionCard
+        icon={<Shield className="h-5 w-5" />}
+        title="reCAPTCHA v3"
+        description={lang === 'tr'
+          ? 'Google reCAPTCHA v3 ile spam koruması. Görünmez doğrulama.'
+          : 'Spam protection with Google reCAPTCHA v3. Invisible verification.'}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium inline-flex items-center gap-2">
+                {lang === 'tr' ? 'reCAPTCHA Aktif' : 'Enable reCAPTCHA'}
+                <GlobalBadge settingKey="recaptcha_enabled" />
+                <ResetToGlobalButton settingKey="recaptcha_enabled" />
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'tr' ? 'reCAPTCHA v3 korumasını etkinleştir' : 'Enable reCAPTCHA v3 protection'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.recaptcha_enabled === 'true'}
+              onCheckedChange={(checked) => updateSetting('recaptcha_enabled', checked ? 'true' : 'false')}
+            />
+          </div>
+
+          {settings.recaptcha_enabled === 'true' && (
+            <>
+              <Separator />
+              <div>
+                <Label className="inline-flex items-center gap-2">
+                  Site Key
+                  <GlobalBadge settingKey="recaptcha_site_key" />
+                  <ResetToGlobalButton settingKey="recaptcha_site_key" />
+                </Label>
+                <Input
+                  value={settings.recaptcha_site_key || ''}
+                  onChange={(e) => updateSetting('recaptcha_site_key', e.target.value)}
+                  placeholder="6Lc..."
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div>
+                <Label className="inline-flex items-center gap-2">
+                  Secret Key
+                  <GlobalBadge settingKey="recaptcha_secret_key" />
+                  <ResetToGlobalButton settingKey="recaptcha_secret_key" />
+                </Label>
+                <Input
+                  type="password"
+                  value={settings.recaptcha_secret_key || ''}
+                  onChange={(e) => updateSetting('recaptcha_secret_key', e.target.value)}
+                  placeholder="6Lc..."
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div>
+                <Label className="inline-flex items-center gap-2">
+                  {lang === 'tr' ? 'Skor Eşiği' : 'Score Threshold'}
+                  <span className="text-xs text-muted-foreground">(0.0 - 1.0)</span>
+                  <GlobalBadge settingKey="recaptcha_score_threshold" />
+                  <ResetToGlobalButton settingKey="recaptcha_score_threshold" />
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={settings.recaptcha_score_threshold || '0.5'}
+                  onChange={(e) => updateSetting('recaptcha_score_threshold', e.target.value)}
+                  className="w-24"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === 'tr'
+                    ? '0.5 önerilen değer. Düşük skor = şüpheli trafik.'
+                    : '0.5 is recommended. Low score = suspicious traffic.'}
+                </p>
+              </div>
+              <Separator />
+              <div className="space-y-3">
+                <p className="text-sm font-medium">
+                  {lang === 'tr' ? 'Hangi formlarda kullanılsın?' : 'Which forms should use reCAPTCHA?'}
+                </p>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm inline-flex items-center gap-2">
+                    {lang === 'tr' ? 'İletişim Formu' : 'Contact Form'}
+                    <GlobalBadge settingKey="recaptcha_on_contact" />
+                    <ResetToGlobalButton settingKey="recaptcha_on_contact" />
+                  </Label>
+                  <Switch
+                    checked={settings.recaptcha_on_contact !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('recaptcha_on_contact', checked ? 'true' : 'false')}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm inline-flex items-center gap-2">
+                    {lang === 'tr' ? 'Yorum Formu' : 'Comment Form'}
+                    <GlobalBadge settingKey="recaptcha_on_comments" />
+                    <ResetToGlobalButton settingKey="recaptcha_on_comments" />
+                  </Label>
+                  <Switch
+                    checked={settings.recaptcha_on_comments !== 'false'}
+                    onCheckedChange={(checked) => updateSetting('recaptcha_on_comments', checked ? 'true' : 'false')}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </AccordionCard>
+
+      {/* Yorum Ayarları */}
+      <AccordionCard
+        icon={<MessageSquare className="h-5 w-5" />}
+        title={lang === 'tr' ? 'Yorum Ayarları' : 'Comment Settings'}
+        description={lang === 'tr'
+          ? 'Yorum sistemini yapılandırın. Tüm sitede veya tek tek yazılarda kapatabilirsiniz.'
+          : 'Configure the comment system. Disable site-wide or per-post.'}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium inline-flex items-center gap-2">
+                {lang === 'tr' ? 'Yorumlar Aktif' : 'Comments Enabled'}
+                <GlobalBadge settingKey="comments_enabled" />
+                <ResetToGlobalButton settingKey="comments_enabled" />
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'tr'
+                  ? 'Kapatırsanız tüm sitede yorum formu gizlenir'
+                  : 'When disabled, comment forms are hidden site-wide'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.comments_enabled !== 'false'}
+              onCheckedChange={(checked) => updateSetting('comments_enabled', checked ? 'true' : 'false')}
+            />
+          </div>
+
+          {settings.comments_enabled !== 'false' && (
+            <>
+              <Separator />
+              <div>
+                <Label className="inline-flex items-center gap-2">
+                  {lang === 'tr' ? 'Varsayılan Yorum Durumu' : 'Default Comment Status'}
+                  <GlobalBadge settingKey="default_comment_status" />
+                  <ResetToGlobalButton settingKey="default_comment_status" />
+                </Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {lang === 'tr'
+                    ? 'Yeni yazılar için varsayılan ayar. Her yazıda ayrıca değiştirilebilir.'
+                    : 'Default setting for new posts. Can be changed per-post.'}
+                </p>
+                <Select
+                  value={settings.default_comment_status || 'open'}
+                  onValueChange={(v) => updateSetting('default_comment_status', v)}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">{lang === 'tr' ? 'Açık' : 'Open'}</SelectItem>
+                    <SelectItem value="closed">{lang === 'tr' ? 'Kapalı' : 'Closed'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="font-medium inline-flex items-center gap-2">
+                    {lang === 'tr' ? 'Yorum Moderasyonu' : 'Comment Moderation'}
+                    <GlobalBadge settingKey="comment_moderation" />
+                    <ResetToGlobalButton settingKey="comment_moderation" />
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {lang === 'tr'
+                      ? 'Açıksa yorumlar onay bekler, kapalıysa doğrudan yayınlanır'
+                      : 'When enabled, comments require approval before publishing'}
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.comment_moderation === 'true'}
+                  onCheckedChange={(checked) => updateSetting('comment_moderation', checked ? 'true' : 'false')}
+                />
+              </div>
+            </>
+          )}
+
+          <Separator />
+          <div>
+            <Label>{lang === 'tr' ? 'Sayfa Başına Yazı' : 'Posts Per Page'}</Label>
+            <Input
+              type="number"
+              value={settings.posts_per_page || '10'}
+              onChange={(e) => updateSetting('posts_per_page', e.target.value)}
+              className="w-24"
+            />
+          </div>
+        </div>
+      </AccordionCard>
+    </div>
+  );
+}

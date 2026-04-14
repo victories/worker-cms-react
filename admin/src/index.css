@@ -1,0 +1,263 @@
+@import "@blocknote/core/fonts/inter.css";
+@import "@blocknote/shadcn/style.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* TipTap editor styles */
+.ProseMirror {
+  @apply min-h-[300px] p-4 outline-none;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-muted-foreground pointer-events-none float-left h-0;
+  content: attr(data-placeholder);
+}
+.ProseMirror h1 { @apply text-3xl font-bold mb-4; }
+.ProseMirror h2 { @apply text-2xl font-bold mb-3; }
+.ProseMirror h3 { @apply text-xl font-bold mb-2; }
+.ProseMirror p { @apply mb-3; }
+.ProseMirror ul { @apply list-disc pl-6 mb-3; }
+.ProseMirror ol { @apply list-decimal pl-6 mb-3; }
+.ProseMirror li { @apply mb-1; }
+.ProseMirror blockquote { @apply border-l-4 border-muted pl-4 italic mb-3; }
+.ProseMirror pre { @apply bg-muted rounded p-4 mb-3 overflow-x-auto; }
+.ProseMirror code { @apply bg-muted px-1.5 py-0.5 rounded text-sm; }
+.ProseMirror img {
+  @apply max-w-full h-auto rounded;
+  cursor: pointer;
+}
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+/* Image node view: when floated, allow sibling blocks to wrap around */
+.ProseMirror [data-node-view-wrapper] {
+  /* Default: block images get vertical margin */
+}
+.ProseMirror [data-node-view-wrapper][data-float="left"],
+.ProseMirror [data-node-view-wrapper][data-float="right"] {
+  /* Floated images must not force a new block formatting context on siblings */
+  display: block;
+}
+.ProseMirror a { @apply text-primary underline; }
+
+/* ============================================
+   WordPress-style Image Layout Classes
+   Used by AI-generated content for image positioning
+   ============================================ */
+.ProseMirror figure,
+figure {
+  margin: 1rem 0;
+  padding: 0;
+}
+.ProseMirror figure figcaption,
+figure figcaption {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  margin-top: 0.35rem;
+  line-height: 1.4;
+}
+.ProseMirror figure img,
+figure img {
+  display: block;
+  border-radius: 0.375rem;
+}
+
+/* Cover image — full width at top */
+.ProseMirror .wp-cover,
+.wp-cover {
+  width: 100%;
+  margin: 0 0 1.5rem 0;
+}
+.ProseMirror .wp-cover img,
+.wp-cover img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  max-height: 400px;
+}
+
+/* Full-width image — between paragraphs */
+.ProseMirror .wp-full-width,
+.wp-full-width {
+  width: 100%;
+  margin: 1.5rem 0;
+}
+.ProseMirror .wp-full-width img,
+.wp-full-width img {
+  width: 100%;
+  height: auto;
+}
+
+/* Float left — text wraps around right side */
+.ProseMirror .wp-float-left,
+.wp-float-left {
+  float: left;
+  width: 45%;
+  max-width: 400px;
+  margin: 0.25rem 1.25rem 1rem 0;
+}
+.ProseMirror .wp-float-left img,
+.wp-float-left img {
+  width: 100%;
+  height: auto;
+}
+
+/* Float right — text wraps around left side */
+.ProseMirror .wp-float-right,
+.wp-float-right {
+  float: right;
+  width: 45%;
+  max-width: 400px;
+  margin: 0.25rem 0 1rem 1.25rem;
+}
+.ProseMirror .wp-float-right img,
+.wp-float-right img {
+  width: 100%;
+  height: auto;
+}
+
+/* Editor: floated image NodeViews — let text wrap beside them */
+.ProseMirror [data-node-view-wrapper][data-float="left"],
+.ProseMirror [data-node-view-wrapper][data-float="right"] {
+  /* NodeViewWrapper inherits float from inline style, this ensures the
+     following ProseMirror block nodes (paragraphs) wrap around it */
+}
+/* Paragraphs and headings should NOT clear floats — that allows text wrapping */
+/* Only clear floats on horizontal rules and blockquotes to reset layout */
+.ProseMirror hr,
+.ProseMirror blockquote {
+  clear: both;
+}
+
+/* Frontend/public: clearfix on figures with wp-float classes */
+.wp-float-left + p::after,
+.wp-float-right + p::after {
+  /* Don't clear — allow wrapping */
+}
+
+/* On small screens, floated images go full-width */
+@media (max-width: 640px) {
+  .ProseMirror .wp-float-left,
+  .wp-float-left,
+  .ProseMirror .wp-float-right,
+  .wp-float-right {
+    float: none;
+    width: 100%;
+    max-width: none;
+    margin: 1rem 0;
+  }
+  .ProseMirror [data-node-view-wrapper][data-float] {
+    float: none !important;
+    max-width: 100% !important;
+    margin: 1rem 0 !important;
+  }
+}
+.ProseMirror table { @apply border-collapse w-full mb-3; }
+.ProseMirror th, .ProseMirror td { @apply border border-border p-2; }
+.ProseMirror th { @apply bg-muted font-semibold; }
+
+/* ============================================
+   Animation Keyframes
+   ============================================ */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+
+/* ============================================
+   Utility Animation Classes
+   ============================================ */
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+.animate-fade-in-down { animation: fadeInDown 0.3s ease-out forwards; }
+.animate-slide-in-left { animation: slideInLeft 0.4s ease-out forwards; }
+.animate-slide-in-right { animation: slideInRight 0.4s ease-out forwards; }
+.animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
+.animate-shimmer { animation: shimmer 2s linear infinite; background-size: 200% 100%; }
+.animate-gradient { animation: gradientShift 3s ease infinite; background-size: 200% 200%; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+/* ============================================
+   Stagger Delays
+   ============================================ */
+.delay-75 { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+
+/* ============================================
+   Smooth Transitions
+   ============================================ */
+.transition-theme {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

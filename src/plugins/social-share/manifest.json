@@ -1,0 +1,49 @@
+{
+  "slug": "social-share",
+  "name": "Social Share",
+  "version": "1.1.0",
+  "description": "Adds social media sharing buttons to posts",
+  "author": "WP-CMS",
+  "hooks": ["post.beforeRender", "page.head"],
+  "settings": {
+    "platforms": {
+      "type": "multicheck",
+      "default": "x,facebook,whatsapp,telegram,linkedin,reddit,pinterest,email,copylink",
+      "label": "Platformlar / Platforms",
+      "description": "Paylaşım butonlarında gösterilecek platformları seçin / Select platforms to show in share buttons",
+      "options": [
+        { "value": "x", "label": "X (Twitter)" },
+        { "value": "facebook", "label": "Facebook" },
+        { "value": "whatsapp", "label": "WhatsApp" },
+        { "value": "telegram", "label": "Telegram" },
+        { "value": "linkedin", "label": "LinkedIn" },
+        { "value": "reddit", "label": "Reddit" },
+        { "value": "pinterest", "label": "Pinterest" },
+        { "value": "email", "label": "E-posta / Email" },
+        { "value": "copylink", "label": "Bağlantıyı Kopyala / Copy Link" }
+      ]
+    },
+    "position": {
+      "type": "select",
+      "default": "bottom",
+      "label": "Konum / Position",
+      "description": "Paylaşım butonlarının yazıya göre konumu / Position of share buttons relative to post content",
+      "options": [
+        { "value": "top", "label": "Üstte / Top" },
+        { "value": "bottom", "label": "Altta / Bottom" },
+        { "value": "both", "label": "Üstte ve Altta / Both" }
+      ]
+    },
+    "style": {
+      "type": "select",
+      "default": "buttons",
+      "label": "Görünüm / Style",
+      "description": "Paylaşım butonlarının görünüm stili / Display style of share buttons",
+      "options": [
+        { "value": "buttons", "label": "Simge + İsim / Icon + Name" },
+        { "value": "icons", "label": "Sadece Simgeler / Icons Only" }
+      ]
+    }
+  },
+  "permissions": ["posts:read"]
+}
