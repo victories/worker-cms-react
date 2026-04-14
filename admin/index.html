@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WP-CMS Admin</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body class="min-h-screen bg-background font-sans antialiased">
+  <script>
+    (function() {
+      var t = localStorage.getItem('theme');
+      var d = (!t || t === 'system')
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : t === 'dark';
+      if (d) document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

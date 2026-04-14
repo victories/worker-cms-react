@@ -1,0 +1,385 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { useSiteStore } from '@/stores/siteStore';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Globe, ArrowRight, Loader2, CheckCircle2, AlertCircle, Copy, Check, RefreshCw, Server, PartyPopper, LogOut, ChevronDown } from 'lucide-react';
+
+export function DomainSetup() {
+  const { lang, user, logout } = useAuthStore();
+  const { fetchSites } = useSiteStore();
+  const navigate = useNavigate();
+  const tr = lang === 'tr';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const [step, setStep] = useState<'enter' | 'cname'>('enter');
+  const [domain, setDomain] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState('');
+  const [cnameInfo, setCnameInfo] = useState<{
+    domain: string;
+    cname_target: string;
+    custom_hostname_id: string;
+    site_id: number;
+    status: string;
+    is_subdomain?: boolean;
+  } | null>(null);
+  const [verified, setVerified] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const cleanDomain = (d: string) => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+
+  const handleSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const clean = cleanDomain(domain);
+    if (!clean || !clean.includes('.')) {
+      setError(tr ? 'Geçerli bir domain girin (örn: example.com)' : 'Enter a valid domain (e.g., example.com)');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await api.request('/domains/setup', {
+        method: 'POST',
+        body: { domain: clean },
+      }) as any;
+
+      if (res.success) {
+        setCnameInfo({
+          domain: res.data.domain,
+          cname_target: res.data.cname_target,
+          custom_hostname_id: res.data.custom_hostname_id,
+          site_id: res.data.site_id,
+          status: res.data.status,
+          is_subdomain: res.data.is_subdomain,
+        });
+        setStep('cname');
+        // Refresh sites so the new site appears in sidebar
+        await fetchSites();
+      } else {
+        setError(res.error || 'Failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!cnameInfo) return;
+    setError('');
+    setVerifying(true);
+
+    try {
+      const res = await api.request('/domains/verify', {
+        method: 'POST',
+        body: { domain: cnameInfo.domain },
+      }) as any;
+
+      if (res.success && res.data?.verified) {
+        setVerified(true);
+      } else if (res.success && !res.data?.verified) {
+        setError(res.data?.message || (tr ? 'CNAME henüz algılanmadı' : 'CNAME not detected yet'));
+      } else {
+        setError(res.error || 'Verification failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const copyCname = () => {
+    if (cnameInfo) {
+      navigator.clipboard.writeText(cnameInfo.cname_target);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleGoToDashboard = () => {
+    navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">W</div>
+          <span className="font-semibold">WorkerCms</span>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md px-2 py-1 -mr-2 hover:bg-muted">
+              {user?.display_name || user?.email}
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              {tr ? 'Çıkış Yap' : 'Log Out'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-lg">
+          {/* Step 1: Enter Domain */}
+          {step === 'enter' && (
+            <div className="animate-fade-in">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/50 mb-4">
+                  <Globe className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h1 className="text-2xl font-bold mb-2">
+                  {tr ? 'Domain Ekle' : 'Add Domain'}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  {tr ? 'Siteniz için kullanmak istediğiniz domain adını girin.' : 'Enter the domain name you want to use for your site.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleSetup} className="space-y-4">
+                {error && (
+                  <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
+                  </div>
+                )}
+
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    placeholder="example.com"
+                    className="h-12 pl-10 text-base font-mono"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {tr
+                    ? 'Domain adını girin (örn: example.com veya sub.example.com). Root domainlerde www otomatik eklenecektir.'
+                    : 'Enter your domain (e.g. example.com or sub.example.com). www will be added automatically for root domains.'}
+                </p>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {tr ? 'Ayarlanıyor...' : 'Setting up...'}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      {tr ? 'Devam Et' : 'Continue'}
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
+                  )}
+                </Button>
+              </form>
+
+              {/* Skip option */}
+              <div className="text-center mt-6">
+                <button
+                  type="button"
+                  onClick={handleGoToDashboard}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {tr ? 'Şimdilik atla, sonra eklerim →' : 'Skip for now, add later →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: CNAME Instructions + Go to Dashboard */}
+          {step === 'cname' && cnameInfo && (
+            <div className="animate-fade-in">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/50 mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h1 className="text-2xl font-bold mb-2">
+                  {tr ? 'Siteniz Oluşturuldu! 🎉' : 'Your Site is Created! 🎉'}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  {tr
+                    ? 'Siteniz hazır, hemen içerik oluşturmaya başlayabilirsiniz. Domain\'in tam çalışması için CNAME kaydı eklemeniz yeterli.'
+                    : 'Your site is ready, you can start creating content right away. Just add a CNAME record for the domain to fully work.'}
+                </p>
+              </div>
+
+              {/* Verified success */}
+              {verified && (
+                <div className="flex items-center gap-2 p-3 mb-4 text-sm text-green-700 bg-green-50 dark:bg-green-950/50 rounded-lg border border-green-200 dark:border-green-800">
+                  <PartyPopper className="w-4 h-4 flex-shrink-0" />
+                  {tr ? 'CNAME doğrulandı! Domain aktif.' : 'CNAME verified! Domain is active.'}
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 text-sm text-orange-600 bg-orange-50 dark:bg-orange-950/50 rounded-lg border border-orange-200 dark:border-orange-800 mb-4">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              {/* Go to Dashboard CTA */}
+              <Button
+                onClick={handleGoToDashboard}
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white mb-6"
+              >
+                {tr ? 'Panele Git ve İçerik Oluştur' : 'Go to Dashboard & Create Content'}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+
+              {/* CNAME Records section */}
+              <div className="rounded-xl border bg-muted/20 p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Server className="w-5 h-5 text-orange-500" />
+                  <h3 className="font-semibold text-sm">
+                    {tr ? 'CNAME Kaydı Ekleyin' : 'Add CNAME Record'}
+                  </h3>
+                  {!verified && (
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                      {tr ? 'Bekliyor' : 'Pending'}
+                    </span>
+                  )}
+                  {verified && (
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                      {tr ? 'Aktif ✓' : 'Active ✓'}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {tr
+                    ? cnameInfo.is_subdomain
+                      ? `Domain sağlayıcınızda ${cnameInfo.domain} için aşağıdaki CNAME kaydını ekleyin.`
+                      : `Domain sağlayıcınızda ${cnameInfo.domain} ve www.${cnameInfo.domain} için aşağıdaki CNAME kaydını ekleyin.`
+                    : cnameInfo.is_subdomain
+                      ? `Add the following CNAME record for ${cnameInfo.domain} at your DNS provider.`
+                      : `Add the following CNAME record for ${cnameInfo.domain} and www.${cnameInfo.domain} at your DNS provider.`}
+                </p>
+
+                {/* CNAME Record */}
+                <div className="space-y-2">
+                  {/* Bare domain */}
+                  <div className="bg-background rounded-lg px-4 py-3 border space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
+                      <span className="font-mono text-xs font-bold text-blue-600">CNAME</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Ad / Host' : 'Name / Host'}</span>
+                      <span className="font-mono text-xs">@ {tr ? 'veya' : 'or'} {cnameInfo.domain}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold">{cnameInfo.cname_target}</span>
+                        <button
+                          type="button"
+                          onClick={copyCname}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* www variant */}
+                  <div className="bg-background rounded-lg px-4 py-3 border space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
+                      <span className="font-mono text-xs font-bold text-blue-600">CNAME</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Ad / Host' : 'Name / Host'}</span>
+                      <span className="font-mono text-xs">www</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
+                      <span className="font-mono text-xs font-bold">{cnameInfo.cname_target}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick guide */}
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer hover:text-foreground transition-colors font-medium">
+                    {tr ? 'Nasıl yapılır?' : 'How to do this?'}
+                  </summary>
+                  <ol className="mt-2 space-y-1 list-decimal list-inside pl-1">
+                    <li>{tr ? 'Domain sağlayıcınızın (GoDaddy, Namecheap vb.) DNS paneline girin' : 'Log in to your DNS provider (GoDaddy, Namecheap, etc.)'}</li>
+                    <li>{tr ? 'DNS kayıtları bölümüne gidin' : 'Go to DNS records section'}</li>
+                    <li>{tr ? `Yeni bir CNAME kaydı ekleyin: @ → ${cnameInfo.cname_target}` : `Add a new CNAME record: @ → ${cnameInfo.cname_target}`}</li>
+                    <li>{tr ? `www için de aynı CNAME kaydını ekleyin: www → ${cnameInfo.cname_target}` : `Add the same CNAME for www: www → ${cnameInfo.cname_target}`}</li>
+                    <li>{tr ? 'Kaydedin. Yayılma genellikle 1-5 dakika sürer' : 'Save. Propagation usually takes 1-5 minutes'}</li>
+                  </ol>
+                </details>
+
+                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-900">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    {tr
+                      ? '💡 NS değiştirmenize gerek yok! Sadece CNAME kaydı eklemek yeterli. Mevcut e-posta ve diğer DNS kayıtlarınız etkilenmez.'
+                      : '💡 No need to change nameservers! Just add a CNAME record. Your existing email and other DNS records are not affected.'}
+                  </p>
+                </div>
+
+                {/* Manual verify button */}
+                {!verified && (
+                  <Button
+                    onClick={handleVerify}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={verifying}
+                  >
+                    {verifying ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        {tr ? 'Kontrol ediliyor...' : 'Checking...'}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        {tr ? 'CNAME Durumunu Kontrol Et' : 'Check CNAME Status'}
+                      </span>
+                    )}
+                  </Button>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  {tr
+                    ? '💡 CNAME yayılması otomatik kontrol ediliyor. Panelde çalışmaya başlayabilirsiniz.'
+                    : '💡 CNAME propagation is checked automatically. You can start working in the panel.'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

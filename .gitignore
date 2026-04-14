@@ -1,0 +1,15 @@
+node_modules/
+.wrangler/
+/dist/
+!admin/dist/
+admin/node_modules/
+mcp/dist/
+mcp/node_modules/
+.dev.vars
+wrangler.*.toml
+!wrangler.example.toml
+*.log
+.DS_Store
+.claude/
+tmp/
+admin/tsconfig.tsbuildinfo

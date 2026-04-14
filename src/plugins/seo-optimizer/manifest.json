@@ -1,0 +1,35 @@
+{
+  "slug": "seo-optimizer",
+  "name": "SEO Optimizer",
+  "version": "1.0.0",
+  "description": "Automatically optimizes posts for search engines with meta tags, Open Graph, and content analysis",
+  "author": "WP-CMS",
+  "hooks": ["post.beforeSave", "page.head", "post.beforeRender"],
+  "settings": {
+    "autoMetaDescription": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto Meta Description",
+      "description": "Automatically generate meta description from content"
+    },
+    "maxTitleLength": {
+      "type": "number",
+      "default": 60,
+      "label": "Max Title Length",
+      "description": "Maximum recommended title length for SEO"
+    },
+    "addReadingTime": {
+      "type": "boolean",
+      "default": true,
+      "label": "Add Reading Time",
+      "description": "Add estimated reading time to posts"
+    },
+    "noindexDrafts": {
+      "type": "boolean",
+      "default": true,
+      "label": "Noindex Drafts",
+      "description": "Add noindex tag to draft posts"
+    }
+  },
+  "permissions": ["posts:read", "settings:read"]
+}

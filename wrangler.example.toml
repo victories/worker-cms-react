@@ -1,0 +1,42 @@
+# WP-CMS Worker - Deployment Config Template
+#
+# 1. Copy this file: cp wrangler.example.toml wrangler.<yourdomain>.toml
+# 2. Fill in your Cloudflare account details below
+# 3. Create D1 + R2:
+#      wrangler d1 create cms-db -c wrangler.<yourdomain>.toml
+#      wrangler r2 bucket create cms-media
+# 4. Run schema: wrangler d1 execute cms-db --file=src/db/schema.sql -c wrangler.<yourdomain>.toml
+# 5. Set secrets:
+#      wrangler secret put JWT_SECRET -c wrangler.<yourdomain>.toml
+#      wrangler secret put RESEND_API_KEY -c wrangler.<yourdomain>.toml
+# 6. Deploy: wrangler deploy -c wrangler.<yourdomain>.toml
+# 7. Configure global_settings in D1 (cf_api_key, cf_email, cf_saas_zone_id, cname_target)
+
+name = "wp-cms"
+account_id = "<YOUR_CLOUDFLARE_ACCOUNT_ID>"
+main = "src/index.ts"
+compatibility_date = "2025-02-14"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[vars]
+ADMIN_DOMAIN = "<YOUR_DOMAIN>"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cms-db"
+database_id = "<YOUR_D1_DATABASE_ID>"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "cms-media"
+
+[[routes]]
+pattern = "proxy.<YOUR_DOMAIN>"
+custom_domain = true
+
+[triggers]
+crons = ["* * * * *"]
+
+[site]
+bucket = "./admin/dist"

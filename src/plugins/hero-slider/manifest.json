@@ -1,0 +1,53 @@
+{
+  "slug": "hero-slider",
+  "name": "Hero Slider",
+  "version": "1.0.0",
+  "description": "Full-width hero slider with title, description, and CTA button for homepage",
+  "author": "WP-CMS",
+  "hooks": ["page.head", "page.bodyStart", "page.bodyEnd"],
+  "settings": {
+    "slides": {
+      "type": "string",
+      "default": "[]",
+      "label": "Slides",
+      "description": "JSON array of slide objects"
+    },
+    "autoPlay": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto Play",
+      "description": "Automatically cycle through slides"
+    },
+    "interval": {
+      "type": "number",
+      "default": 5000,
+      "label": "Interval (ms)",
+      "description": "Time between slide transitions"
+    },
+    "showDots": {
+      "type": "boolean",
+      "default": true,
+      "label": "Show Dots",
+      "description": "Show dot indicators"
+    },
+    "showArrows": {
+      "type": "boolean",
+      "default": true,
+      "label": "Show Arrows",
+      "description": "Show previous/next arrows"
+    },
+    "height": {
+      "type": "string",
+      "default": "500px",
+      "label": "Height",
+      "description": "Slider height (CSS value)"
+    },
+    "overlayOpacity": {
+      "type": "number",
+      "default": 0.4,
+      "label": "Overlay Opacity",
+      "description": "Dark overlay opacity (0-1)"
+    }
+  },
+  "permissions": ["settings:read"]
+}
