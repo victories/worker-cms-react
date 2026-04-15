@@ -22,6 +22,17 @@ import { cn } from './lib/utils';
  * We also wire Prose to shadcn tokens so the primary link color, muted
  * text, and border colors come from the active palette instead of
  * Tailwind's defaults.
+ *
+ * ## WordPress-style image layout classes
+ *
+ * The rich-text editor drops classes like `wp-cover`, `wp-full-width`,
+ * `wp-float-left`, and `wp-float-right` on figures/images inside post
+ * content. Those are styled in `public-styles/input.css` under a
+ * `@layer components` block scoped to `.prose` — i.e. they only take
+ * effect inside this wrapper, matching the admin preview behaviour.
+ * If you need to tweak float widths, caption colors, or small-screen
+ * fallbacks, edit that file (not this one) so admin and public stay
+ * in sync and the rules survive the tailwind build.
  */
 export interface ProseProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
