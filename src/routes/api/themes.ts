@@ -2,10 +2,37 @@ import { Hono } from 'hono';
 import type { Bindings, Variables } from '../../types';
 import { authMiddleware, requireRole, requireSite, siteAccessMiddleware } from '../../middleware/auth';
 import { cachePurgeSite } from '../../lib/cache';
+import { PALETTES, DEFAULT_PALETTE_SLUG } from '../../lib/themes/palettes';
 
 const themes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 themes.use('*', authMiddleware, requireSite, siteAccessMiddleware);
+
+// GET /api/themes/palettes — List every built-in shadcn palette.
+//
+// This is consumed by the admin theme UI (ThemeStore + ThemeCustomizer)
+// for any caller that cannot import from `src/lib/themes/palettes.ts`
+// directly. The admin SPA currently imports the module through the
+// `@themes` alias, but this endpoint is still exposed so third-party
+// tools and future dynamic palette loading (Faz 8+) have a stable wire
+// format to target. Must be declared before `/:id` so the literal
+// segment wins over the param.
+themes.get('/palettes', async (c) => {
+  const list = Object.values(PALETTES).map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    description: p.description ?? '',
+    light: p.light,
+    dark: p.dark,
+  }));
+  return c.json({
+    success: true,
+    data: {
+      default: DEFAULT_PALETTE_SLUG,
+      palettes: list,
+    },
+  });
+});
 
 // GET /api/themes — List all themes (system + user-created)
 themes.get('/', async (c) => {

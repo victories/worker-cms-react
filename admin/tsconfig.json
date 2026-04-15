@@ -17,8 +17,15 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@ui/*": ["../packages/ui/*"]
+      "@ui/*": ["../packages/ui/*"],
+      "@themes/*": ["../src/lib/themes/*"]
     }
   },
-  "include": ["src", "../packages/ui"]
+  // We alias @themes/* to ../src/lib/themes/* but intentionally do NOT
+  // add that directory to `include`. The admin only ever imports the
+  // pure-data `palettes.ts` and `types.ts` modules; the sibling
+  // `engine.ts` references Cloudflare Worker types (`D1Database`) that
+  // the admin doesn't depend on and can't see. Leaving engine.ts out
+  // of the include list avoids pulling in those worker globals.
+  "include": ["src", "../packages/ui", "../src/lib/themes/palettes.ts", "../src/lib/themes/types.ts"]
 }
