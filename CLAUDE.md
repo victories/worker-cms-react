@@ -61,8 +61,8 @@ notes, risk matrix, and verification checklists.
 | 0   | React 19 + Tailwind + shadcn tokens smoke test | ✅ done | `154814f` |
 | 1   | `packages/ui/` shared primitive package | ✅ done | `071b550` |
 | 2   | SSR Shell + PublisherLayout skeleton | ✅ done | `99405c1` |
-| 3   | Landing page (`/landing`) rewrite | ⬜ next |  |
-| 4   | Home/Post/Archive/Search/Page routes rewrite | ⬜ |  |
+| 3   | Landing page (`/landing`) rewrite | ✅ done | (bu oturum) |
+| 4   | Home/Post/Archive/Search/Page routes rewrite | ⬜ next |  |
 | 5   | Theme engine + seed rewrite | ⬜ |  |
 | 6   | Admin theme selection UI update | ⬜ |  |
 | 7   | Plugin API v2 + bundled plugin rewrite | ⬜ |  |
@@ -70,9 +70,10 @@ notes, risk matrix, and verification checklists.
 | 9   | Verification + performance sweep | ⬜ |  |
 
 ### Entry point for the next session
-When resuming, after reading this file, the next step is **Faz 3** unless
-the table above says otherwise. The plan doc has the detailed Faz 3
-checklist (landing sayfasının React SSR'a taşınması).
+When resuming, after reading this file, the next step is **Faz 4** unless
+the table above says otherwise. The plan doc has the detailed Faz 4
+checklist (Home/Post/Archive/Search/Page route'larının React SSR'a taşınması —
+en büyük faz).
 
 ## 4. Day-to-day commands
 
@@ -83,10 +84,13 @@ All commands run from the repo root unless noted.
 # see §5 below).
 source ~/.claude/secrets/worker-cms-react.env
 
-# Build the public Tailwind bundle (runs before wrangler dev/deploy).
-npm run build:css
+# Build public assets (Tailwind CSS + client hydration bundles).
+# Runs automatically before `dev` and `deploy`.
+npm run build:assets    # = build:css + build:client
+npm run build:css       # only Tailwind → src/ssr/__generated__/tailwind.ts
+npm run build:client    # only client islands → src/ssr/__generated__/*-client.ts
 
-# Local dev server (bundles worker, opens on localhost:8787).
+# Local dev server (builds assets, bundles worker, opens on localhost:8787).
 npm run dev
 
 # Deploy to staging worker wp-cms-v2.

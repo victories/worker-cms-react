@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm run build:css && wrangler dev",
+    "dev": "npm run build:assets && wrangler dev",
     "build:css": "node scripts/build-public-css.mjs",
-    "deploy": "npm run build:css && wrangler deploy",
+    "build:client": "node scripts/build-client.mjs",
+    "build:assets": "npm run build:css && npm run build:client",
+    "deploy": "npm run build:assets && wrangler deploy",
     "db:create": "wrangler d1 create cms-db-v2",
     "db:migrate:local": "wrangler d1 execute cms-db-v2 --local --file=src/db/schema.sql",
     "db:seed:local": "wrangler d1 execute cms-db-v2 --local --file=src/db/seed.sql",
