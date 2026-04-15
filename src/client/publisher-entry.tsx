@@ -1,5 +1,3 @@
-/** @jsxImportSource react */
-
 /**
  * Publisher hydration entry — bootstraps every interactive island on
  * the publisher site (Home, Post, Page, Archive, Search).

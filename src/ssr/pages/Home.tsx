@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { PublicPost, PublicTaxonomy } from '../../lib/public-db';
 import { PostCard } from '../components/PostCard';
 import { Pagination } from '../components/Pagination';

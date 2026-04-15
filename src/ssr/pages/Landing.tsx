@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import { Button } from '@ui/button';
 import { Card, CardContent } from '@ui/card';

@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { cn } from '@ui/lib/utils';
 
 /**

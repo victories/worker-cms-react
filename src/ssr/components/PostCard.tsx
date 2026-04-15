@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { Card, CardContent } from '@ui/card';
 import { Badge } from '@ui/badge';
 import { cn, formatDate } from '@ui/lib/utils';

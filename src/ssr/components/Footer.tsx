@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import { Container } from '@ui/container';
 import { Separator } from '@ui/separator';
@@ -11,8 +10,7 @@ import { WidgetRenderer } from './WidgetRenderer';
  *
  * Layout (bottom-up):
  *   1. Footer widget grid (footer-1, footer-2, footer-3 — footer-4 has
- *      schema but no admin UI, matching the original Hono JSX behaviour
- *      documented in `src/components/LayoutPublisher.tsx`).
+ *      schema but no admin UI; admin only surfaces three columns).
  *   2. Separator
  *   3. Bottom bar: copyright + "Powered by WP-Worker" (unless the site
  *      disables it via the white-label toggle).

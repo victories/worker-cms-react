@@ -1,5 +1,3 @@
-/** @jsxImportSource react */
-
 /**
  * Contact Form Plugin — v2.
  *

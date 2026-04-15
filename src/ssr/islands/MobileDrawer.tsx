@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useCallback, useEffect, useState } from 'react';
 import type { NavMenuItem } from '@ui/nav-menu';
 

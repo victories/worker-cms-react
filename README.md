@@ -46,11 +46,12 @@ Worker CMS, tek bir Cloudflare Worker olarak çalışan WordPress ilhamıyla gel
 | Katman | Teknoloji |
 |--------|-----------|
 | Çalışma Ortamı | Cloudflare Workers |
-| Framework | Hono v4 |
+| Framework | Hono v4 (routing/middleware) |
 | Veritabanı | Cloudflare D1 (Edge'de SQLite) |
 | Dosya Depolama | Cloudflare R2 (S3 uyumlu) |
+| **Public Render** | **React 19 SSR (`react-dom/server.edge`) + Tailwind + shadcn/ui** |
 | Admin SPA | React 19 + Vite + TypeScript |
-| UI Kiti | Radix UI + Shadcn/ui + TailwindCSS |
+| UI Kiti | `packages/ui/` (Radix UI + shadcn/ui + TailwindCSS) — hem admin hem public için tek kaynak |
 | Editörler | Tiptap (zengin metin) + BlockNote (blok editör) |
 | Durum Yönetimi | Zustand |
 | İkonlar | Lucide React |
@@ -58,6 +59,14 @@ Worker CMS, tek bir Cloudflare Worker olarak çalışan WordPress ilhamıyla gel
 | Önbellek | Cloudflare KV (isteğe bağlı edge cache) |
 | Kimlik Doğrulama | JWT + TOTP (2FA) |
 | E-posta | Resend API |
+
+**Render mimarisi:** Public sayfalar (home, post, archive, search,
+landing) React 19 SSR ile üretilir — `renderToReadableStream` streaming
+response, inline Tailwind bundle, ve `src/ssr/layouts/PublisherLayout`
+altında tek şadcn tabanlı tema. AMP route'ları (`src/routes/public/amp/*`),
+RSS feed ve sitemap yalnızca Hono JSX kullanır (per-file
+`/** @jsxImportSource hono/jsx */` pragma ile). Admin paneli ayrı Vite
+bundle olarak aynı `packages/ui/` shadcn primitifleri üzerinde çalışır.
 
 ---
 
@@ -358,18 +367,44 @@ Worker CMS, hızlı mobil deneyim için geçerli AMP HTML üretir.
 
 ---
 
-## Eklenti Sistemi
+## Eklenti Sistemi (API v2)
 
-Eklentiler, hook tabanlı bir mimari ile işlevselliği genişletir. İki katmanlı sandbox izolasyonu ile güvenli çalışır.
+Eklentiler hook tabanlı mimari ile işlevselliği genişletir. **Plugin
+API v2** (Faz 7 sonrası) tek bir API sunar: render hook'ları `ReactNode[]`
+döner, eski HTML-string hook'ları (`page.head`, `page.bodyStart`,
+`page.bodyEnd`, `post.beforeRender`) silindi. Detaylı döküman için
+bkz. [`docs/plugin-development.md`](docs/plugin-development.md).
 
 ### Dahili Eklentiler
 
-| Eklenti | İzinler | Açıklama |
-|---------|---------|----------|
-| **seo-optimizer** | `posts:read/write`, `page:inject` | Otomatik meta açıklama, başlık uyarısı, okuma süresi |
-| **social-share** | `posts:read`, `page:inject` | Sosyal medya paylaşım butonları (9+ platform) |
-| **contact-form** | `posts:read`, `page:inject`, `http:fetch` | E-posta bildirimleri + reCAPTCHA desteği |
-| **hero-slider** | `page:inject` | Otomatik oynatma, geçiş efektleri, özel slaytlar |
+| Eklenti | Hook'lar | Açıklama |
+|---------|----------|----------|
+| **seo-optimizer** | `post.beforeSave`, `ui.head`, `ui.slot.postHeader` | Otomatik meta açıklama, başlık uyarısı, okuma süresi rozeti |
+| **social-share** | `ui.slot.postFooter`, `ui.bodyEnd` | Shadcn-stillendirilmiş paylaşım butonları (9 platform) + hydration boot |
+| **contact-form** | — (shortcode tabanlı) | `[contact-form]` / `[iletisim-formu]` shortcode + `/api/contact` + reCAPTCHA |
+| **hero-slider** | `ui.head`, `ui.bodyStart`, `ui.bodyEnd` | Otomatik oynatma, dokunmatik kaydırma, palet-uyumlu stil |
+
+### Hook Noktaları (v2)
+
+| Hook | Scope | Açıklama |
+|------|-------|----------|
+| `post.beforeSave` / `post.afterSave` / `post.beforeDelete` | Data | Yazı satırlarını dönüştür / yan etki tetikle |
+| `media.afterUpload` / `media.beforeServe` | Data | Medya yüklemeleri |
+| `comment.beforeSave` / `comment.afterSave` | Data | Yorum dönüşümü |
+| `api.response` | Data | API yanıtlarını enrich et |
+| `ui.head` | `ReactNode[]` + `Site` | `<head>` içine React node enjeksiyonu |
+| `ui.bodyStart` | `ReactNode[]` + `Site` | `<body>` başına React node enjeksiyonu |
+| `ui.bodyEnd` | `ReactNode[]` + `Site` | `</body>` öncesine React node enjeksiyonu |
+| `ui.slot.headerRight` | `ReactNode[]` + `Site` | Header sağ tools alanı |
+| `ui.slot.sidebarTop` / `sidebarBottom` | `ReactNode[]` + `Site` | Widget listesinin üstü/altı |
+| `ui.slot.footerStart` / `footerEnd` | `ReactNode[]` + `Site` | Footer widget grid'inin üstü / copyright'ın altı |
+| `ui.slot.postHeader` / `postFooter` | `ReactNode[]` + `PluginPostContext` | Post gövdesinin üstü / yorum bölümünün üstü |
+
+Her render hook akümülatör listesi alır, yeni React node'ları ekleyerek
+dönülür. Route handler tüm slotları `collectDocumentSlots()` /
+`collectSiteLayoutSlots()` / `collectPostLayoutSlots()` ile `Promise.all`
+içinde önceden toplar ve `<Shell>` + `<PublisherLayout>` prop'larına
+yerleştirir.
 
 ### Eklenti Sandbox Mimarisi
 
@@ -384,19 +419,7 @@ Eklentiler, hook tabanlı bir mimari ile işlevselliği genişletir. İki katman
 - CPU/subrequest limitleri (plan bazlı: 10-50ms CPU, 0-50 subrequest)
 - JSON üzerinden iletişim — eklenti DB/R2'ye erişemez
 - Deploy öncesi kod validasyonu (eval, dynamic import yasağı)
-
-### Hook Noktaları
-
-| Hook | Tip | Açıklama |
-|------|-----|----------|
-| `post.beforeSave` | Filtre | Kayıt öncesi yazıyı dönüştür |
-| `post.afterSave` | Eylem | Kayıt sonrası yan etkiler |
-| `post.beforeRender` | Filtre | HTML render öncesi içeriği değiştir |
-| `page.head` | Filtre | `<head>` içine enjeksiyon |
-| `page.bodyStart` | Filtre | `<body>` başına enjeksiyon |
-| `page.bodyEnd` | Filtre | `</body>` öncesine enjeksiyon |
-| `comment.beforeSave` | Filtre | Yorum kayıt öncesi dönüştür |
-| `media.afterUpload` | Eylem | Yükleme sonrası işlem |
+- Not: MVP'de aktif 3. parti eklenti yok; altyapı gelecek için hazır.
 
 ---
 

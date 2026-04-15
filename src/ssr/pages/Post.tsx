@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import type { PublicPost, PublicTaxonomy } from '../../lib/public-db';
 import { Badge } from '@ui/badge';
