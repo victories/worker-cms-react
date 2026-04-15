@@ -62,6 +62,8 @@ import ampPageRoutes from './routes/public/amp/page';
 import ampDynamicRoutes from './routes/public/amp/dynamic';
 import gitRoutes from './routes/public/git';
 import landingPageRoutes from './routes/public/landing';
+// React SSR migration — Faz 0 smoke test
+import ssrTestRoutes from './routes/public/ssr-test';
 
 // AI cron processor
 import { processAiJobs } from './lib/ai-cron';
@@ -338,6 +340,10 @@ app.get('/', async (c, next) => {
   await next();
 });
 app.route('/', landingPageRoutes);
+
+// React SSR smoke test — Faz 0, mounted before siteResolver-aware
+// routes so we can always hit /ssr-test regardless of host.
+app.route('/', ssrTestRoutes);
 
 // ---- Media serving (R2) ----
 // Supports both:
