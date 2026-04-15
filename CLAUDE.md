@@ -40,10 +40,15 @@ React 19 SSR, without touching production.
 5. **AMP is load-bearing.** Do not delete `src/components/AMPLayout.tsx`
    or `src/routes/public/amp/*`. Turkey's internet blocks make AMP a
    real access path for readers. AMP stays hand-written Hono JSX forever.
-6. **Hono JSX and React JSX coexist.** tsconfig default is `hono/jsx`.
-   New React files must carry `/** @jsxImportSource react */` at the
-   top. Route handlers that invoke React components should be plain
-   `.ts` files using `createElement` so JSX pragma never conflicts.
+6. **React JSX is the default; Hono JSX is per-file.** After Faz 8
+   the tsconfig default is `jsxImportSource: "react"`. React files
+   need no pragma. The seven Hono JSX producers carry a per-file
+   `/** @jsxImportSource hono/jsx */` header: `src/components/AMPLayout.tsx`,
+   `src/routes/public/feed.tsx`, `src/routes/public/sitemap.tsx`, and
+   `src/routes/public/amp/{home,post,page,dynamic}.tsx`. Public route
+   handlers that call React components stay as `.ts` files using
+   `createElement` — this is still useful to keep the Hono router
+   import separate from React render code.
 
 ## 3. Migration plan
 
@@ -65,18 +70,37 @@ notes, risk matrix, and verification checklists.
 | 4   | Home/Post/Archive/Search/Page routes rewrite | ✅ done | `130f676` |
 | 5   | Theme engine + seed rewrite | ✅ done | `682a76e` |
 | 6   | Admin theme selection UI update | ✅ done | `99bda0e` |
-| 7   | Plugin API v2 + bundled plugin rewrite | ⬜ next |  |
-| 8   | Final cleanup (delete Hono JSX layouts) | ⬜ |  |
-| 9   | Verification + performance sweep | ⬜ |  |
+| 7   | Plugin API v2 + bundled plugin rewrite | ✅ done | `ac6600f` |
+| 8   | Final cleanup + global React JSX default | ✅ done | `e55ba3b` |
+| 9   | Verification + performance sweep | ✅ done | (this commit) |
 
-### Entry point for the next session
-When resuming, after reading this file, the next step is **Faz 7** unless
-the table above says otherwise. The plan doc has the detailed Faz 7
-checklist: plugin engine'i ReactNode API'sine taşımak (eski string hook'lar
-`page.head`/`page.bodyStart`/`page.bodyEnd`/`post.beforeRender` silinip
-`ui.head`/`ui.bodyStart`/`ui.bodyEnd`/`ui.postContent` gelir), slot collector
-yazmak, ve bundled plugin'leri (contact-form, seo-optimizer, social-share,
-hero-slider) shadcn primitive'leri ile TSX olarak yeniden yazmak.
+### Migration complete
+
+All 10 phases of the React SSR migration have shipped. The repo now
+renders every public page through React 19 SSR on Cloudflare Workers,
+uses a single shadcn-based theme engine with palette variants, and
+exposes a v2 plugin API where every render hook takes and returns
+`ReactNode[]`. The four bundled plugins (seo-optimizer, social-share,
+hero-slider, contact-form) have been rewritten to match; AMP, RSS
+feed, and sitemap stay on Hono JSX via per-file pragmas. Plugin
+authoring is documented in [`docs/plugin-development.md`](docs/plugin-development.md).
+
+**Faz 9 verification summary** (2026-04-15):
+- `tsc --noEmit` → 19 baseline errors, unchanged from master before
+  Faz 7 (all pre-existing in `totp.ts`, `backup.ts`, `shortcodes.ts`,
+  `subscriptions.ts`, `amp/dynamic.tsx`, etc. — unrelated to the
+  migration).
+- `npm run build:assets` → Tailwind **71.3 KB**, publisher-client
+  **197.2 KB** raw (inlined into the worker bundle).
+- `cd admin && npm run build` → Admin SPA builds cleanly.
+- `wrangler deploy --dry-run` → **2404.30 KiB raw / 500.11 KiB gzipped**
+  (target ≤1 MB gzipped ✅).
+- `grep -r "LayoutModern|LayoutVelvet|LayoutPublisher|layoutResolver|
+   theme-renderer|themePresets|themeEngine" src/` → 0 matches.
+- `grep -r "page\.head|page\.bodyStart|page\.bodyEnd|post\.beforeRender" src/`
+  → 0 matches (v1 plugin hooks fully deleted).
+- `grep -r "from 'hono/jsx'" src/` → only `feed.tsx`, `sitemap.tsx`,
+  `amp/{home,post,page,dynamic}.tsx`, and `components/AMPLayout.tsx`.
 
 ## 4. Day-to-day commands
 
