@@ -1,4 +1,17 @@
-import { useEffect, useState } from 'react';
+// ThemeCustomizer — per-site theme fine-tuning. After Faz 6 the shape of
+// `site_themes.custom_overrides` is the server-side `SiteThemeOverrides`
+// type exactly:
+//
+//   { palette?: string, mode?: 'light' | 'dark', css?: CssVars }
+//
+// where `css` is a map of shadcn HSL tokens keyed by full name
+// (`--primary`, `--background`, ...). Legacy override keys from the
+// Faz 5 build (`css_variables`, `layout_config`, `custom_css`,
+// `palette_slug`, `color_mode`) are no longer written — the server
+// ignores them in buildActiveTheme and Faz 8 will wipe the remaining
+// admin types.
+
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
@@ -7,108 +20,56 @@ import { Button } from '@ui/button';
 import { Card, CardContent } from '@ui/card';
 import { Input } from '@ui/input';
 import { Label } from '@ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
-import { Switch } from '@ui/switch';
-import { Textarea } from '@ui/textarea';
 import { useToast } from '@ui/toast-notification';
 import {
   Paintbrush, ArrowLeft, Save, RotateCcw, Loader2,
-  ChevronDown, ChevronUp, Palette, Type, Layout, Code2, Sparkles, Megaphone,
+  ChevronDown, ChevronUp, Palette, Sparkles,
 } from 'lucide-react';
-import { PaletteSelector, type ColorMode } from './PaletteSelector';
+import { PaletteSelector, DEFAULT_PALETTE_SLUG, type ColorMode } from './PaletteSelector';
+import { PALETTES } from '@themes/palettes';
+import type { CssVars } from '@themes/types';
+import { formatHsl, hexToHsl, hslToHex, parseHsl } from './color-utils';
 
-const FONT_OPTIONS = [
-  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Nunito',
-  'Raleway', 'Source Sans Pro', 'PT Sans', 'Fira Sans', 'IBM Plex Sans', 'DM Sans',
-  'Outfit', 'Plus Jakarta Sans',
-  'Merriweather', 'Playfair Display', 'Lora', 'Crimson Text', 'Source Serif Pro',
-  'Libre Baskerville', 'Cormorant Garamond',
-  'JetBrains Mono', 'Fira Code',
-];
+// ── Types ────────────────────────────────────────────────────────────────
 
-interface CssVariables {
-  primary_color?: string;
-  secondary_color?: string;
-  bg_color?: string;
-  surface_color?: string;
-  text_color?: string;
-  text_secondary_color?: string;
-  border_color?: string;
-  header_bg_color?: string;
-  header_text_color?: string;
-  footer_bg_color?: string;
-  footer_text_color?: string;
-  link_color?: string;
-  link_hover_color?: string;
-  font_family?: string;
-  heading_font_family?: string;
-}
-
-interface LayoutConfig {
-  header_style?: string;
-  nav_style?: string;
-  sidebar_position?: string;
-  sidebar_enabled?: boolean;
-  footer_style?: string;
-  post_card_style?: string;
-  post_card_columns?: number;
-  content_max_width?: string;
-  show_featured_image?: boolean;
-  show_author?: boolean;
-  show_date?: boolean;
-  show_excerpt?: boolean;
-  /** Raw HTML or [shortcode] rendered at the top full-width ad slot.
-   *  Empty / undefined → slot is hidden on the public site. */
-  ad_top_code?: string;
-  /** Raw HTML or [shortcode] rendered at the mid full-width ad slot. */
-  ad_mid_code?: string;
-}
-
-interface CustomOverrides {
-  css_variables?: CssVariables;
-  layout_config?: LayoutConfig;
-  custom_css?: string;
-  palette_slug?: string;
-  color_mode?: ColorMode;
+interface SiteThemeOverridesWire {
+  palette?: string;
+  mode?: ColorMode;
+  css?: CssVars;
 }
 
 interface ThemeData {
-  // themes.id is TEXT primary key in D1 (e.g. "theme-publisher"),
-  // never a number — the previous number typing silently broke the
-  // active-theme check used to hydrate overrides.
+  // themes.id is TEXT primary key in D1 (e.g. "default-publisher"),
+  // never a number.
   id: string;
   name: string;
   slug: string;
-  colors?: Record<string, string>;
-  layout_config?: Record<string, any>;
-  custom_overrides?: CustomOverrides;
+  /** Raw theme base tokens (parsed from the `css_variables` JSON column). */
+  baseCss: CssVars;
 }
 
-// ── Color Field ──────────────────────────────────────────────────────────────
-
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs">{label}</Label>
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value || '#000000'}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-9 h-9 rounded border cursor-pointer flex-shrink-0"
-        />
-        <Input
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="#000000"
-          className="flex-1 h-9 text-xs font-mono"
-        />
-      </div>
-    </div>
-  );
+// The 8 shadcn tokens surfaced in the admin color editor, in the order
+// declared by the plan (Faz 6 §2). Each token appears once with a
+// localized label and sensible hex fallback used only if the palette
+// lookup fails.
+interface ShadcnTokenSpec {
+  key: string;
+  labelEn: string;
+  labelTr: string;
 }
 
-// ── Collapsible Section ──────────────────────────────────────────────────────
+const SHADCN_TOKENS: ShadcnTokenSpec[] = [
+  { key: '--primary',     labelEn: 'Primary',     labelTr: 'Ana Renk' },
+  { key: '--secondary',   labelEn: 'Secondary',   labelTr: 'İkincil' },
+  { key: '--background',  labelEn: 'Background',  labelTr: 'Arka Plan' },
+  { key: '--foreground',  labelEn: 'Foreground',  labelTr: 'Ön Plan' },
+  { key: '--muted',       labelEn: 'Muted',       labelTr: 'Silik' },
+  { key: '--accent',      labelEn: 'Accent',      labelTr: 'Aksan' },
+  { key: '--border',      labelEn: 'Border',      labelTr: 'Kenarlık' },
+  { key: '--destructive', labelEn: 'Destructive', labelTr: 'Uyarı' },
+];
+
+// ── Collapsible Section ──────────────────────────────────────────────────
 
 function Section({
   title,
@@ -133,14 +94,79 @@ function Section({
           <Icon className="h-4 w-4" />
           {title}
         </div>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        {open
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
       {open && <CardContent className="pt-0 pb-6">{children}</CardContent>}
     </Card>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Token field (HSL-aware color picker) ─────────────────────────────────
+//
+// The underlying value is a bare HSL triple string (`"221 83% 53%"`)
+// because that is what shadcn/Tailwind expects to interpolate into
+// `hsl(var(--primary))`. The `<input type="color">` on the other hand
+// only speaks hex, so we convert on the edge. The text input accepts
+// HSL triples directly for power users who want to paste values from
+// the shadcn themes generator.
+
+function TokenField({
+  label,
+  value,
+  onChange,
+  onClear,
+  isOverridden,
+}: {
+  label: string;
+  value: string;
+  onChange: (hslTriple: string) => void;
+  onClear: () => void;
+  isOverridden: boolean;
+}) {
+  const parsed = useMemo(() => parseHsl(value), [value]);
+  const hex = parsed ? hslToHex(parsed) : '#000000';
+
+  const handleHexChange = (nextHex: string) => {
+    const next = hexToHsl(nextHex);
+    if (next) onChange(formatHsl(next));
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label className="text-xs">{label}</Label>
+        {isOverridden && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-[10px] text-muted-foreground hover:text-foreground underline"
+            title="Reset to theme default"
+          >
+            reset
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={hex}
+          onChange={(e) => handleHexChange(e.target.value)}
+          className="w-9 h-9 rounded border cursor-pointer flex-shrink-0"
+        />
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="221 83% 53%"
+          className="flex-1 h-9 text-xs font-mono"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────
 
 export function ThemeCustomizer() {
   const { id } = useParams<{ id: string }>();
@@ -152,24 +178,21 @@ export function ThemeCustomizer() {
   const [saving, setSaving] = useState(false);
   const [theme, setTheme] = useState<ThemeData | null>(null);
 
-  // Editable overrides state
-  const [cssVars, setCssVars] = useState<CssVariables>({});
-  const [layoutConfig, setLayoutConfig] = useState<LayoutConfig>({});
-  const [customCss, setCustomCss] = useState('');
-  // Palette selection (only used when the theme declares palette_variants —
-  // currently: Publisher). Default palette is 'lavender'.
-  const [paletteSlug, setPaletteSlug] = useState<string>('lavender');
+  // Editable overrides state — shape matches SiteThemeOverrides exactly.
+  const [paletteSlug, setPaletteSlug] = useState<string>(DEFAULT_PALETTE_SLUG);
   const [colorMode, setColorMode] = useState<ColorMode>('light');
+  const [cssOverrides, setCssOverrides] = useState<CssVars>({});
 
-  // Only themes that declare palette_variants get the palette selector.
-  // Currently this is the Publisher theme. We identify it by slug so the
-  // admin does not need to know about palette_variants server-side.
-  const themeSupportsPalettes = theme?.slug === 'publisher';
+  // Only the built-in publisher theme declares palette variants in its
+  // manifest. Identify it by slug so the admin does not need to parse
+  // `layout_config` JSON just to decide whether to render the selector.
+  const themeSupportsPalettes = theme?.slug === 'default-publisher';
 
-  // ── Load ─────────────────────────────────────────────────────────────────
+  // ── Load ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
     loadTheme();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadTheme = async () => {
@@ -181,70 +204,73 @@ export function ThemeCustomizer() {
       ]);
 
       if (themeRes.success && themeRes.data) {
-        // Parse css_variables JSON into a flat colors map so getColor()
-        // can resolve placeholders without reaching into the raw string.
         const row = themeRes.data;
-        let parsedColors: Record<string, string> | undefined;
+        let baseCss: CssVars = {};
         if (typeof row.css_variables === 'string') {
-          try { parsedColors = JSON.parse(row.css_variables); } catch {}
+          try { baseCss = JSON.parse(row.css_variables); } catch { baseCss = {}; }
         } else if (row.css_variables && typeof row.css_variables === 'object') {
-          parsedColors = row.css_variables;
+          baseCss = row.css_variables as CssVars;
         }
-        setTheme({ ...row, colors: parsedColors || row.colors });
+        setTheme({
+          id: String(row.id),
+          name: row.name,
+          slug: row.slug,
+          baseCss,
+        });
       }
 
-      // GET /themes/active returns { theme: { id, ... }, overrides: {...} }.
-      // The old code read `data.id` (undefined) and `data.custom_overrides`
-      // (also undefined), so saved overrides were never hydrated on refresh.
-      // Result: palette / color mode / ad code state appeared to "reset"
-      // every time the customizer page reloaded. Fixed here by reading
-      // the wrapped shape and comparing IDs as strings.
-      let activeOverrides: CustomOverrides | null = null;
+      // GET /themes/active returns { theme, overrides }. Hydrate only
+      // when the active theme matches the one we're editing — otherwise
+      // we keep the defaults so a freshly opened unrelated theme never
+      // shows another site's overrides.
+      let overrides: SiteThemeOverridesWire = {};
       if (
         activeRes.success &&
         activeRes.data?.theme?.id &&
         String(activeRes.data.theme.id) === String(id)
       ) {
-        activeOverrides = (activeRes.data.overrides || null) as CustomOverrides | null;
+        overrides = (activeRes.data.overrides || {}) as SiteThemeOverridesWire;
       }
 
-      const overrides: CustomOverrides = activeOverrides || {};
-
-      setCssVars(overrides.css_variables || {});
-      setLayoutConfig(overrides.layout_config || {});
-      setCustomCss(overrides.custom_css || '');
-      if (typeof overrides.palette_slug === 'string') {
-        setPaletteSlug(overrides.palette_slug);
-      }
-      if (overrides.color_mode === 'dark' || overrides.color_mode === 'light') {
-        setColorMode(overrides.color_mode);
-      }
+      setPaletteSlug(
+        typeof overrides.palette === 'string' && PALETTES[overrides.palette]
+          ? overrides.palette
+          : DEFAULT_PALETTE_SLUG
+      );
+      setColorMode(overrides.mode === 'dark' ? 'dark' : 'light');
+      setCssOverrides(overrides.css ?? {});
     } catch {
       toast(lang === 'tr' ? 'Tema yüklenemedi' : 'Failed to load theme', 'error');
     }
     setLoading(false);
   };
 
-  // ── Save ─────────────────────────────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const overrides: CustomOverrides = {
-        css_variables: cssVars,
-        layout_config: layoutConfig,
-        custom_css: customCss,
-      };
-      // Only include palette fields when the theme actually supports them,
-      // so we don't pollute custom_overrides for themes that ignore them.
+      // Build overrides payload in SiteThemeOverrides shape. Only emit
+      // the keys that actually carry a value — empty `css` or non-
+      // customised palette/mode are omitted so the DB stays tidy.
+      const overrides: SiteThemeOverridesWire = {};
       if (themeSupportsPalettes) {
-        overrides.palette_slug = paletteSlug;
-        overrides.color_mode = colorMode;
+        overrides.palette = paletteSlug;
+        overrides.mode = colorMode;
       }
-      const body = { custom_overrides: overrides };
+      const trimmedCss: CssVars = {};
+      for (const [key, value] of Object.entries(cssOverrides)) {
+        if (typeof value === 'string' && value.trim().length > 0) {
+          trimmedCss[key] = value.trim();
+        }
+      }
+      if (Object.keys(trimmedCss).length > 0) {
+        overrides.css = trimmedCss;
+      }
+
       const res = await api.request<any>(`/themes/${id}/overrides`, {
         method: 'PUT',
-        body,
+        body: { custom_overrides: overrides },
       });
       if (res.success) {
         toast(lang === 'tr' ? 'Özelleştirmeler kaydedildi' : 'Customizations saved', 'success');
@@ -257,7 +283,7 @@ export function ThemeCustomizer() {
     setSaving(false);
   };
 
-  // ── Reset ────────────────────────────────────────────────────────────────
+  // ── Reset ────────────────────────────────────────────────────────────
 
   const handleReset = async () => {
     if (!confirm(lang === 'tr' ? 'Tüm özelleştirmeleri sıfırlamak istiyor musunuz?' : 'Reset all customizations to defaults?')) {
@@ -270,11 +296,9 @@ export function ThemeCustomizer() {
         body: { custom_overrides: {} },
       });
       if (res.success) {
-        setCssVars({});
-        setLayoutConfig({});
-        setCustomCss('');
-        setPaletteSlug('lavender');
+        setPaletteSlug(DEFAULT_PALETTE_SLUG);
         setColorMode('light');
+        setCssOverrides({});
         toast(lang === 'tr' ? 'Özelleştirmeler sıfırlandı' : 'Customizations reset', 'success');
       }
     } catch {
@@ -283,22 +307,35 @@ export function ThemeCustomizer() {
     setSaving(false);
   };
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────
 
-  const updateCssVar = (key: keyof CssVariables, value: string) => {
-    setCssVars((prev) => ({ ...prev, [key]: value }));
+  const setToken = (key: string, value: string) => {
+    setCssOverrides((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateLayout = <K extends keyof LayoutConfig>(key: K, value: LayoutConfig[K]) => {
-    setLayoutConfig((prev) => ({ ...prev, [key]: value }));
+  const clearToken = (key: string) => {
+    setCssOverrides((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   };
 
-  // Resolve a color: override -> theme base -> fallback
-  const getColor = (key: keyof CssVariables, fallback: string): string => {
-    return cssVars[key] || (theme?.colors as any)?.[key] || fallback;
+  // Resolve the value shown in a token field: user override > palette
+  // value for the active mode > theme base css > empty string.
+  const resolveTokenValue = (key: string): string => {
+    if (cssOverrides[key]) return cssOverrides[key]!;
+    if (themeSupportsPalettes) {
+      const pal = PALETTES[paletteSlug];
+      if (pal) {
+        const layer = colorMode === 'dark' ? pal.dark : pal.light;
+        if (layer[key]) return layer[key]!;
+      }
+    }
+    return theme?.baseCss[key] ?? '';
   };
 
-  // ── Loading state ────────────────────────────────────────────────────────
+  // ── Loading state ────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -324,7 +361,7 @@ export function ThemeCustomizer() {
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -354,7 +391,7 @@ export function ThemeCustomizer() {
         </div>
       </div>
 
-      {/* ── Palette (Publisher-only) ─────────────────────────────────────── */}
+      {/* ── Palette (palette-aware themes only) ─────────────────────── */}
       {themeSupportsPalettes && (
         <Section
           title={lang === 'tr' ? 'Renk Paleti ve Mod' : 'Palette & Mode'}
@@ -371,250 +408,29 @@ export function ThemeCustomizer() {
         </Section>
       )}
 
-      {/* ── Colors ──────────────────────────────────────────────────────── */}
-      <Section title={lang === 'tr' ? 'Renkler' : 'Colors'} icon={Palette}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ColorField label={lang === 'tr' ? 'Ana Renk' : 'Primary'} value={getColor('primary_color', '#2563eb')} onChange={(v) => updateCssVar('primary_color', v)} />
-          <ColorField label={lang === 'tr' ? 'İkincil Renk' : 'Secondary'} value={getColor('secondary_color', '#10b981')} onChange={(v) => updateCssVar('secondary_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Arka Plan' : 'Background'} value={getColor('bg_color', '#f8fafc')} onChange={(v) => updateCssVar('bg_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Yüzey' : 'Surface'} value={getColor('surface_color', '#ffffff')} onChange={(v) => updateCssVar('surface_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Metin' : 'Text'} value={getColor('text_color', '#1e293b')} onChange={(v) => updateCssVar('text_color', v)} />
-          <ColorField label={lang === 'tr' ? 'İkincil Metin' : 'Text Secondary'} value={getColor('text_secondary_color', '#64748b')} onChange={(v) => updateCssVar('text_secondary_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Kenarlık' : 'Border'} value={getColor('border_color', '#e2e8f0')} onChange={(v) => updateCssVar('border_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Bağlantı' : 'Link'} value={getColor('link_color', '#2563eb')} onChange={(v) => updateCssVar('link_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Bağlantı Hover' : 'Link Hover'} value={getColor('link_hover_color', '#1d4ed8')} onChange={(v) => updateCssVar('link_hover_color', v)} />
-        </div>
-      </Section>
-
-      {/* ── Header & Footer Colors ──────────────────────────────────────── */}
-      <Section title={lang === 'tr' ? 'Üstbilgi ve Altbilgi' : 'Header & Footer'} icon={Layout} defaultOpen={false}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ColorField label={lang === 'tr' ? 'Üstbilgi Arka Plan' : 'Header BG'} value={getColor('header_bg_color', '#ffffff')} onChange={(v) => updateCssVar('header_bg_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Üstbilgi Metin' : 'Header Text'} value={getColor('header_text_color', '#0f172a')} onChange={(v) => updateCssVar('header_text_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Altbilgi Arka Plan' : 'Footer BG'} value={getColor('footer_bg_color', '#0f172a')} onChange={(v) => updateCssVar('footer_bg_color', v)} />
-          <ColorField label={lang === 'tr' ? 'Altbilgi Metin' : 'Footer Text'} value={getColor('footer_text_color', '#94a3b8')} onChange={(v) => updateCssVar('footer_text_color', v)} />
-        </div>
-      </Section>
-
-      {/* ── Typography ──────────────────────────────────────────────────── */}
-      <Section title={lang === 'tr' ? 'Tipografi' : 'Typography'} icon={Type} defaultOpen={false}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">{lang === 'tr' ? 'Gövde Yazı Tipi' : 'Body Font'}</Label>
-            <Select value={cssVars.font_family || ''} onValueChange={(v) => updateCssVar('font_family', v)}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder={theme.colors?.font_family || 'Inter'} />
-              </SelectTrigger>
-              <SelectContent>
-                {FONT_OPTIONS.map((f) => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">{lang === 'tr' ? 'Başlık Yazı Tipi' : 'Heading Font'}</Label>
-            <Select value={cssVars.heading_font_family || ''} onValueChange={(v) => updateCssVar('heading_font_family', v)}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder={theme.colors?.heading_font_family || 'Inter'} />
-              </SelectTrigger>
-              <SelectContent>
-                {FONT_OPTIONS.map((f) => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </Section>
-
-      {/* ── Layout Options ──────────────────────────────────────────────── */}
-      <Section title={lang === 'tr' ? 'Yerleşim Seçenekleri' : 'Layout Options'} icon={Layout} defaultOpen={false}>
-        <div className="space-y-6">
-          {/* Selects row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Header Style */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{lang === 'tr' ? 'Üstbilgi Stili' : 'Header Style'}</Label>
-              <Select value={layoutConfig.header_style || ''} onValueChange={(v) => updateLayout('header_style', v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="standard" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="standard">Standard</SelectItem>
-                  <SelectItem value="centered">Centered</SelectItem>
-                  <SelectItem value="minimal">Minimal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Nav Style */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{lang === 'tr' ? 'Navigasyon Stili' : 'Nav Style'}</Label>
-              <Select value={layoutConfig.nav_style || ''} onValueChange={(v) => updateLayout('nav_style', v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="default" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Default</SelectItem>
-                  <SelectItem value="gooey">Gooey</SelectItem>
-                  <SelectItem value="flowing">Flowing</SelectItem>
-                  <SelectItem value="underline">Underline</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{lang === 'tr' ? 'Kenar Çubuğu' : 'Sidebar'}</Label>
-              <Select value={layoutConfig.sidebar_position || ''} onValueChange={(v) => {
-                updateLayout('sidebar_position', v);
-                updateLayout('sidebar_enabled', v !== 'none');
-              }}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="right" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">{lang === 'tr' ? 'Sol' : 'Left'}</SelectItem>
-                  <SelectItem value="right">{lang === 'tr' ? 'Sağ' : 'Right'}</SelectItem>
-                  <SelectItem value="none">{lang === 'tr' ? 'Yok' : 'None'}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Footer Style */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{lang === 'tr' ? 'Altbilgi Stili' : 'Footer Style'}</Label>
-              <Select value={layoutConfig.footer_style || ''} onValueChange={(v) => updateLayout('footer_style', v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="three-column" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="simple">Simple</SelectItem>
-                  <SelectItem value="three-column">Three Column</SelectItem>
-                  <SelectItem value="minimal">Minimal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Post Card Style */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{lang === 'tr' ? 'Kart Stili' : 'Post Card Style'}</Label>
-              <Select value={layoutConfig.post_card_style || ''} onValueChange={(v) => updateLayout('post_card_style', v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="card" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="list">List</SelectItem>
-                  <SelectItem value="minimal">Minimal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Post Card Columns */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">{lang === 'tr' ? 'Kart Sütunları' : 'Post Card Columns'}</Label>
-              <Select
-                value={layoutConfig.post_card_columns != null ? String(layoutConfig.post_card_columns) : ''}
-                onValueChange={(v) => updateLayout('post_card_columns', Number(v))}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="2" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Content Max Width */}
-          <div className="max-w-xs space-y-1.5">
-            <Label className="text-xs">{lang === 'tr' ? 'Maks. İçerik Genişliği' : 'Content Max Width'}</Label>
-            <Input
-              value={layoutConfig.content_max_width || ''}
-              onChange={(e) => updateLayout('content_max_width', e.target.value)}
-              placeholder="1200px"
-              className="h-9 text-sm"
-            />
-          </div>
-
-          {/* Boolean toggles */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {([
-              ['show_featured_image', lang === 'tr' ? 'Öne Çıkan Görseli Göster' : 'Show Featured Image'],
-              ['show_author', lang === 'tr' ? 'Yazarı Göster' : 'Show Author'],
-              ['show_date', lang === 'tr' ? 'Tarihi Göster' : 'Show Date'],
-              ['show_excerpt', lang === 'tr' ? 'Özeti Göster' : 'Show Excerpt'],
-            ] as [keyof LayoutConfig, string][]).map(([key, label]) => (
-              <div key={key} className="flex items-center justify-between rounded-lg border px-4 py-3">
-                <Label className="text-sm cursor-pointer" htmlFor={key}>{label}</Label>
-                <Switch
-                  id={key}
-                  checked={layoutConfig[key] !== false}
-                  onCheckedChange={(checked) => updateLayout(key, checked as any)}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* ── Ad Areas ────────────────────────────────────────────────────── */}
+      {/* ── Token overrides ─────────────────────────────────────────── */}
       <Section
-        title={lang === 'tr' ? 'Reklam Alanları' : 'Ad Areas'}
-        icon={Megaphone}
+        title={lang === 'tr' ? 'Token Özelleştirme' : 'Token Overrides'}
+        icon={Palette}
         defaultOpen={false}
       >
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            {lang === 'tr'
-              ? 'HTML kodu veya [kısa-kod] girebilirsiniz. Boş bırakılırsa bu reklam alanı sitede gizlenir.'
-              : 'Paste HTML or use a [shortcode]. If left empty, the slot is hidden on the public site.'}
-          </p>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">
-              {lang === 'tr' ? 'Üst Reklam Alanı (Header üstü, tam sıra)' : 'Top Ad Slot (Above header, full width)'}
-            </Label>
-            <Textarea
-              value={layoutConfig.ad_top_code || ''}
-              onChange={(e) => updateLayout('ad_top_code', e.target.value)}
-              placeholder={lang === 'tr'
-                ? '<script async src="..."></script> veya [reklam-header]'
-                : '<script async src="..."></script> or [ad-header]'}
-              rows={6}
-              className="font-mono text-xs"
+        <p className="text-xs text-muted-foreground mb-4">
+          {lang === 'tr'
+            ? 'Seçili palette üzerine ince ayar yapın. Boş bırakılan alanlar palette varsayılanını kullanır.'
+            : 'Fine-tune individual tokens on top of the selected palette. Empty fields fall back to the palette default.'}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {SHADCN_TOKENS.map(({ key, labelEn, labelTr }) => (
+            <TokenField
+              key={key}
+              label={lang === 'tr' ? labelTr : labelEn}
+              value={resolveTokenValue(key)}
+              onChange={(v) => setToken(key, v)}
+              onClear={() => clearToken(key)}
+              isOverridden={Boolean(cssOverrides[key])}
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">
-              {lang === 'tr' ? 'Orta Reklam Alanı (İçerik ile footer arası)' : 'Mid Ad Slot (Between content and footer)'}
-            </Label>
-            <Textarea
-              value={layoutConfig.ad_mid_code || ''}
-              onChange={(e) => updateLayout('ad_mid_code', e.target.value)}
-              placeholder={lang === 'tr'
-                ? '<ins class="adsbygoogle" ...></ins> veya [reklam-icerik]'
-                : '<ins class="adsbygoogle" ...></ins> or [ad-content]'}
-              rows={6}
-              className="font-mono text-xs"
-            />
-          </div>
+          ))}
         </div>
-      </Section>
-
-      {/* ── Custom CSS ──────────────────────────────────────────────────── */}
-      <Section title={lang === 'tr' ? 'Özel CSS' : 'Custom CSS'} icon={Code2} defaultOpen={false}>
-        <Textarea
-          value={customCss}
-          onChange={(e) => setCustomCss(e.target.value)}
-          placeholder={lang === 'tr' ? '/* Özel CSS kurallarınızı buraya yazın */' : '/* Add your custom CSS rules here */'}
-          rows={10}
-          className="font-mono text-sm"
-        />
       </Section>
     </div>
   );
