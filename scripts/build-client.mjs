@@ -47,6 +47,12 @@ const ENTRIES = [
     out: resolve(ROOT, 'src/ssr/__generated__/landing-client.ts'),
     exportName: 'LANDING_CLIENT_JS',
   },
+  {
+    name: 'publisher',
+    entry: resolve(ROOT, 'src/client/publisher-entry.tsx'),
+    out: resolve(ROOT, 'src/ssr/__generated__/publisher-client.ts'),
+    exportName: 'PUBLISHER_CLIENT_JS',
+  },
 ];
 
 /**
