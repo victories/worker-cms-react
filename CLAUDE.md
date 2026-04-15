@@ -60,8 +60,8 @@ notes, risk matrix, and verification checklists.
 | -1  | New repo + new Cloudflare Worker + baseline deploy | ✅ done | `94eab39` |
 | 0   | React 19 + Tailwind + shadcn tokens smoke test | ✅ done | `154814f` |
 | 1   | `packages/ui/` shared primitive package | ✅ done | `071b550` |
-| 2   | SSR Shell + PublisherLayout skeleton | ⬜ next |  |
-| 3   | Landing page (`/landing`) rewrite | ⬜ |  |
+| 2   | SSR Shell + PublisherLayout skeleton | ✅ done | (bu oturum) |
+| 3   | Landing page (`/landing`) rewrite | ⬜ next |  |
 | 4   | Home/Post/Archive/Search/Page routes rewrite | ⬜ |  |
 | 5   | Theme engine + seed rewrite | ⬜ |  |
 | 6   | Admin theme selection UI update | ⬜ |  |
@@ -70,9 +70,9 @@ notes, risk matrix, and verification checklists.
 | 9   | Verification + performance sweep | ⬜ |  |
 
 ### Entry point for the next session
-When resuming, after reading this file, the next step is **Faz 2** unless
-the table above says otherwise. The plan doc has the detailed Faz 2
-checklist.
+When resuming, after reading this file, the next step is **Faz 3** unless
+the table above says otherwise. The plan doc has the detailed Faz 3
+checklist (landing sayfasının React SSR'a taşınması).
 
 ## 4. Day-to-day commands
 
