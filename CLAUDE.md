@@ -61,7 +61,7 @@ notes, risk matrix, and verification checklists.
 | 0   | React 19 + Tailwind + shadcn tokens smoke test | ✅ done | `154814f` |
 | 1   | `packages/ui/` shared primitive package | ✅ done | `071b550` |
 | 2   | SSR Shell + PublisherLayout skeleton | ✅ done | `99405c1` |
-| 3   | Landing page (`/landing`) rewrite | ✅ done | (bu oturum) |
+| 3   | Landing page (`/landing`) rewrite | ✅ done | `a2a5dae` |
 | 4   | Home/Post/Archive/Search/Page routes rewrite | ⬜ next |  |
 | 5   | Theme engine + seed rewrite | ⬜ |  |
 | 6   | Admin theme selection UI update | ⬜ |  |
