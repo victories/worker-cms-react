@@ -5,6 +5,9 @@ node_modules/
 admin/node_modules/
 mcp/dist/
 mcp/node_modules/
+# React SSR migration build outputs
+src/ssr/__generated__/
+public-styles/.tmp.output.css
 .dev.vars
 wrangler.*.toml
 !wrangler.example.toml

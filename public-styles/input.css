@@ -1,0 +1,15 @@
+/*
+ * Public-side Tailwind entry point.
+ *
+ * This file is compiled by scripts/build-public-css.mjs into a CSS string
+ * that's embedded into src/ssr/__generated__/tailwind.ts. The Shell
+ * component then renders that string inside <style> in <head>.
+ *
+ * Content paths scanned for utility classes live in ./tailwind.config.ts.
+ */
+
+@import "../packages/ui/tokens/design-tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
