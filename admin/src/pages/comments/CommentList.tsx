@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { formatDateTime } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { formatDateTime } from '@ui/lib/utils';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
+import { Card, CardContent } from '@ui/card';
 import { Check, X, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Pagination, getPerPage } from '@/components/shared/Pagination';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 export function CommentList() {
   const [comments, setComments] = useState<any[]>([]);

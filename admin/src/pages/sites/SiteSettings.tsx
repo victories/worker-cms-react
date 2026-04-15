@@ -3,14 +3,14 @@ import { useParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@ui/card';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Badge } from '@ui/badge';
+import { Switch } from '@ui/switch';
 import { Globe, Plus, Trash2, Star, Shield } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 export function SiteSettings() {
   const { id } = useParams();

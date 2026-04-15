@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/toast-notification';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
+import { useToast } from '@ui/toast-notification';
 import {
   CreditCard, Coins, ExternalLink, Check, X, RefreshCw,
   Filter, Clock, CheckCircle, XCircle, AlertCircle,

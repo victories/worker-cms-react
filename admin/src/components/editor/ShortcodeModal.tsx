@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+} from '@ui/dialog';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Badge } from '@ui/badge';
 import { Search, Braces, Copy, Check } from 'lucide-react';
 
 interface ShortcodeInfo {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
 import { FileText, File, Image, ExternalLink, Zap } from 'lucide-react';
 import { t } from '@/lib/i18n';
 

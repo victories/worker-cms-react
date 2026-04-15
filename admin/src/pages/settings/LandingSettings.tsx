@@ -1,19 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Textarea } from '@ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@ui/card';
+import { Switch } from '@ui/switch';
+import { Separator } from '@ui/separator';
 import {
   Save, Rocket, Eye, RotateCcw, Palette, Type, Star, CreditCard,
   MessageSquare, Megaphone, Plus, Trash2, ChevronDown, GripVertical,
   Zap, Layers, Globe2, Bot, Shield, Code, ExternalLink,
 } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 const ICON_OPTIONS = [
   { value: 'zap', label: 'Zap', Icon: Zap },

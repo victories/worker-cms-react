@@ -8,8 +8,8 @@
 // Publisher palette values ever change.
 
 import { useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@ui/card';
+import { Button } from '@ui/button';
 import { Sun, Moon, Check } from 'lucide-react';
 
 export type ColorMode = 'light' | 'dark';

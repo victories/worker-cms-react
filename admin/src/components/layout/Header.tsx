@@ -3,11 +3,11 @@ import { useSiteStore } from '@/stores/siteStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUIStore } from '@/stores/uiStore';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
+import { Button } from '@ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Languages, Moon, Sun, Monitor, Menu as MenuIcon, PanelLeftClose, PanelLeft, ExternalLink, UserCog, ArrowLeftCircle, Crown, Settings2, Check, Globe, Package, Rocket } from 'lucide-react';
 

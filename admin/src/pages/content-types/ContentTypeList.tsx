@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
 import { useAuthStore } from '@/stores/authStore';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/toast-notification';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Badge } from '@ui/badge';
+import { useToast } from '@ui/toast-notification';
 import { Plus, Edit2, Trash2, FileText, Package, Image, ShoppingBag, Briefcase, BookOpen, Users, Film, Music, MapPin, Calendar, Heart, Star } from 'lucide-react';
 
 const ICON_MAP: Record<string, any> = {

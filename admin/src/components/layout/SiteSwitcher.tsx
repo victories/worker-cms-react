@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { t } from '@/lib/i18n';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+} from '@ui/select';
 import { Globe } from 'lucide-react';
 
 export function SiteSwitcher() {

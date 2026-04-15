@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/toast-notification';
+import { Button } from '@ui/button';
+import { Card, CardContent } from '@ui/card';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
+import { Switch } from '@ui/switch';
+import { Textarea } from '@ui/textarea';
+import { useToast } from '@ui/toast-notification';
 import {
   Paintbrush, ArrowLeft, Save, RotateCcw, Loader2,
   ChevronDown, ChevronUp, Palette, Type, Layout, Code2, Sparkles, Megaphone,

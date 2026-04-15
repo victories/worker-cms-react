@@ -4,15 +4,15 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Badge } from '@ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
 import { Globe, Plus, Settings, Trash2, ExternalLink, Pause, Play, CheckCircle2, Search, X, User, Crown, Package, ArrowUpRight, Loader2, Copy, Check, RefreshCw, Server, Info } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { useToast } from '@/components/ui/toast-notification';
-import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@ui/toast-notification';
+import { Card, CardContent } from '@ui/card';
 
 export function SiteList() {
   const { lang, user } = useAuthStore();

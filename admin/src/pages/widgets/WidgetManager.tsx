@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
+import { Badge } from '@ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
 import { Plus, Trash2, GripVertical, LayoutGrid, Power, PowerOff, ChevronUp, ChevronDown } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 const WIDGET_TYPES = [
   { value: 'menu', label: 'Menu' },

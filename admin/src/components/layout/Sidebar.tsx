@@ -3,10 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore';
 import { t } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
+import { cn } from '@ui/lib/utils';
 import { SiteSwitcher } from './SiteSwitcher';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip';
 import {
   LayoutDashboard, FileText, Image, FolderTree, Tag, MessageSquare, Mail,
   Menu, Users, Settings, Plug, Globe, BarChart3, Upload, Database, LayoutGrid,
