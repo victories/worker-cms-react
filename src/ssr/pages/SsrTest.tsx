@@ -1,5 +1,3 @@
-/** @jsxImportSource react */
-
 /**
  * Faz 0 smoke-test page.
  *

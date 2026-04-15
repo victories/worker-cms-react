@@ -1,3 +1,4 @@
+/** @jsxImportSource hono/jsx */
 import { Hono } from 'hono';
 import type { Bindings, Variables } from '../../types';
 import { langPrefix } from '../../lib/lang';

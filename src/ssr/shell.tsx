@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import { TAILWIND_CSS } from './__generated__/tailwind';
 

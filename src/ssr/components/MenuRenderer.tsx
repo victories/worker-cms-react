@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { cn } from '@ui/lib/utils';
 import type { MenuItemData } from '../../lib/public-db';
 

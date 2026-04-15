@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import { Container } from '@ui/container';
 import { cn } from '@ui/lib/utils';

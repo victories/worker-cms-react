@@ -1,5 +1,3 @@
-/** @jsxImportSource react */
-
 /**
  * ThemeStyles — injects per-site CSS custom properties as a `<style>` tag.
  *

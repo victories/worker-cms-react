@@ -1,5 +1,3 @@
-/** @jsxImportSource react */
-
 /**
  * Landing page hydration entry.
  *

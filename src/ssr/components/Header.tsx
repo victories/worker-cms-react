@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import { Container } from '@ui/container';
 import { NavMenu, type NavMenuItem } from '@ui/nav-menu';

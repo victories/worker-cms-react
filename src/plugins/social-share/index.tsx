@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import type { ReactNode } from 'react';
 import type { Site } from '../../types';
 import type { PluginPostContext } from '../../lib/plugins/types';
