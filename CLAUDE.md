@@ -62,18 +62,19 @@ notes, risk matrix, and verification checklists.
 | 1   | `packages/ui/` shared primitive package | ✅ done | `071b550` |
 | 2   | SSR Shell + PublisherLayout skeleton | ✅ done | `99405c1` |
 | 3   | Landing page (`/landing`) rewrite | ✅ done | `a2a5dae` |
-| 4   | Home/Post/Archive/Search/Page routes rewrite | ⬜ next |  |
-| 5   | Theme engine + seed rewrite | ⬜ |  |
+| 4   | Home/Post/Archive/Search/Page routes rewrite | ✅ done | `130f676` |
+| 5   | Theme engine + seed rewrite | ⬜ next |  |
 | 6   | Admin theme selection UI update | ⬜ |  |
 | 7   | Plugin API v2 + bundled plugin rewrite | ⬜ |  |
 | 8   | Final cleanup (delete Hono JSX layouts) | ⬜ |  |
 | 9   | Verification + performance sweep | ⬜ |  |
 
 ### Entry point for the next session
-When resuming, after reading this file, the next step is **Faz 4** unless
-the table above says otherwise. The plan doc has the detailed Faz 4
-checklist (Home/Post/Archive/Search/Page route'larının React SSR'a taşınması —
-en büyük faz).
+When resuming, after reading this file, the next step is **Faz 5** unless
+the table above says otherwise. The plan doc has the detailed Faz 5
+checklist (theme engine + seed güncelleme — remove the old Hono JSX
+layout components, rewrite theme presets to emit shadcn tokens, update
+the seed.sql so new sites ship with the publisher theme).
 
 ## 4. Day-to-day commands
 
