@@ -6,6 +6,7 @@ import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { PublisherLayout } from '../../ssr/layouts/PublisherLayout';
 import { Archive } from '../../ssr/pages/Archive';
 import { SEOHead } from '../../ssr/components/SEOHead';
+import { ThemeStyles } from '../../ssr/components/ThemeStyles';
 import {
   getSiteTheme,
   getTaxonomyBySlug,
@@ -160,6 +161,11 @@ async function renderArchivePage(
       })
     : null;
 
+  const themeStylesNode = createElement(ThemeStyles, {
+    light: theme.cssLight,
+    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+  });
+
   const seoHead = createElement(SEOHead, {
     title: `${typeLabel}: ${taxonomy.name}`,
     description: taxonomy.description || `${typeLabel}: ${taxonomy.name}`,
@@ -177,6 +183,7 @@ async function renderArchivePage(
       head: createElement(
         Fragment,
         null,
+        themeStylesNode,
         seoHead,
         analyticsHeadNode,
         pluginSlots.head

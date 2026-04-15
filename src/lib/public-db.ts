@@ -2,6 +2,8 @@
 // All queries are site_id scoped
 
 import { cached } from './cache';
+import { loadActiveTheme as loadActiveThemeV2 } from './themes/engine';
+import type { ActiveTheme, CssVars } from './themes/types';
 
 export interface PublicPost {
   id: number;
@@ -36,158 +38,80 @@ export interface PublicTaxonomy {
   count: number;
 }
 
+/**
+ * Resolved theme + site settings combined into a single object for
+ * public render pipelines. v2 shape — replaces the old hex-colour
+ * `SiteTheme` which assumed one of three hand-written Hono layouts.
+ *
+ * Colour tokens live in `cssLight` / `cssDark` as bare HSL triples
+ * keyed with leading `--` (shadcn format). Route handlers hand these
+ * to `<ThemeStyles light={theme.cssLight} dark={theme.cssDark} />`
+ * in the Shell head to override the Tailwind defaults at request time.
+ *
+ * The non-colour fields (site_logo, posts_per_page, AMP ad fields,
+ * ...) are site-specific settings pulled from the `settings` table.
+ */
 export interface SiteTheme {
-  // Template
-  template: string;              // 'starter' | 'modern' | 'velvet'
-  // Colors
-  primary_color: string;
-  secondary_color: string;
-  bg_color: string;
-  surface_color: string;
-  text_color: string;
-  text_secondary_color: string;
-  border_color: string;
-  header_bg_color: string;
-  header_text_color: string;
-  footer_bg_color: string;
-  footer_text_color: string;
-  link_color: string;
-  link_hover_color: string;
-  // Typography
-  font_family: string;
-  heading_font_family: string;
-  // Branding
+  // Resolved theme identity
+  themeSlug: string;                  // e.g. 'default-publisher'
+  themeName: string;
+  paletteSlug: string;                // e.g. 'neutral' | 'rose' | 'emerald'
+  paletteName: string;
+  color_mode: 'light' | 'dark';       // active display mode
+  supports_dark_mode: boolean;        // whether the theme opts into dark toggle
+  /** CSS custom properties to apply on `:root`. */
+  cssLight: CssVars;
+  /** CSS custom properties to apply on `.dark`. */
+  cssDark: CssVars;
+
+  // Site-level settings (loaded from `settings` table)
   site_logo: string;
   site_tagline: string;
   footer_text: string;
-  // Behavior
   posts_per_page: number;
-  nav_style: string;             // 'default' | 'gooey' | 'flowing' | 'underline'
-  nav_particle_count: number;
-  nav_animation_time: number;
-  // Velvet extensions
+
+  // AMP / header ad embed — still live on SiteTheme because every
+  // public route (and AMP routes in particular) reads these fields
+  // immediately after the getSiteTheme call.
   header_ad_code: string;
   header_ad_domain: string;
-  header_ad_desktop: boolean;    // show ad on desktop (true) or AMP only (false)
-  header_ad_embed_html: string;  // cached embed HTML from aurora worker
-  header_ad_amp_css: string;     // extracted CSS for AMP inline injection
-  header_ad_amp_body: string;    // extracted HTML body for AMP inline injection
-  slider_enabled: boolean;
-  gallery_section_code: string;
-  // Publisher theme extensions (optional, used when palette_variants is set)
-  palette_slug?: string;              // e.g. 'lavender' | 'blush' | 'cream' | 'periwinkle'
-  color_mode?: 'light' | 'dark';      // currently active display mode
-  supports_dark_mode?: boolean;       // whether the theme opts into the dark toggle
-  // Configurable ad slot content — raw HTML or shortcodes. Empty string
-  // (or undefined) means the slot is hidden entirely from the layout.
+  header_ad_desktop: boolean;         // show ad on desktop (true) or AMP only (false)
+  header_ad_embed_html: string;       // cached embed HTML from aurora worker
+  header_ad_amp_css: string;          // extracted CSS for AMP inline injection
+  header_ad_amp_body: string;         // extracted HTML body for AMP inline injection
+
+  // Layout-level ad slots; raw HTML or shortcodes. Empty = hidden.
   ad_top_code?: string;
   ad_mid_code?: string;
 }
 
-// --- Theme Presets ---
-export const STARTER_DEFAULTS: SiteTheme = {
-  template: 'starter',
-  primary_color: '#2563eb',
-  secondary_color: '#10b981',
-  bg_color: '#f8fafc',
-  surface_color: '#ffffff',
-  text_color: '#1e293b',
-  text_secondary_color: '#64748b',
-  border_color: '#e2e8f0',
-  header_bg_color: '#ffffff',
-  header_text_color: '#0f172a',
-  footer_bg_color: '#0f172a',
-  footer_text_color: '#94a3b8',
-  link_color: '#2563eb',
-  link_hover_color: '#1d4ed8',
-  font_family: 'Inter',
-  heading_font_family: 'Inter',
-  site_logo: '',
-  site_tagline: '',
-  footer_text: '',
-  posts_per_page: 10,
-  nav_style: 'default',
-  nav_particle_count: 15,
-  nav_animation_time: 600,
-  header_ad_code: '',
-  header_ad_domain: '',
-  header_ad_desktop: true,
-  header_ad_embed_html: '',
-  header_ad_amp_css: '',
-  header_ad_amp_body: '',
-  slider_enabled: false,
-  gallery_section_code: '',
-};
-
-export const MODERN_DEFAULTS: SiteTheme = {
-  template: 'modern',
-  primary_color: '#0d9488',
-  secondary_color: '#f59e0b',
-  bg_color: '#fafaf9',
-  surface_color: '#ffffff',
-  text_color: '#292524',
-  text_secondary_color: '#78716c',
-  border_color: '#e7e5e4',
-  header_bg_color: '#1c1917',
-  header_text_color: '#fafaf9',
-  footer_bg_color: '#1c1917',
-  footer_text_color: '#a8a29e',
-  link_color: '#0d9488',
-  link_hover_color: '#0f766e',
-  font_family: 'DM Sans',
-  heading_font_family: 'Playfair Display',
-  site_logo: '',
-  site_tagline: '',
-  footer_text: '',
-  posts_per_page: 10,
-  nav_style: 'underline',
-  nav_particle_count: 15,
-  nav_animation_time: 600,
-  header_ad_code: '',
-  header_ad_domain: '',
-  header_ad_desktop: true,
-  header_ad_embed_html: '',
-  header_ad_amp_css: '',
-  header_ad_amp_body: '',
-  slider_enabled: false,
-  gallery_section_code: '',
-};
-
-export const VELVET_DEFAULTS: SiteTheme = {
-  template: 'velvet',
-  primary_color: '#b9a9f5',
-  secondary_color: '#f5a9c7',
-  bg_color: '#13111a',
-  surface_color: '#1d1b26',
-  text_color: '#e8e4f0',
-  text_secondary_color: '#9892b3',
-  border_color: '#2e2b40',
-  header_bg_color: '#0e0c17',
-  header_text_color: '#e8e4f0',
-  footer_bg_color: '#0e0c17',
-  footer_text_color: '#9892b3',
-  link_color: '#b9a9f5',
-  link_hover_color: '#d4c8fa',
-  font_family: 'Plus Jakarta Sans',
-  heading_font_family: 'Outfit',
-  site_logo: '',
-  site_tagline: '',
-  footer_text: '',
-  posts_per_page: 10,
-  nav_style: 'underline',
-  nav_particle_count: 15,
-  nav_animation_time: 600,
-  header_ad_code: '',
-  header_ad_domain: '',
-  header_ad_desktop: true,
-  header_ad_embed_html: '',
-  header_ad_amp_css: '',
-  header_ad_amp_body: '',
-  slider_enabled: false,
-  gallery_section_code: '',
-};
-
-const DEFAULT_THEME: SiteTheme = { ...STARTER_DEFAULTS };
+/**
+ * Compose a `SiteTheme` from the v2 `ActiveTheme` + empty site
+ * settings. Route handlers layer the `settings` values (logo, tagline,
+ * posts_per_page, ad code, ...) on top during `getSiteTheme`.
+ */
+function baseSiteThemeFromActive(active: ActiveTheme): SiteTheme {
+  return {
+    themeSlug: active.themeSlug,
+    themeName: active.themeName,
+    paletteSlug: active.paletteSlug,
+    paletteName: active.paletteName,
+    color_mode: active.colorMode,
+    supports_dark_mode: active.supportsDarkMode,
+    cssLight: active.cssLight,
+    cssDark: active.cssDark,
+    site_logo: '',
+    site_tagline: '',
+    footer_text: '',
+    posts_per_page: 10,
+    header_ad_code: '',
+    header_ad_domain: '',
+    header_ad_desktop: true,
+    header_ad_embed_html: '',
+    header_ad_amp_css: '',
+    header_ad_amp_body: '',
+  };
+}
 
 export interface AmpConfig {
   amp_enabled: boolean;
@@ -269,20 +193,80 @@ export async function getRichSnippetsSettings(db: D1Database, siteId: number, kv
   });
 }
 
-export async function getSiteTheme(db: D1Database, siteId: number, kv?: KVNamespace): Promise<SiteTheme> {
+export async function getSiteTheme(
+  db: D1Database,
+  siteId: number,
+  kv?: KVNamespace
+): Promise<SiteTheme> {
   return cached(kv, `site:${siteId}:theme`, 3600, async () => {
-  // --- New theme system: try themes + site_themes tables first ---
-  const { loadActiveTheme, themeToSiteTheme } = await import('./themeEngine');
-  const activeTheme = await loadActiveTheme(db, siteId);
-  if (activeTheme) {
-    const theme = themeToSiteTheme(activeTheme);
-    // Expand [shortcode] patterns inside ad slot codes so admins can reuse
-    // site-wide shortcodes (e.g. [google-ads-header]) as a single source of
-    // truth. Raw HTML passes through untouched.
-    if ((theme.ad_top_code && theme.ad_top_code.indexOf('[') !== -1) ||
-        (theme.ad_mid_code && theme.ad_mid_code.indexOf('[') !== -1)) {
+    // --- Load active theme (themes + site_themes) via the v2 engine ---
+    const active = await loadActiveThemeV2(db, siteId);
+    const theme = baseSiteThemeFromActive(active);
+
+    // --- Layer site-level settings (logo, tagline, ad code, ...) ---
+    const settingsRows = await db
+      .prepare(
+        `SELECT key, value FROM settings
+           WHERE site_id = ?
+             AND key IN (
+               'theme_logo_url',
+               'site_tagline',
+               'theme_footer_text',
+               'posts_per_page',
+               'theme_header_ad_code',
+               'theme_header_ad_domain',
+               'theme_header_ad_desktop',
+               'theme_ad_top_code',
+               'theme_ad_mid_code'
+             )`
+      )
+      .bind(siteId)
+      .all();
+
+    for (const row of settingsRows.results) {
+      const r = row as { key: string; value: string };
+      switch (r.key) {
+        case 'theme_logo_url':
+          theme.site_logo = r.value || '';
+          break;
+        case 'site_tagline':
+          theme.site_tagline = r.value || '';
+          break;
+        case 'theme_footer_text':
+          theme.footer_text = r.value || '';
+          break;
+        case 'posts_per_page':
+          theme.posts_per_page = parseInt(r.value) || 10;
+          break;
+        case 'theme_header_ad_code':
+          theme.header_ad_code = r.value || '';
+          break;
+        case 'theme_header_ad_domain':
+          theme.header_ad_domain = r.value || '';
+          break;
+        case 'theme_header_ad_desktop':
+          theme.header_ad_desktop = r.value !== 'false' && r.value !== '0';
+          break;
+        case 'theme_ad_top_code':
+          theme.ad_top_code = r.value || undefined;
+          break;
+        case 'theme_ad_mid_code':
+          theme.ad_mid_code = r.value || undefined;
+          break;
+      }
+    }
+
+    // Expand [shortcode] patterns inside ad slot codes so admins can
+    // reuse site-wide shortcodes (e.g. [google-ads-header]) as a single
+    // source of truth. Raw HTML passes through untouched.
+    if (
+      (theme.ad_top_code && theme.ad_top_code.indexOf('[') !== -1) ||
+      (theme.ad_mid_code && theme.ad_mid_code.indexOf('[') !== -1)
+    ) {
       try {
-        const { loadShortcodes, processShortcodes } = await import('./shortcodes');
+        const { loadShortcodes, processShortcodes } = await import(
+          './shortcodes'
+        );
         const shortcodes = await loadShortcodes(db, siteId);
         if (theme.ad_top_code) {
           theme.ad_top_code = processShortcodes(theme.ad_top_code, shortcodes);
@@ -291,81 +275,12 @@ export async function getSiteTheme(db: D1Database, siteId: number, kv?: KVNamesp
           theme.ad_mid_code = processShortcodes(theme.ad_mid_code, shortcodes);
         }
       } catch {
-        // If shortcode loading fails, fall back to raw content (safer than breaking the page)
+        // If shortcode loading fails, fall back to raw content
+        // (safer than breaking the page).
       }
     }
-    // Still load site-specific settings (logo, tagline, footer_text, ad code, etc.)
-    const settingsRows = await db.prepare(
-      "SELECT key, value FROM settings WHERE site_id = ? AND key IN ('theme_logo_url', 'site_tagline', 'theme_footer_text', 'posts_per_page', 'theme_header_ad_code', 'theme_header_ad_domain', 'theme_header_ad_desktop', 'theme_slider_enabled', 'theme_gallery_section_code', 'theme_nav_particle_count', 'theme_nav_animation_time')"
-    ).bind(siteId).all();
-    for (const row of settingsRows.results) {
-      const r = row as { key: string; value: string };
-      switch (r.key) {
-        case 'theme_logo_url': theme.site_logo = r.value || ''; break;
-        case 'site_tagline': theme.site_tagline = r.value || ''; break;
-        case 'theme_footer_text': theme.footer_text = r.value || ''; break;
-        case 'posts_per_page': theme.posts_per_page = parseInt(r.value) || 10; break;
-        case 'theme_header_ad_code': theme.header_ad_code = r.value || ''; break;
-        case 'theme_header_ad_domain': theme.header_ad_domain = r.value || ''; break;
-        case 'theme_header_ad_desktop': theme.header_ad_desktop = r.value !== 'false' && r.value !== '0'; break;
-        case 'theme_slider_enabled': theme.slider_enabled = r.value === 'true' || r.value === '1'; break;
-        case 'theme_gallery_section_code': theme.gallery_section_code = r.value || ''; break;
-        case 'theme_nav_particle_count': theme.nav_particle_count = parseInt(r.value) || 15; break;
-        case 'theme_nav_animation_time': theme.nav_animation_time = parseInt(r.value) || 600; break;
-      }
-    }
+
     return theme;
-  }
-
-  // --- Fallback: existing settings-based theme loading (backward compat) ---
-  const rows = await db.prepare(
-    "SELECT key, value FROM settings WHERE site_id = ? AND key LIKE 'theme_%' OR (site_id = ? AND key IN ('site_tagline', 'posts_per_page'))"
-  ).bind(siteId, siteId).all();
-
-  // First pass: detect template to use correct defaults
-  let templateValue = 'starter';
-  for (const row of rows.results) {
-    const r = row as { key: string; value: string };
-    if (r.key === 'theme_template' && r.value) { templateValue = r.value; break; }
-  }
-  const baseDefaults = templateValue === 'modern' ? MODERN_DEFAULTS : templateValue === 'velvet' ? VELVET_DEFAULTS : STARTER_DEFAULTS;
-  const theme = { ...baseDefaults };
-
-  // Second pass: apply overrides
-  for (const row of rows.results) {
-    const r = row as { key: string; value: string };
-    switch (r.key) {
-      case 'theme_template': theme.template = r.value || theme.template; break;
-      case 'theme_primary_color': theme.primary_color = r.value || theme.primary_color; break;
-      case 'theme_secondary_color': theme.secondary_color = r.value || theme.secondary_color; break;
-      case 'theme_bg_color': theme.bg_color = r.value || theme.bg_color; break;
-      case 'theme_surface_color': theme.surface_color = r.value || theme.surface_color; break;
-      case 'theme_text_color': theme.text_color = r.value || theme.text_color; break;
-      case 'theme_text_secondary_color': theme.text_secondary_color = r.value || theme.text_secondary_color; break;
-      case 'theme_border_color': theme.border_color = r.value || theme.border_color; break;
-      case 'theme_header_bg_color': theme.header_bg_color = r.value || theme.header_bg_color; break;
-      case 'theme_header_text_color': theme.header_text_color = r.value || theme.header_text_color; break;
-      case 'theme_footer_bg_color': theme.footer_bg_color = r.value || theme.footer_bg_color; break;
-      case 'theme_footer_text_color': theme.footer_text_color = r.value || theme.footer_text_color; break;
-      case 'theme_link_color': theme.link_color = r.value || theme.link_color; break;
-      case 'theme_link_hover_color': theme.link_hover_color = r.value || theme.link_hover_color; break;
-      case 'theme_font_family': theme.font_family = r.value || theme.font_family; break;
-      case 'theme_heading_font_family': theme.heading_font_family = r.value || theme.heading_font_family; break;
-      case 'theme_logo_url': theme.site_logo = r.value || ''; break;
-      case 'site_tagline': theme.site_tagline = r.value || ''; break;
-      case 'theme_footer_text': theme.footer_text = r.value || ''; break;
-      case 'posts_per_page': theme.posts_per_page = parseInt(r.value) || 10; break;
-      case 'theme_nav_style': theme.nav_style = r.value || theme.nav_style; break;
-      case 'theme_nav_particle_count': theme.nav_particle_count = parseInt(r.value) || 15; break;
-      case 'theme_nav_animation_time': theme.nav_animation_time = parseInt(r.value) || 600; break;
-      case 'theme_header_ad_code': theme.header_ad_code = r.value || ''; break;
-      case 'theme_header_ad_domain': theme.header_ad_domain = r.value || ''; break;
-      case 'theme_header_ad_desktop': theme.header_ad_desktop = r.value !== 'false' && r.value !== '0'; break;
-      case 'theme_slider_enabled': theme.slider_enabled = r.value === 'true' || r.value === '1'; break;
-      case 'theme_gallery_section_code': theme.gallery_section_code = r.value || ''; break;
-    }
-  }
-  return theme;
   });
 }
 

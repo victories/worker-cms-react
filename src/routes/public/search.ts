@@ -6,6 +6,7 @@ import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { PublisherLayout } from '../../ssr/layouts/PublisherLayout';
 import { Search } from '../../ssr/pages/Search';
 import { SEOHead } from '../../ssr/components/SEOHead';
+import { ThemeStyles } from '../../ssr/components/ThemeStyles';
 import {
   getSiteTheme,
   searchPosts,
@@ -79,6 +80,11 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
       })
     : null;
 
+  const themeStylesNode = createElement(ThemeStyles, {
+    light: theme.cssLight,
+    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+  });
+
   // ---- Empty query: prompt ----
   if (!query.trim()) {
     const seoHead = createElement(SEOHead, {
@@ -95,6 +101,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
         head: createElement(
           Fragment,
           null,
+          themeStylesNode,
           seoHead,
           analyticsHeadNode,
           pluginSlots.head
@@ -190,6 +197,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
       head: createElement(
         Fragment,
         null,
+        themeStylesNode,
         seoHead,
         analyticsHeadNode,
         pluginSlots.head
