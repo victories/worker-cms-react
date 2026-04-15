@@ -31,7 +31,10 @@ import {
 import { langPrefix } from '../../lib/lang';
 import { processAllShortcodes, ShortcodeContext } from '../../lib/shortcodes/index';
 import { processLayout } from '../../lib/layout';
-import { collectPluginSlots, wrapPostContent } from '../../lib/plugins/react-bridge';
+import {
+  collectDocumentSlots,
+  collectSiteLayoutSlots,
+} from '../../lib/plugins/collectors';
 import { PUBLISHER_CLIENT_JS } from '../../ssr/__generated__/publisher-client';
 
 /**
@@ -98,8 +101,12 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
   ]);
   await enrichThemeWithAdEmbed(theme);
 
-  // Plugin page slots ('', '', '') → wrapped as ReactNodes via the bridge.
-  const pluginSlots = await collectPluginSlots(site);
+  // Plugin render slots — pre-fetched in parallel so every route
+  // handler returns a fully-resolved React tree before `renderPage`.
+  const [pluginSlots, siteSlots] = await Promise.all([
+    collectDocumentSlots(site),
+    collectSiteLayoutSlots(site),
+  ]);
 
   // Header nav: prefer header widget menu, fall back to menus.location='primary'
   const headerMenu =
@@ -163,19 +170,16 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
       if (layoutJson) {
         try {
           const layout = JSON.parse(layoutJson);
-          let postContent = await processAllShortcodes(
+          const postContent = await processAllShortcodes(
             staticPage.content || '',
             scCtx
           );
-          postContent = await wrapPostContent(postContent, staticPage);
           renderedContent = await processLayout(layout, scCtx, postContent);
         } catch {
           renderedContent = await processAllShortcodes(staticPage.content, scCtx);
-          renderedContent = await wrapPostContent(renderedContent, staticPage);
         }
       } else {
         renderedContent = await processAllShortcodes(staticPage.content, scCtx);
-        renderedContent = await wrapPostContent(renderedContent, staticPage);
       }
 
       // JSON-LD for static homepage
@@ -259,6 +263,11 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
             supportsDarkMode: theme.supports_dark_mode ?? false,
             hidePoweredBy: whiteLabel,
             footerText: theme.footer_text || undefined,
+            headerRight: createElement(Fragment, null, ...siteSlots.headerRight),
+            sidebarTop: createElement(Fragment, null, ...siteSlots.sidebarTop),
+            sidebarBottom: createElement(Fragment, null, ...siteSlots.sidebarBottom),
+            footerStart: createElement(Fragment, null, ...siteSlots.footerStart),
+            footerEnd: createElement(Fragment, null, ...siteSlots.footerEnd),
             children: createElement(Home, {
               mode: 'static',
               staticHtml: renderedContent,
@@ -372,6 +381,11 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
         supportsDarkMode: theme.supports_dark_mode ?? false,
         hidePoweredBy: whiteLabel,
         footerText: theme.footer_text || undefined,
+        headerRight: createElement(Fragment, null, ...siteSlots.headerRight),
+        sidebarTop: createElement(Fragment, null, ...siteSlots.sidebarTop),
+        sidebarBottom: createElement(Fragment, null, ...siteSlots.sidebarBottom),
+        footerStart: createElement(Fragment, null, ...siteSlots.footerStart),
+        footerEnd: createElement(Fragment, null, ...siteSlots.footerEnd),
         children: createElement(Home, {
           mode: 'blog',
           posts: postsWithTax,

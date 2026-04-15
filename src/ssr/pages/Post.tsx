@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import type { ReactNode } from 'react';
 import type { PublicPost, PublicTaxonomy } from '../../lib/public-db';
 import { Badge } from '@ui/badge';
 import { Separator } from '@ui/separator';
@@ -69,6 +70,10 @@ export interface PostPageProps {
   commentFormBootHtml?: string;
   /** Optional external reCAPTCHA `<script src>` snippet HTML */
   recaptchaScriptHtml?: string;
+  /** Plugin `ui.slot.postHeader` output — rendered above the title row */
+  postHeaderSlot?: ReactNode;
+  /** Plugin `ui.slot.postFooter` output — rendered below the tags, above comments */
+  postFooterSlot?: ReactNode;
 }
 
 function formatCommentDate(dateStr: string, lang: string): string {
@@ -100,9 +105,12 @@ export function Post({
   comments,
   commentFormBootHtml,
   recaptchaScriptHtml,
+  postHeaderSlot,
+  postFooterSlot,
 }: PostPageProps) {
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-6">
+      {postHeaderSlot != null ? <div>{postHeaderSlot}</div> : null}
       <header className="flex flex-col gap-4">
         <h1 className="text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
           {post.title}
@@ -164,6 +172,8 @@ export function Post({
           ))}
         </div>
       ) : null}
+
+      {postFooterSlot != null ? <div>{postFooterSlot}</div> : null}
 
       {showComments ? (
         <>

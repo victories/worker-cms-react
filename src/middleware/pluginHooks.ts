@@ -4,14 +4,29 @@ import { pluginEngine } from '../lib/plugins/engine';
 import { createPluginSandbox } from '../lib/plugins/sandbox';
 import type { PluginPermission } from '../lib/plugins/types';
 import { registerDispatchedPlugin, getPluginLimits } from '../lib/plugins/dispatcher';
-import { loadShortcodes } from '../lib/shortcodes';
-import { processAllShortcodes, ShortcodeContext } from '../lib/shortcodes/index';
 
-// Built-in plugin imports
+// Built-in plugin imports — all use the v2 ReactNode hook API.
 import * as seoOptimizer from '../plugins/seo-optimizer/index';
 import * as socialShare from '../plugins/social-share/index';
 import * as contactForm from '../plugins/contact-form/index';
 import * as heroSlider from '../plugins/hero-slider/index';
+
+/**
+ * Plugin hooks middleware.
+ *
+ * Runs once per request:
+ *   1. Clears the per-request plugin engine registry.
+ *   2. Loads the `site_plugins` rows for the current site and
+ *      register()s each active plugin's hooks against the engine.
+ *   3. Dispatched (3rd-party) plugins route through Workers for
+ *      Platforms via `registerDispatchedPlugin` — currently unused
+ *      in MVP.
+ *
+ * Shortcode processing used to be registered here as a built-in
+ * `post.beforeRender` filter (v1). With v2 that hook no longer exists:
+ * public route handlers now call `processAllShortcodes` explicitly on
+ * post content before rendering.
+ */
 
 // Built-in plugin registry - maps entry_point to plugin module
 // Since Cloudflare Workers can't do dynamic imports, we use a static registry
@@ -82,39 +97,6 @@ export async function pluginHooksMiddleware(
     // If plugins table doesn't exist yet or query fails, continue without plugins
     console.error('Plugin hooks middleware error:', e);
   }
-
-  // Register shortcode processing as a built-in post.beforeRender filter
-  // Uses the new dynamic shortcode system + static shortcodes from DB as fallback
-  // Priority 100 = runs after other plugins so shortcodes in plugin-injected content also work
-  let shortcodesCache: Map<string, string> | null = null;
-
-  // Determine lang info from context
-  const lang = c.get('lang') || 'tr';
-  const site = c.get('site') as any;
-  const defaultLang = site?.default_language || 'tr';
-  const langPrefix = lang === defaultLang ? '' : `/${lang}`;
-  const origin = new URL(c.req.url).origin;
-
-  const scCtx: ShortcodeContext = {
-    db: c.env.DB,
-    siteId,
-    lang,
-    defaultLang,
-    origin,
-    langPrefix,
-  };
-
-  pluginEngine.register('__shortcodes', 'post.beforeRender', async (content: string) => {
-    try {
-      if (!shortcodesCache) {
-        shortcodesCache = await loadShortcodes(c.env.DB, siteId);
-      }
-      return processAllShortcodes(content, scCtx, shortcodesCache);
-    } catch (e) {
-      console.error('Shortcode processing error:', e);
-      return content;
-    }
-  }, 100);
 
   await next();
 }

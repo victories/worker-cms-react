@@ -1,18 +1,29 @@
 import type { HookName, PluginPermission } from './types';
 
 export const HOOK_REQUIRED_PERMISSIONS: Record<HookName, PluginPermission[]> = {
-  'post.beforeSave': ['posts:read', 'posts:write'],
-  'post.afterSave': ['posts:read'],
-  'post.beforeDelete': ['posts:read'],
-  'post.beforeRender': ['posts:read'],
-  'media.afterUpload': ['media:read'],
-  'media.beforeServe': ['media:read'],
+  // Data hooks
+  'post.beforeSave':    ['posts:read', 'posts:write'],
+  'post.afterSave':     ['posts:read'],
+  'post.beforeDelete':  ['posts:read'],
+  'media.afterUpload':  ['media:read'],
+  'media.beforeServe':  ['media:read'],
   'comment.beforeSave': ['comments:read', 'comments:write'],
-  'comment.afterSave': ['comments:read'],
-  'page.head': ['page:inject'],
-  'page.bodyStart': ['page:inject'],
-  'page.bodyEnd': ['page:inject'],
-  'api.response': ['settings:read'],
+  'comment.afterSave':  ['comments:read'],
+  'api.response':       ['settings:read'],
+
+  // v2 document-level render hooks
+  'ui.head':      ['page:inject'],
+  'ui.bodyStart': ['page:inject'],
+  'ui.bodyEnd':   ['page:inject'],
+
+  // v2 layout slot hooks
+  'ui.slot.headerRight':   ['page:inject'],
+  'ui.slot.sidebarTop':    ['page:inject'],
+  'ui.slot.sidebarBottom': ['page:inject'],
+  'ui.slot.footerStart':   ['page:inject'],
+  'ui.slot.footerEnd':     ['page:inject'],
+  'ui.slot.postHeader':    ['page:inject'],
+  'ui.slot.postFooter':    ['page:inject'],
 };
 
 export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
@@ -25,7 +36,7 @@ export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
   'comments:read': 'Yorumlari okuyabilir',
   'comments:write': 'Yorumlari duzenleyebilir',
   'http:fetch': 'Dis sunuculara HTTP istegi yapabilir',
-  'page:inject': 'Sayfalara HTML enjekte edebilir',
+  'page:inject': 'Sayfalara React node enjekte edebilir',
 };
 
 export function validatePermissions(perms: string[]): { valid: boolean; invalid: string[] } {

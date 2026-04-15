@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import type { ReactNode } from 'react';
 import { Container } from '@ui/container';
 import { Separator } from '@ui/separator';
 import { cn } from '@ui/lib/utils';
@@ -30,6 +31,10 @@ export interface FooterProps {
   hidePoweredBy?: boolean;
   /** Optional body text under the copyright line (set in theme settings) */
   footerText?: string;
+  /** Plugin `ui.slot.footerStart` output, rendered above the widget grid */
+  footerStart?: ReactNode;
+  /** Plugin `ui.slot.footerEnd` output, rendered below the copyright line */
+  footerEnd?: ReactNode;
   className?: string;
 }
 
@@ -43,6 +48,8 @@ export function Footer({
   lp,
   hidePoweredBy,
   footerText,
+  footerStart,
+  footerEnd,
   className,
 }: FooterProps) {
   const columns: Record<FooterArea, SidebarWidget[]> = {
@@ -62,6 +69,7 @@ export function Footer({
       )}
     >
       <Container size="xl" className="py-12">
+        {footerStart != null ? <div className="mb-8">{footerStart}</div> : null}
         {hasWidgets ? (
           <>
             <div
@@ -108,6 +116,8 @@ export function Footer({
             ) : null}
           </div>
         </div>
+
+        {footerEnd != null ? <div className="mt-8">{footerEnd}</div> : null}
       </Container>
     </footer>
   );

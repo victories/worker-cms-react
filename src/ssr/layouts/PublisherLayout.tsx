@@ -56,8 +56,16 @@ export interface PublisherLayoutProps {
   supportsDarkMode?: boolean;
   hidePoweredBy?: boolean;
   footerText?: string;
-  /** Placeholder for plugin slots — will be wired up in Faz 7 */
+  /** Plugin `ui.slot.headerRight` output, pre-fetched by the route handler */
   headerRight?: ReactNode;
+  /** Plugin `ui.slot.sidebarTop` output, pre-fetched by the route handler */
+  sidebarTop?: ReactNode;
+  /** Plugin `ui.slot.sidebarBottom` output, pre-fetched by the route handler */
+  sidebarBottom?: ReactNode;
+  /** Plugin `ui.slot.footerStart` output, pre-fetched by the route handler */
+  footerStart?: ReactNode;
+  /** Plugin `ui.slot.footerEnd` output, pre-fetched by the route handler */
+  footerEnd?: ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -75,6 +83,10 @@ export function PublisherLayout({
   hidePoweredBy,
   footerText,
   headerRight,
+  sidebarTop,
+  sidebarBottom,
+  footerStart,
+  footerEnd,
   children,
   className,
 }: PublisherLayoutProps) {
@@ -82,7 +94,8 @@ export function PublisherLayout({
   const searchAction = `${lp}/search`;
   const searchPlaceholder = lang === 'tr' ? 'Ara…' : 'Search…';
   const hasSidebarWidgets = (sidebarData.widgets?.length ?? 0) > 0;
-  const renderSidebar = showSidebar && hasSidebarWidgets;
+  const hasSidebarSlotContent = sidebarTop != null || sidebarBottom != null;
+  const renderSidebar = showSidebar && (hasSidebarWidgets || hasSidebarSlotContent);
 
   return (
     <div
@@ -120,6 +133,8 @@ export function PublisherLayout({
                 sidebarData={sidebarData}
                 lang={lang}
                 lp={lp}
+                sidebarTop={sidebarTop}
+                sidebarBottom={sidebarBottom}
               />
             ) : null}
           </div>
@@ -133,6 +148,8 @@ export function PublisherLayout({
         lp={lp}
         hidePoweredBy={hidePoweredBy}
         footerText={footerText}
+        footerStart={footerStart}
+        footerEnd={footerEnd}
       />
     </div>
   );
