@@ -34,8 +34,32 @@ export interface ShellProps {
   bodyStart?: ReactNode;
   /** Nodes rendered right before </body> (hydration islands, plugin scripts, ...) */
   bodyEnd?: ReactNode;
+  /**
+   * URL of a client-side JS bundle to hydrate the page's islands.
+   * When set, Shell emits `<script type="module" src="...">` right
+   * before `</body>`. Leave undefined for pure SSR pages with no
+   * interactive widgets (e.g. /landing at Faz 0).
+   */
+  clientBundle?: string;
+  /**
+   * Inline boot script that runs BEFORE first paint to avoid a flash
+   * of the wrong theme. The canonical use is reading the persisted
+   * color mode from localStorage and adding/removing `class="dark"`
+   * on `<html>`. Passed as a raw string (no JSX), injected via
+   * `dangerouslySetInnerHTML` immediately after the Tailwind bundle.
+   */
+  themeBootScript?: string;
   children: ReactNode;
 }
+
+/**
+ * Default theme-boot script: reads `wp-color-mode` from localStorage,
+ * falls back to `prefers-color-scheme`, and applies `class="dark"` on
+ * `<html>` before paint. Exposed as a constant so pages that want the
+ * default behaviour can pass `themeBootScript={DEFAULT_THEME_BOOT}`
+ * without reinventing it.
+ */
+export const DEFAULT_THEME_BOOT = `(function(){try{var s=localStorage.getItem('wp-color-mode');var d=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
 export function Shell({
   lang = 'tr',
@@ -45,6 +69,8 @@ export function Shell({
   head,
   bodyStart,
   bodyEnd,
+  clientBundle,
+  themeBootScript,
   children,
 }: ShellProps) {
   return (
@@ -58,12 +84,18 @@ export function Shell({
         {/* Inline Tailwind CSS bundle — generated at build time */}
         <style dangerouslySetInnerHTML={{ __html: TAILWIND_CSS }} />
 
+        {/* Theme boot: apply `class="dark"` on <html> before first paint */}
+        {themeBootScript ? (
+          <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        ) : null}
+
         {head}
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         {bodyStart}
         {children}
         {bodyEnd}
+        {clientBundle ? <script type="module" src={clientBundle} /> : null}
       </body>
     </html>
   );
