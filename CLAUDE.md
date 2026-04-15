@@ -60,7 +60,7 @@ notes, risk matrix, and verification checklists.
 | -1  | New repo + new Cloudflare Worker + baseline deploy | ✅ done | `94eab39` |
 | 0   | React 19 + Tailwind + shadcn tokens smoke test | ✅ done | `154814f` |
 | 1   | `packages/ui/` shared primitive package | ✅ done | `071b550` |
-| 2   | SSR Shell + PublisherLayout skeleton | ✅ done | (bu oturum) |
+| 2   | SSR Shell + PublisherLayout skeleton | ✅ done | `99405c1` |
 | 3   | Landing page (`/landing`) rewrite | ⬜ next |  |
 | 4   | Home/Post/Archive/Search/Page routes rewrite | ⬜ |  |
 | 5   | Theme engine + seed rewrite | ⬜ |  |
