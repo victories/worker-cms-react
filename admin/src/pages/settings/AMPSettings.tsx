@@ -3,15 +3,15 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Badge } from '@ui/badge';
+import { Textarea } from '@ui/textarea';
+import { Switch } from '@ui/switch';
 import { Zap, Save, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 const AMP_CSS_MAX_BYTES = 75000;
 

@@ -3,10 +3,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
+import { Textarea } from '@ui/textarea';
 import {
   Mail, MailOpen, Reply, Trash2, ArrowLeft, Send, Clock, User, AtSign,
   MessageSquare, ChevronLeft, ChevronRight, Archive, RefreshCw, CheckCircle,

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
 import { Activity, Globe, Palette, FileText, MessageSquare } from 'lucide-react';
 
 interface SiteHealthWidgetProps {

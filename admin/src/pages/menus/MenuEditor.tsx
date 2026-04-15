@@ -3,15 +3,15 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
+import { Badge } from '@ui/badge';
 import { Plus, Trash2, GripVertical, ExternalLink, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 // ─── Types ────────────────────────────────────────────
 

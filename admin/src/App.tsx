@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-do
 import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { ToastProvider } from '@/components/ui/toast-notification';
+import { ToastProvider } from '@ui/toast-notification';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';

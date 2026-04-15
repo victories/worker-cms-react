@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/toast-notification';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Badge } from '@ui/badge';
+import { useToast } from '@ui/toast-notification';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
 import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle } from 'lucide-react';
 
 const CHAINS = [

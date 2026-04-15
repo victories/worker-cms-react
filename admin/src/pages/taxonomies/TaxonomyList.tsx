@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Textarea } from '@ui/textarea';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 interface TaxonomyListProps {
   type: 'category' | 'tag';

@@ -29,8 +29,8 @@ import {
   parseHtmlDocument,
   deserializeHtml,
 } from '@udecode/plate';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@ui/button';
+import { Separator } from '@ui/separator';
 import { LinkModal } from '@/components/editor/LinkModal';
 import { ImageModal } from '@/components/editor/ImageModal';
 import { ShortcodeModal } from '@/components/editor/ShortcodeModal';

@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Textarea } from '@ui/textarea';
 import { analyzeSeo, type SeoCheck, type SeoStatus } from '@/lib/seoAnalyzer';
 import { Search, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';

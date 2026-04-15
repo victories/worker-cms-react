@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { t } from '@/lib/i18n';
-import { useToast } from '@/components/ui/toast-notification';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { useToast } from '@ui/toast-notification';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Switch } from '@ui/switch';
+import { Badge } from '@ui/badge';
 import { Code, Plus, Pencil, Trash2, Globe, Building2, Copy, Check } from 'lucide-react';
 
 interface Shortcode {

@@ -3,17 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@ui/button';
+import { Card, CardContent } from '@ui/card';
+import { Badge } from '@ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@ui/dropdown-menu';
 import { Palette, Check, Paintbrush, Copy, Trash2, MoreVertical, Plus, Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 interface Theme {
   // themes.id is a TEXT primary key in D1 (e.g. "theme-publisher"),

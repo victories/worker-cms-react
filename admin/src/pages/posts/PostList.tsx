@@ -4,16 +4,16 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { formatDate } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatDate } from '@ui/lib/utils';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
+import { Input } from '@ui/input';
+import { Card, CardContent, CardHeader } from '@ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
 import { Plus, Search, Pencil, Trash2, Globe, ExternalLink, CheckSquare, Clock } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Pagination, getPerPage } from '@/components/shared/Pagination';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 interface PostListProps {
   postType?: string;

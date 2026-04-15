@@ -3,19 +3,19 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { formatDateTime } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@ui/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@ui/select';
 import { Pagination, getPerPage } from '@/components/shared/Pagination';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 import {
   Activity,
   Coins,

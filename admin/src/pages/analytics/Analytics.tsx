@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { api } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
 import { Eye, TrendingUp, FileText, MessageSquare, ExternalLink, BarChart3, Image, File } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────

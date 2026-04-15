@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@ui/card';
+import { Badge } from '@ui/badge';
 import { Download, Database, FileText, HardDrive } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { useToast } from '@ui/toast-notification';
+import { Switch } from '@ui/switch';
+import { Label } from '@ui/label';
 
 export function BackupPage() {
   const { lang } = useAuthStore();

@@ -2,16 +2,16 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { formatBytes, formatDate, mediaUrl } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { formatBytes, formatDate, mediaUrl } from '@ui/lib/utils';
+import { Button } from '@ui/button';
+import { Card, CardContent } from '@ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@ui/dialog';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
 import { Upload, Trash2, File, X, CheckSquare, Square, RefreshCw, Save } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Pagination, getPerPage } from '@/components/shared/Pagination';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 export function MediaLibrary() {
   const [media, setMedia] = useState<any[]>([]);

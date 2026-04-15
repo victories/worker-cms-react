@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@ui/card';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Separator } from '@ui/separator';
+import { Switch } from '@ui/switch';
 import { Save, Globe, Shield, MessageSquare, Mail, BarChart3, Clock, Type, Blocks, PenTool, Layers, Edit3, KeyRound, ExternalLink, Copy, Check, Eye, EyeOff, ChevronDown, FileText, Send, RotateCcw, X, Code } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);

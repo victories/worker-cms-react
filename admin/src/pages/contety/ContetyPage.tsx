@@ -2,22 +2,22 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/components/ui/toast-notification';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@ui/card';
+import { Input } from '@ui/input';
+import { Button } from '@ui/button';
+import { Switch } from '@ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
+import { Label } from '@ui/label';
+import { Badge } from '@ui/badge';
+import { Separator } from '@ui/separator';
+import { useToast } from '@ui/toast-notification';
 import {
   Loader2, Save, Plug, RefreshCw, FileText, Send, Clock, History, Settings, Zap,
   Eye, EyeOff, ChevronLeft, ChevronRight, File,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
+} from '@ui/dropdown-menu';
 
 type TabKey = 'settings' | 'generate' | 'contents' | 'logs';
 

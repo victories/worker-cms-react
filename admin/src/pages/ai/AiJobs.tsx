@@ -3,20 +3,20 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { formatDateTime, truncate } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatDateTime, truncate } from '@ui/lib/utils';
+import { Button } from '@ui/button';
+import { Badge } from '@ui/badge';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
+import { Textarea } from '@ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
-} from '@/components/ui/dialog';
+} from '@ui/dialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { Pagination, getPerPage } from '@/components/shared/Pagination';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 import {
   Plus, Pencil, Trash2, RefreshCw, ExternalLink, Clock, Loader2, Bot,
 } from 'lucide-react';

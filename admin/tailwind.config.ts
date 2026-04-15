@@ -2,7 +2,14 @@ import type { Config } from 'tailwindcss';
 
 export default {
   darkMode: 'class',
-  content: ['./src/**/*.{ts,tsx}', './index.html', './node_modules/@blocknote/shadcn/dist/**/*.{js,jsx}'],
+  content: [
+    './src/**/*.{ts,tsx}',
+    './index.html',
+    './node_modules/@blocknote/shadcn/dist/**/*.{js,jsx}',
+    // Shared primitives moved in Faz 1 — admin + public site
+    // consume the same shadcn components from packages/ui.
+    '../packages/ui/**/*.{ts,tsx}',
+  ],
   theme: {
     extend: {
       colors: {

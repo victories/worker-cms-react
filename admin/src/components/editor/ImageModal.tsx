@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@ui/dialog';
+import { Button } from '@ui/button';
+import { Input } from '@ui/input';
+import { Label } from '@ui/label';
 import { api } from '@/lib/api';
 import { Image as ImageIcon, Upload, Link as LinkIcon, Loader2 } from 'lucide-react';
-import { mediaUrl } from '@/lib/utils';
+import { mediaUrl } from '@ui/lib/utils';
 
 interface ImageModalProps {
   open: boolean;

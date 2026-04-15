@@ -3,11 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@ui/button';
+import { Card, CardContent } from '@ui/card';
+import { Badge } from '@ui/badge';
 import { Puzzle, Power, PowerOff, Settings, Plus } from 'lucide-react';
-import { useToast } from '@/components/ui/toast-notification';
+import { useToast } from '@ui/toast-notification';
 
 export function PluginList() {
   const { lang } = useAuthStore();

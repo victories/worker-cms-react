@@ -2,10 +2,10 @@ import { useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
+import { Badge } from '@ui/badge';
 import { Upload, FileText, Check, AlertTriangle } from 'lucide-react';
 
 export function WPImport() {
