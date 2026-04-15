@@ -7,6 +7,7 @@ import { PublisherLayout } from '../../ssr/layouts/PublisherLayout';
 import { Post, type PostCommentViewModel } from '../../ssr/pages/Post';
 import { Page } from '../../ssr/pages/Page';
 import { SEOHead } from '../../ssr/components/SEOHead';
+import { ThemeStyles } from '../../ssr/components/ThemeStyles';
 import {
   getPostBySlug,
   getPostTaxonomies,
@@ -360,6 +361,12 @@ async function renderPostPage(
       })
     : null;
 
+  // Per-site theme palette override.
+  const themeStylesNode = createElement(ThemeStyles, {
+    light: theme.cssLight,
+    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+  });
+
   // ---- Featured image src (rewritten) ----
   const featuredImageSrc = p.featured_image_url
     ? `/uploads/${p.featured_image_url.replace(
@@ -441,6 +448,7 @@ async function renderPostPage(
       head: createElement(
         Fragment,
         null,
+        themeStylesNode,
         seoHead,
         hideReadingTimeNode,
         analyticsHeadNode,

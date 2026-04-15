@@ -6,6 +6,7 @@ import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { PublisherLayout } from '../../ssr/layouts/PublisherLayout';
 import { Home } from '../../ssr/pages/Home';
 import { SEOHead } from '../../ssr/components/SEOHead';
+import { ThemeStyles } from '../../ssr/components/ThemeStyles';
 import {
   getSiteTheme,
   getPublicPosts,
@@ -126,6 +127,14 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
       })
     : null;
 
+  // Per-site theme palette override — redeclares shadcn HSL tokens on
+  // :root (and .dark for supported themes). Lives in <head> so it
+  // applies before first paint.
+  const themeStylesNode = createElement(ThemeStyles, {
+    light: theme.cssLight,
+    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+  });
+
   // ---- Static Page as Homepage ----
   if (
     homepageSettings.show_on_front === 'page' &&
@@ -223,6 +232,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
           head: createElement(
             Fragment,
             null,
+            themeStylesNode,
             seoHead,
             analyticsHeadNode,
             pluginSlots.head
@@ -335,6 +345,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
       head: createElement(
         Fragment,
         null,
+        themeStylesNode,
         seoHead,
         analyticsHeadNode,
         pluginSlots.head

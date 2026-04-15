@@ -18,7 +18,7 @@ export interface Variables {
   site: Site | null;
   user: JWTPayload | null;
   lang: string;
-  activeTheme: import('./lib/themeEngine').ThemeData | null;
+  activeTheme: import('./lib/themes/types').ActiveTheme | null;
 }
 
 export interface Site {

@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 import type { Bindings, Variables } from '../types';
-import { loadActiveTheme } from '../lib/themeEngine';
+import { loadActiveTheme } from '../lib/themes/engine';
 
 export async function themeResolverMiddleware(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,

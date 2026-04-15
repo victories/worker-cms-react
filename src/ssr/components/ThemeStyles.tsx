@@ -9,7 +9,7 @@
  *
  * ThemeStyles is how a site overrides those defaults at request time. The
  * route handler resolves the active theme + palette (see
- * `src/lib/themeEngine.ts`) and hands us a plain `{ key: value }` map like:
+ * `src/lib/themes/engine.ts`) and hands us a plain `{ key: value }` map like:
  *
  *   { '--primary': '221 83% 53%', '--background': '0 0% 100%', ... }
  *
