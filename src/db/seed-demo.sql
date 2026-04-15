@@ -368,10 +368,10 @@ VALUES (
   'hero-slider',
   'Hero Slider',
   'Full-width hero slider with title, description, and CTA button for homepage',
-  '1.0.0',
+  '2.0.0',
   'WP-CMS',
   'plugins/hero-slider',
-  '["page.head","page.bodyStart","page.bodyEnd"]',
+  '["ui.head","ui.bodyStart","ui.bodyEnd"]',
   '{"slides":{"type":"json","default":"[]","label":"Slides","description":"Slider slides array"},"autoPlay":{"type":"boolean","default":true,"label":"Auto Play"},"interval":{"type":"number","default":5000,"label":"Interval (ms)"},"showDots":{"type":"boolean","default":true,"label":"Show Dots"},"showArrows":{"type":"boolean","default":true,"label":"Show Arrows"},"height":{"type":"string","default":"500px","label":"Height"},"overlayOpacity":{"type":"number","default":0.4,"label":"Overlay Opacity"}}'
 );
 

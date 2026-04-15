@@ -99,19 +99,17 @@ INSERT INTO menu_items (menu_id, title, url, item_type, position) VALUES (1, 'An
 -- 5. Bundled plugins
 -- ============================================================
 --
--- Hook listeleri Faz 7'de v2 API'ye (ui.head, ui.postContent, ...)
--- taşınacak. Bu seed şu an için eski string hook isimlerini tutar
--- çünkü plugin engine hâlâ v1 sinyallerini bekliyor.
+-- Plugin API v2 — hook names use the `ui.*` React-node namespace.
 
 INSERT INTO plugins (slug, name, description, version, author, entry_point, hooks, settings_schema)
 VALUES (
   'seo-optimizer',
   'SEO Optimizer',
   'Automatically optimizes posts for search engines with meta tags, Open Graph, and content analysis',
-  '1.0.0',
+  '2.0.0',
   'WP-CMS',
   'plugins/seo-optimizer',
-  '["post.beforeSave","page.head","post.beforeRender"]',
+  '["post.beforeSave","ui.head","ui.slot.postHeader"]',
   '{"autoMetaDescription":{"type":"boolean","default":true,"label":"Auto Meta Description","description":"Automatically generate meta description from content"},"maxTitleLength":{"type":"number","default":60,"label":"Max Title Length","description":"Maximum recommended title length for SEO"},"addReadingTime":{"type":"boolean","default":true,"label":"Add Reading Time","description":"Add estimated reading time to posts"},"noindexDrafts":{"type":"boolean","default":true,"label":"Noindex Drafts","description":"Add noindex tag to draft posts"}}'
 );
 
@@ -120,11 +118,11 @@ VALUES (
   'social-share',
   'Social Share',
   'Adds social media sharing buttons to posts',
-  '1.0.0',
+  '2.0.0',
   'WP-CMS',
   'plugins/social-share',
-  '["post.beforeRender","page.head"]',
-  '{"platforms":{"type":"string","default":"twitter,facebook,linkedin,whatsapp","label":"Platforms","description":"Comma-separated list of platforms"},"position":{"type":"string","default":"bottom","label":"Position","description":"Position of share buttons (top, bottom, both)"},"style":{"type":"string","default":"buttons","label":"Style","description":"Display style (buttons, icons, text)"}}'
+  '["ui.slot.postFooter","ui.bodyEnd"]',
+  '{"platforms":{"type":"string","default":"x,facebook,linkedin,whatsapp","label":"Platforms","description":"Comma-separated list of platforms"},"style":{"type":"string","default":"buttons","label":"Style","description":"Display style (buttons or icons)"}}'
 );
 
 INSERT INTO plugins (slug, name, description, version, author, entry_point, hooks, settings_schema)
@@ -132,10 +130,10 @@ VALUES (
   'contact-form',
   'Contact Form',
   'Adds a contact form shortcode [contact-form] to pages and posts',
-  '1.0.0',
+  '2.0.0',
   'WP-CMS',
   'plugins/contact-form',
-  '["post.beforeRender","page.bodyEnd"]',
+  '[]',
   '{"recipientEmail":{"type":"string","default":"","label":"Recipient Email","description":"Email address to receive contact form submissions"},"successMessage":{"type":"string","default":"Thank you for your message!","label":"Success Message","description":"Message shown after form submission"},"formTitle":{"type":"string","default":"Contact Us","label":"Form Title","description":"Title displayed above the contact form"},"enableCaptcha":{"type":"boolean","default":false,"label":"Enable Captcha","description":"Enable simple math captcha"}}'
 );
 

@@ -1,10 +1,10 @@
 {
   "slug": "contact-form",
   "name": "Contact Form",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Sayfalarınıza iletişim formu ekler. Kullanım: Sayfa içeriğine [contact-form] shortcode'unu yazın veya İçerik Enjektörü'nden [iletisim-formu] bloğunu ekleyin. Gelen mesajlar admin panelindeki İletişim menüsünden görüntülenebilir. / Adds a contact form to your pages. Usage: Add [contact-form] shortcode to your page content or use [iletisim-formu] block from Content Injector. Incoming messages can be viewed from the Messages menu in admin panel.",
   "author": "WP-CMS",
-  "hooks": ["post.beforeRender", "page.bodyEnd"],
+  "hooks": [],
   "settings": {
     "recipientEmail": {
       "type": "string",

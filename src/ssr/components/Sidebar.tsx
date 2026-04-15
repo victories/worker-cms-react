@@ -1,15 +1,17 @@
 /** @jsxImportSource react */
+import type { ReactNode } from 'react';
 import { cn } from '@ui/lib/utils';
 import type { SidebarData, SidebarWidget } from '../../lib/public-db';
 import { WidgetRenderer } from './WidgetRenderer';
 
 /**
  * Sidebar — right column on post/archive/home pages. Renders sidebar
- * widgets as a sticky vertical stack.
+ * widgets as a sticky vertical stack, with optional plugin slot content
+ * above and below the widget list.
  *
- * Returns `null` when the site has no sidebar widgets configured, so
- * PublisherLayout can simply drop the column and the main area
- * stretches the full width. No empty 340px gap.
+ * Returns `null` only when there are no widgets *and* no plugin slot
+ * content to render — PublisherLayout can then drop the column and the
+ * main area stretches the full width.
  */
 
 export interface SidebarProps {
@@ -17,6 +19,10 @@ export interface SidebarProps {
   sidebarData: SidebarData;
   lang: string;
   lp: string;
+  /** Plugin `ui.slot.sidebarTop` output, pre-fetched by the route handler */
+  sidebarTop?: ReactNode;
+  /** Plugin `ui.slot.sidebarBottom` output, pre-fetched by the route handler */
+  sidebarBottom?: ReactNode;
   className?: string;
 }
 
@@ -25,9 +31,14 @@ export function Sidebar({
   sidebarData,
   lang,
   lp,
+  sidebarTop,
+  sidebarBottom,
   className,
 }: SidebarProps) {
-  if (!widgets || widgets.length === 0) return null;
+  const hasWidgets = widgets && widgets.length > 0;
+  const hasTop = sidebarTop != null;
+  const hasBottom = sidebarBottom != null;
+  if (!hasWidgets && !hasTop && !hasBottom) return null;
 
   return (
     <aside
@@ -37,16 +48,20 @@ export function Sidebar({
         className
       )}
     >
-      {widgets.map((widget) => (
-        <WidgetRenderer
-          key={widget.id}
-          widget={widget}
-          sidebarData={sidebarData}
-          lang={lang}
-          lp={lp}
-          variant="card"
-        />
-      ))}
+      {hasTop ? sidebarTop : null}
+      {hasWidgets
+        ? widgets.map((widget) => (
+            <WidgetRenderer
+              key={widget.id}
+              widget={widget}
+              sidebarData={sidebarData}
+              lang={lang}
+              lp={lp}
+              variant="card"
+            />
+          ))
+        : null}
+      {hasBottom ? sidebarBottom : null}
     </aside>
   );
 }

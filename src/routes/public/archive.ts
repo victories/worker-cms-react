@@ -27,7 +27,10 @@ import {
   renderJsonLd,
 } from '../../lib/schema';
 import { langPrefix } from '../../lib/lang';
-import { collectPluginSlots } from '../../lib/plugins/react-bridge';
+import {
+  collectDocumentSlots,
+  collectSiteLayoutSlots,
+} from '../../lib/plugins/collectors';
 import { PUBLISHER_CLIENT_JS } from '../../ssr/__generated__/publisher-client';
 
 /**
@@ -71,7 +74,10 @@ async function renderArchivePage(
 
   if (!taxonomy) return c.notFound();
 
-  const pluginSlots = await collectPluginSlots(site);
+  const [pluginSlots, siteSlots] = await Promise.all([
+    collectDocumentSlots(site),
+    collectSiteLayoutSlots(site),
+  ]);
 
   const { posts, total } = await getPostsByTaxonomy(
     c.env.DB,
@@ -210,6 +216,11 @@ async function renderArchivePage(
         supportsDarkMode: theme.supports_dark_mode ?? false,
         hidePoweredBy: whiteLabel,
         footerText: theme.footer_text || undefined,
+        headerRight: createElement(Fragment, null, ...siteSlots.headerRight),
+        sidebarTop: createElement(Fragment, null, ...siteSlots.sidebarTop),
+        sidebarBottom: createElement(Fragment, null, ...siteSlots.sidebarBottom),
+        footerStart: createElement(Fragment, null, ...siteSlots.footerStart),
+        footerEnd: createElement(Fragment, null, ...siteSlots.footerEnd),
         children: createElement(Archive, {
           type,
           taxonomy,

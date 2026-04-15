@@ -34,7 +34,11 @@ import { processAllShortcodes, ShortcodeContext } from '../../lib/shortcodes/ind
 import { processLayout } from '../../lib/layout';
 import { renderAmpForPost } from './amp/dynamic';
 import { getRecaptchaSettings } from '../../lib/recaptcha';
-import { collectPluginSlots, wrapPostContent } from '../../lib/plugins/react-bridge';
+import {
+  collectDocumentSlots,
+  collectSiteLayoutSlots,
+  collectPostLayoutSlots,
+} from '../../lib/plugins/collectors';
 import { PUBLISHER_CLIENT_JS } from '../../ssr/__generated__/publisher-client';
 
 /**
@@ -208,7 +212,12 @@ async function renderPostPage(
     (await getMenuByLocation(c.env.DB, siteId, 'primary', lang));
   const navItems = (headerMenu?.items ?? []) as any[];
 
-  const pluginSlots = await collectPluginSlots(site);
+  // Plugin render slots — site-level + per-post, pre-fetched in parallel.
+  const [pluginSlots, siteSlots, postSlots] = await Promise.all([
+    collectDocumentSlots(site),
+    collectSiteLayoutSlots(site),
+    collectPostLayoutSlots(p),
+  ]);
 
   // ---- Content rendering ----
   const layoutJson = await getPostMeta(c.env.DB, p.id, 'page_layout');
@@ -228,15 +237,13 @@ async function renderPostPage(
   if (layoutJson) {
     try {
       const layout = JSON.parse(layoutJson);
-      const postContent = await wrapPostContent(p.content || '', p);
+      const postContent = await processAllShortcodes(p.content || '', scCtx);
       renderedContent = await processLayout(layout, scCtx, postContent);
     } catch {
-      renderedContent = await wrapPostContent(p.content || '', p);
-      renderedContent = await processAllShortcodes(renderedContent, scCtx);
+      renderedContent = await processAllShortcodes(p.content || '', scCtx);
     }
   } else {
-    renderedContent = await wrapPostContent(p.content || '', p);
-    renderedContent = await processAllShortcodes(renderedContent, scCtx);
+    renderedContent = await processAllShortcodes(p.content || '', scCtx);
   }
 
   // ---- Canonical + OG image ----
@@ -438,6 +445,8 @@ async function renderPostPage(
         comments: comments_vm,
         commentFormBootHtml,
         recaptchaScriptHtml,
+        postHeaderSlot: createElement(Fragment, null, ...postSlots.postHeader),
+        postFooterSlot: createElement(Fragment, null, ...postSlots.postFooter),
       });
 
   return renderPage(
@@ -476,6 +485,11 @@ async function renderPostPage(
         supportsDarkMode: theme.supports_dark_mode ?? false,
         hidePoweredBy: whiteLabel,
         footerText: theme.footer_text || undefined,
+        headerRight: createElement(Fragment, null, ...siteSlots.headerRight),
+        sidebarTop: createElement(Fragment, null, ...siteSlots.sidebarTop),
+        sidebarBottom: createElement(Fragment, null, ...siteSlots.sidebarBottom),
+        footerStart: createElement(Fragment, null, ...siteSlots.footerStart),
+        footerEnd: createElement(Fragment, null, ...siteSlots.footerEnd),
         children: pageBody,
       }),
     })

@@ -1,10 +1,10 @@
 {
   "slug": "hero-slider",
   "name": "Hero Slider",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Full-width hero slider with title, description, and CTA button for homepage",
   "author": "WP-CMS",
-  "hooks": ["page.head", "page.bodyStart", "page.bodyEnd"],
+  "hooks": ["ui.head", "ui.bodyStart", "ui.bodyEnd"],
   "settings": {
     "slides": {
       "type": "string",
