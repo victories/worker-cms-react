@@ -64,6 +64,17 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return hashHex === storedHash;
 }
 
+// Deterministic SHA-256 hash for API keys — enables a single-row lookup
+// in api_keys.key_hash. Don't reuse hashPassword here: PBKDF2 with random
+// salt would force scanning every row to verify.
+export async function hashApiKey(rawKey: string): Promise<string> {
+  const bytes = new TextEncoder().encode(rawKey);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // JWT implementation using Web Crypto API
 export async function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>, secret: string, expiresInSeconds: number): Promise<string> {
   const header = { alg: 'HS256', typ: 'JWT' };

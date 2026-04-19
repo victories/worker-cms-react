@@ -49,11 +49,14 @@ function maskKey(prefix: string): string {
   return `${prefix}-****-****`;
 }
 
+type Tab = 'site' | 'account';
+
 export function ApiKeys() {
   const { lang } = useAuthStore();
   const { activeSite } = useSiteStore();
   const { toast } = useToast();
 
+  const [tab, setTab] = useState<Tab>('site');
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,15 +81,17 @@ export function ApiKeys() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!activeSite) return;
+    if (tab === 'site' && !activeSite) return;
     loadKeys();
-  }, [activeSite]);
+  }, [activeSite, tab]);
+
+  const endpointBase = tab === 'account' ? '/account/keys' : '/api-keys';
 
   const loadKeys = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.request<ApiKeyListResponse>('/api-keys');
+      const res = await api.request<ApiKeyListResponse>(endpointBase);
       if (res.success) {
         setKeys(res.data || []);
       } else {
@@ -129,7 +134,7 @@ export function ApiKeys() {
         body.expires_at = createExpiry;
       }
 
-      const res = await api.request<ApiKeyCreateResponse>('/api-keys', {
+      const res = await api.request<ApiKeyCreateResponse>(endpointBase, {
         method: 'POST',
         body,
       });
@@ -181,7 +186,7 @@ export function ApiKeys() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await api.request<{ success: boolean }>(`/api-keys/${deleteTarget.id}`, {
+      const res = await api.request<{ success: boolean }>(`${endpointBase}/${deleteTarget.id}`, {
         method: 'DELETE',
       });
       if (res.success) {
@@ -228,6 +233,36 @@ export function ApiKeys() {
           {lang === 'tr' ? 'Yeni Anahtar Olustur' : 'Create New Key'}
         </Button>
       </div>
+
+      {/* Scope tabs */}
+      <div className="flex items-center gap-2 border-b">
+        <button
+          type="button"
+          onClick={() => setTab('site')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+            tab === 'site' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {lang === 'tr' ? 'Bu Site' : 'This Site'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('account')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+            tab === 'account' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          {lang === 'tr' ? 'Hesabim (Tum Siteler)' : 'My Account (All Sites)'}
+        </button>
+      </div>
+
+      {tab === 'account' && (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3">
+          {lang === 'tr'
+            ? 'Hesap anahtarlari erisebildiginiz tum sitelerde gecerli. worker-ai-bot gibi dis araclar bu anahtari kullanarak sitelerinizi kesfedip icerik gonderebilir.'
+            : 'Account keys work across every site you can access. External tools like worker-ai-bot use this key to discover your sites and dispatch content.'}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
