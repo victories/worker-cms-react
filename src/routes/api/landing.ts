@@ -68,7 +68,7 @@ const DEFAULT_CONFIG = JSON.stringify({
         currency: '₺',
         period: '/ay',
         desc: 'Büyüyen işletmeler ve profesyoneller için.',
-        features: ['10 Site', '25 GB Depolama', 'Sınırsız Görüntüleme', 'Öncelikli Destek', 'AI İçerik Asistanı', 'Özel Domain', 'Otomatik Yedekleme'],
+        features: ['10 Site', '25 GB Depolama', 'Sınırsız Görüntüleme', 'Öncelikli Destek', 'Özel Domain', 'Otomatik Yedekleme'],
         cta_text: 'Pro\'ya Geç',
         cta_url: '/admin/register?plan=pro',
         highlighted: true,

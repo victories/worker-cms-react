@@ -38,10 +38,6 @@ import { ShortcodeManager } from '@/pages/shortcodes/ShortcodeManager';
 import { MessageList } from '@/pages/messages/MessageList';
 import { RedirectSettings } from '@/pages/settings/RedirectSettings';
 import { ShortUrlManager } from '@/pages/settings/ShortUrlManager';
-import { AiSettings } from '@/pages/ai/AiSettings';
-import { AiPrompts } from '@/pages/ai/AiPrompts';
-import { AiJobs } from '@/pages/ai/AiJobs';
-import { AiLogs } from '@/pages/ai/AiLogs';
 import { ContetyPage } from '@/pages/contety/ContetyPage';
 import { ThemeStore } from '@/pages/themes/ThemeStore';
 import { ThemeCustomizer } from '@/pages/themes/ThemeCustomizer';
@@ -148,10 +144,6 @@ export function App() {
           <Route path="shortcodes" element={<ShortcodeManager />} />
           <Route path="settings/redirects" element={<RedirectSettings />} />
           <Route path="short-urls" element={<ShortUrlManager />} />
-          <Route path="ai/settings" element={<AiSettings />} />
-          <Route path="ai/prompts" element={<AiPrompts />} />
-          <Route path="ai/jobs" element={<AiJobs />} />
-          <Route path="ai/logs" element={<AiLogs />} />
           <Route path="contety" element={<ContetyPage />} />
           <Route path="settings/landing" element={<LandingSettings />} />
           <Route path="packages" element={<PackageManager />} />

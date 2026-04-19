@@ -13,11 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@ui/switch';
 import { EditorWrapper } from '@/components/editor/EditorWrapper';
 import { SeoAnalysis } from '@/components/editor/SeoAnalysis';
-import { ArrowLeft, Save, Zap, Globe, ExternalLink, MessageSquare, Clock, History, RotateCcw, X, Eye, Bot, Sparkles, Wand2, ImageIcon, Upload, Trash2, Pin, ChevronDown, Package } from 'lucide-react';
+import { ArrowLeft, Save, Zap, Globe, ExternalLink, MessageSquare, Clock, History, RotateCcw, X, Eye, ImageIcon, Upload, Trash2, Pin, ChevronDown, Package } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
 import { mediaUrl } from '@ui/lib/utils';
 import { LayoutBuilder } from '@/components/editor/LayoutBuilder';
-import { AiGenerateModal } from '@/components/editor/AiGenerateModal';
 import { DynamicField as DynamicFieldComponent } from '@/components/fields/DynamicField';
 import type { PageLayout } from '@/components/editor/LayoutPresets';
 
@@ -55,7 +54,6 @@ export function PostEditor({ postType = 'post' }: PostEditorProps) {
     categories: true,
     tags: false,
     featured: true,
-    ai: false,
     excerpt: false,
     seo: false,
     amp: false,
@@ -70,7 +68,6 @@ export function PostEditor({ postType = 'post' }: PostEditorProps) {
   const [showRevisions, setShowRevisions] = useState(false);
   const [previewRevision, setPreviewRevision] = useState<any>(null);
   const [restoringRevision, setRestoringRevision] = useState(false);
-  const [showAiModal, setShowAiModal] = useState(false);
   const [contentTypeFields, setContentTypeFields] = useState<any[]>([]);
   const [customMeta, setCustomMeta] = useState<Record<string, any>>({});
   const [featuredImageId, setFeaturedImageId] = useState<number | null>(null);
@@ -365,14 +362,6 @@ export function PostEditor({ postType = 'post' }: PostEditorProps) {
           </h1>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowAiModal(true)}
-            className="border-primary/30 text-primary hover:bg-primary/10"
-          >
-            <Bot className="h-4 w-4" />
-            {lang === 'tr' ? 'AI Asistan' : 'AI Assistant'}
-          </Button>
           <Button variant="outline" onClick={() => handleSave('draft')} disabled={saving}>
             {t('action.draft', lang)}
           </Button>
@@ -715,47 +704,6 @@ export function PostEditor({ postType = 'post' }: PostEditorProps) {
             </Card>
           )}
 
-          {/* AI Assistant Card */}
-          <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
-            <CardHeader className="pb-2 cursor-pointer select-none" onClick={() => toggleSection('ai')}>
-              <CardTitle className="text-sm flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Bot className="h-4 w-4 text-primary" />
-                  {lang === 'tr' ? 'AI Asistan' : 'AI Assistant'}
-                </span>
-                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${openSections.ai ? 'rotate-180' : ''}`} />
-              </CardTitle>
-            </CardHeader>
-            {openSections.ai && (
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => setShowAiModal(true)}
-                >
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  {t('ai.generate', lang)}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => setShowAiModal(true)}
-                  disabled={!content}
-                >
-                  <Wand2 className="h-4 w-4 text-primary" />
-                  {t('ai.improve', lang)}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  {lang === 'tr'
-                    ? 'AI ile icerik uretin veya mevcut icerigi iyilestirin'
-                    : 'Generate content with AI or improve existing content'}
-                </p>
-              </CardContent>
-            )}
-          </Card>
-
           <Card>
             <CardHeader className="cursor-pointer select-none" onClick={() => toggleSection('excerpt')}>
               <CardTitle className="text-sm flex items-center justify-between">
@@ -1030,38 +978,6 @@ export function PostEditor({ postType = 'post' }: PostEditorProps) {
         </div>
       </div>
 
-      {/* AI Generate Modal */}
-      <AiGenerateModal
-        open={showAiModal}
-        onClose={() => setShowAiModal(false)}
-        currentContent={content}
-        currentTitle={title}
-        onInsertContent={(newContent) => {
-          setContent((prev) => prev ? prev + '\n' + newContent : newContent);
-        }}
-        onReplaceContent={(newContent) => {
-          setContent(newContent);
-        }}
-        onSetTitle={(newTitle) => {
-          setTitle(newTitle);
-        }}
-        onSetExcerpt={(newExcerpt) => {
-          setExcerpt(newExcerpt);
-        }}
-        onSetSeoTitle={(newSeoTitle) => {
-          setSeoTitle(newSeoTitle);
-        }}
-        onSetSeoDescription={(newSeoDescription) => {
-          setSeoDescription(newSeoDescription);
-        }}
-        onSetSeoKeywords={(newSeoKeywords) => {
-          setSeoKeywords(newSeoKeywords);
-        }}
-        onSetFeaturedImage={!isPage ? (src: string) => {
-          // Only auto-set from AI if no featured image already exists
-          if (!featuredImageId && !featuredImageUrl) setFeaturedFromSrc(src);
-        } : undefined}
-      />
     </div>
   );
 }

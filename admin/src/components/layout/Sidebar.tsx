@@ -11,7 +11,7 @@ import {
   LayoutDashboard, FileText, Image, FolderTree, Tag, MessageSquare, Mail,
   Menu, Users, Settings, Plug, Globe, BarChart3, Upload, Database, LayoutGrid,
   Key, Shield, Zap, X, ChevronDown, Paintbrush, Palette, Code, ArrowRightLeft, Link2,
-  Bot, Wand2, Clock, ScrollText, Rocket, Crown, Package, CreditCard, Sparkles,
+  Rocket, Crown, Package, CreditCard, Sparkles,
 } from 'lucide-react';
 
 // Simple nav items (not in accordion groups)
@@ -71,18 +71,6 @@ const navStructure: NavEntry[] = [
   },
   { key: 'nav.users', href: '/users', icon: Users, roles: ['admin', 'super_admin'] },
   { key: 'nav.analytics', href: '/analytics', icon: BarChart3 },
-  // AI Content group
-  {
-    key: 'nav.ai',
-    icon: Bot,
-    roles: ['editor', 'admin', 'super_admin'],
-    children: [
-      { key: 'nav.ai_settings', href: '/ai/settings', icon: Wand2, roles: ['admin', 'super_admin'] },
-      { key: 'nav.ai_prompts', href: '/ai/prompts', icon: ScrollText },
-      { key: 'nav.ai_jobs', href: '/ai/jobs', icon: Clock, roles: ['admin', 'super_admin'] },
-      { key: 'nav.ai_logs', href: '/ai/logs', icon: BarChart3, roles: ['admin', 'super_admin'] },
-    ],
-  },
   { key: 'nav.contety', href: '/contety', icon: Sparkles, roles: ['admin', 'super_admin'] },
   { key: 'nav.payments', href: '/payments', icon: CreditCard, roles: ['super_admin'] },
   // Settings group (Ayarlar)
@@ -142,7 +130,6 @@ export function Sidebar() {
     group.children.some((child) => isItemActive(child.href));
 
   const hasRole = (roles?: string[]) => !roles || roles.includes(role);
-  const hasAiAccess = role === 'super_admin' || user?.ai_enabled === 1;
 
   const handleNavClick = () => {
     if (window.innerWidth < 768) {
@@ -287,8 +274,6 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {navStructure.map((entry) => {
           if (!hasRole(entry.roles)) return null;
-          // Hide AI menu if user doesn't have AI access
-          if (entry.key === 'nav.ai' && !hasAiAccess) return null;
 
           if (isGroup(entry)) {
             return renderNavGroup(entry);
