@@ -39,6 +39,7 @@ import { MessageList } from '@/pages/messages/MessageList';
 import { RedirectSettings } from '@/pages/settings/RedirectSettings';
 import { ShortUrlManager } from '@/pages/settings/ShortUrlManager';
 import { ContetyPage } from '@/pages/contety/ContetyPage';
+import { CmsHubBot } from '@/pages/cmshub/CmsHubBot';
 import { ThemeStore } from '@/pages/themes/ThemeStore';
 import { ThemeCustomizer } from '@/pages/themes/ThemeCustomizer';
 import { LandingSettings } from '@/pages/settings/LandingSettings';
@@ -145,6 +146,7 @@ export function App() {
           <Route path="settings/redirects" element={<RedirectSettings />} />
           <Route path="short-urls" element={<ShortUrlManager />} />
           <Route path="contety" element={<ContetyPage />} />
+          <Route path="cmshub-bot" element={<CmsHubBot />} />
           <Route path="settings/landing" element={<LandingSettings />} />
           <Route path="packages" element={<PackageManager />} />
           <Route path="payments" element={<PaymentsPage />} />
