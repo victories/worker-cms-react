@@ -52,6 +52,13 @@ function formatTs(ts: number | null): string {
   return new Date(ms).toLocaleString();
 }
 
+// cms-hub stores balances as micro-dollars (1 USD = 1,000,000). Render as
+// "$11.433791" — 6 fractional digits.
+function formatCredits(micro: number | null | undefined): string {
+  const n = micro ?? 0;
+  return `$${(n / 1_000_000).toFixed(6)}`;
+}
+
 function statusBadge(status: string) {
   const map: Record<string, { label: string; className: string }> = {
     published: { label: 'published', className: 'border-green-500 text-green-700' },
@@ -246,9 +253,9 @@ export function CmsHubBot() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="gap-1">
+                  <Badge variant="outline" className="gap-1 font-mono">
                     <Coins className="h-3 w-3" />
-                    {cfg.organization?.credit_balance ?? 0} {tr ? 'kredi' : 'credits'}
+                    {formatCredits(cfg.organization?.credit_balance)}
                   </Badge>
                   <Button variant="outline" size="sm" onClick={loadConfig}>
                     <RefreshCw className="h-4 w-4" />
