@@ -395,6 +395,39 @@ class ApiClient {
     return this.request(`/short-urls/${id}`, { method: 'DELETE' });
   }
 
+  // WorkerCms AI Bot (cms-hub @ bot.workercms.com)
+  async getCmsHubConfig() {
+    return this.request<{
+      success: boolean;
+      data: {
+        has_key: boolean;
+        key_hint?: string;
+        valid?: boolean;
+        error?: string;
+        organization?: { id: string; name: string; slug: string; credit_balance: number } | null;
+      };
+    }>('/cmshub/config');
+  }
+
+  async saveCmsHubConfig(api_key: string) {
+    return this.request<{ success: boolean; data: any; error?: string }>('/cmshub/config', {
+      method: 'POST',
+      body: { api_key },
+    });
+  }
+
+  async deleteCmsHubConfig() {
+    return this.request<{ success: boolean }>('/cmshub/config', { method: 'DELETE' });
+  }
+
+  async getCmsHubSites() {
+    return this.request<{ success: boolean; data: { sites: any[] }; error?: string }>('/cmshub/sites');
+  }
+
+  async getCmsHubContent() {
+    return this.request<{ success: boolean; data: { content: any[] }; error?: string }>('/cmshub/content');
+  }
+
   // Contety Content Bot
   async getContetyConfig() {
     return this.request<{ success: boolean; data: any }>('/contety/config');
