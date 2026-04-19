@@ -34,8 +34,6 @@ import contactRoutes from './routes/api/contact';
 import globalSettingsRoutes from './routes/api/global-settings';
 import redirectsRoutes from './routes/api/redirects';
 import shortUrlsRoutes from './routes/api/short-urls';
-import aiRoutes from './routes/api/ai';
-import aiGlobalRoutes from './routes/api/ai-global';
 import landingApiRoutes from './routes/api/landing';
 import domainRoutes from './routes/api/domains';
 import packageRoutes from './routes/api/packages';
@@ -63,8 +61,6 @@ import ampDynamicRoutes from './routes/public/amp/dynamic';
 import gitRoutes from './routes/public/git';
 import landingPageRoutes from './routes/public/landing';
 
-// AI cron processor
-import { processAiJobs } from './lib/ai-cron';
 // Contety polling cron
 import { processContetyPolling } from './lib/contety-cron';
 // Domain NS verification cron
@@ -230,8 +226,6 @@ app.route('/api/contact', contactRoutes);
 app.route('/api/global-settings', globalSettingsRoutes);
 app.route('/api/redirects', redirectsRoutes);
 app.route('/api/short-urls', shortUrlsRoutes);
-app.route('/api/ai', aiRoutes);
-app.route('/api/ai/global', aiGlobalRoutes);
 app.route('/api/landing', landingApiRoutes);
 app.route('/api/domains', domainRoutes);
 app.route('/api/packages', packageRoutes);
@@ -488,8 +482,6 @@ export default {
         `UPDATE posts SET status = 'publish', updated_at = datetime('now') WHERE status = 'scheduled' AND published_at <= ?`
       ).bind(now).run()
     );
-    // Process pending AI generation jobs
-    ctx.waitUntil(processAiJobs(env, now));
     // Poll processing Contety contents
     ctx.waitUntil(processContetyPolling(env));
     // Check pending domain NS propagation

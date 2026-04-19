@@ -10,7 +10,7 @@ import { Label } from '@ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
 import { Badge } from '@ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
-import { Plus, Pencil, Trash2, Shield, Globe, X, Bot, Crown, Check, Users, LogIn } from 'lucide-react';
+import { Plus, Pencil, Trash2, Shield, Globe, X, Check, Users, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Switch } from '@ui/switch';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -40,7 +40,6 @@ export function UserList() {
   const [form, setForm] = useState({
     email: '', display_name: '', password: '', role: 'writer',
     max_sites: 0, max_editors: 0, max_writers: 0,
-    ai_enabled: 0, ai_use_global: 0,
   });
   const [selectedSiteIds, setSelectedSiteIds] = useState<number[]>([]);
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null);
@@ -81,7 +80,6 @@ export function UserList() {
       email: '', display_name: '', password: '',
       role: isAdmin ? 'writer' : 'writer',
       max_sites: 0, max_editors: 0, max_writers: 0,
-      ai_enabled: 0, ai_use_global: 0,
     });
     setSelectedSiteIds([]);
     setShowDialog(true);
@@ -92,7 +90,6 @@ export function UserList() {
     setForm({
       email: u.email, display_name: u.display_name, password: '', role: u.role,
       max_sites: u.max_sites ?? 0, max_editors: u.max_editors ?? 0, max_writers: u.max_writers ?? 0,
-      ai_enabled: u.ai_enabled ?? 0, ai_use_global: u.ai_use_global ?? 0,
     });
     setSelectedSiteIds([]);
     setShowDialog(true);
@@ -109,8 +106,6 @@ export function UserList() {
           body.max_sites = form.max_sites;
           body.max_editors = form.max_editors;
           body.max_writers = form.max_writers;
-          body.ai_enabled = form.ai_enabled;
-          body.ai_use_global = form.ai_use_global;
         }
         await api.request(`/users/${editUser.id}`, { method: 'PUT', body });
         toast(lang === 'tr' ? 'Kullanıcı güncellendi' : 'User updated', 'success');
@@ -125,8 +120,6 @@ export function UserList() {
           body.max_sites = form.max_sites;
           body.max_editors = form.max_editors;
           body.max_writers = form.max_writers;
-          body.ai_enabled = form.ai_enabled;
-          body.ai_use_global = form.ai_use_global;
         }
         // For admin creating writer/editor, attach site_ids
         if (isAdmin || (isSuperAdmin && (form.role === 'writer' || form.role === 'editor'))) {
@@ -286,22 +279,6 @@ export function UserList() {
                             <Users className="h-2.5 w-2.5 mr-0.5" />
                             {u.max_editors ?? 0}E / {u.max_writers ?? 0}W
                           </Badge>
-                        </>
-                      )}
-                      {(u.role === 'admin' || u.role === 'editor' || u.role === 'writer') && (
-                        <>
-                          {u.ai_enabled === 1 && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-purple-400 text-purple-600">
-                              <Bot className="h-2.5 w-2.5 mr-0.5" />
-                              AI
-                            </Badge>
-                          )}
-                          {u.ai_enabled === 1 && u.ai_use_global === 1 && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-600">
-                              <Crown className="h-2.5 w-2.5 mr-0.5" />
-                              Global
-                            </Badge>
-                          )}
                         </>
                       )}
                       {u.role === 'super_admin' && (
@@ -478,48 +455,6 @@ export function UserList() {
               </div>
             )}
 
-            {/* AI Permissions — super_admin sets for admin, admin inherits to their users */}
-            {isSuperAdmin && (form.role === 'admin' || form.role === 'editor' || form.role === 'writer') && (
-              <div className="border-t pt-4 mt-2 space-y-4">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                  {lang === 'tr' ? 'AI İzinleri' : 'AI Permissions'}
-                </Label>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="flex items-center gap-1.5">
-                      <Bot className="h-3.5 w-3.5" />
-                      {lang === 'tr' ? 'AI İçerik Botu' : 'AI Content Bot'}
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {lang === 'tr' ? 'AI içerik özelliklerine erişim' : 'Access to AI content features'}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.ai_enabled === 1}
-                    onCheckedChange={(checked) => setForm({ ...form, ai_enabled: checked ? 1 : 0 })}
-                  />
-                </div>
-
-                {form.ai_enabled === 1 && (
-                  <div className="flex items-center justify-between ml-4 pl-4 border-l">
-                    <div>
-                      <Label className="flex items-center gap-1.5">
-                        <Crown className="h-3.5 w-3.5" />
-                        {lang === 'tr' ? 'Global AI API Kullanımı' : 'Use Global AI APIs'}
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {lang === 'tr' ? 'Kapalıysa kendi API anahtarını girmeli' : 'If off, must provide own API keys'}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={form.ai_use_global === 1}
-                      onCheckedChange={(checked) => setForm({ ...form, ai_use_global: checked ? 1 : 0 })}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>{t('action.cancel', lang)}</Button>

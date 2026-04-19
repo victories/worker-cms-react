@@ -73,25 +73,6 @@ export const siteAccessMiddleware = createMiddleware<{ Bindings: Bindings; Varia
   await next();
 });
 
-// AI access control - checks ai_enabled permission on user
-export const requireAiAccess = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
-  const user = c.get('user');
-  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli / Authorization required' }, 401);
-
-  // super_admin bypasses all limits
-  if (user.role === 'super_admin') { await next(); return; }
-
-  const userRecord = await c.env.DB.prepare(
-    'SELECT ai_enabled FROM users WHERE id = ?'
-  ).bind(user.sub).first<{ ai_enabled: number }>();
-
-  if (!userRecord || userRecord.ai_enabled !== 1) {
-    return c.json({ success: false, error: 'AI özelliklerine erişiminiz yok / AI access not enabled' }, 403);
-  }
-
-  await next();
-});
-
 // Require site to be set (for site-scoped endpoints)
 export const requireSite = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
   const siteId = c.get('siteId');
