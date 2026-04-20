@@ -35,7 +35,7 @@ taxonomies.get('/', async (c) => {
 taxonomies.post('/', requireRole('editor', 'admin'), async (c) => {
   const siteId = c.get('siteId')!;
   const body = await c.req.json<{
-    name: string; type: string; description?: string; parent_id?: number;
+    name: string; slug?: string; type: string; description?: string; parent_id?: number;
     language?: string; translation_group?: string;
   }>();
 
@@ -43,8 +43,10 @@ taxonomies.post('/', requireRole('editor', 'admin'), async (c) => {
     return c.json({ success: false, error: 'İsim ve tür gerekli' }, 400);
   }
 
+  // Honor an explicit slug if the user typed one; otherwise generate from name.
+  const slugSource = body.slug && body.slug.trim() ? body.slug : body.name;
   const slug = await ensureUniqueSlug(
-    c.env.DB, 'taxonomies', createSlug(body.name), siteId, body.language || 'tr'
+    c.env.DB, 'taxonomies', createSlug(slugSource), siteId, body.language || 'tr'
   );
 
   const result = await c.env.DB.prepare(
@@ -58,20 +60,40 @@ taxonomies.post('/', requireRole('editor', 'admin'), async (c) => {
 });
 
 // PUT /api/taxonomies/:id
+//
+// Slug rules:
+//   - body.slug missing  → keep existing slug
+//   - body.slug === ''   → regenerate from the (new or current) name
+//   - body.slug provided → sanitize via createSlug + ensureUnique
+//
+// This lets the admin form clear the field to "rename and regenerate slug"
+// without forcing every PUT to compute a new one.
 taxonomies.put('/:id', requireRole('editor', 'admin'), async (c) => {
   const siteId = c.get('siteId')!;
   const id = parseInt(c.req.param('id'));
-  const body = await c.req.json<{ name?: string; description?: string; parent_id?: number }>();
+  const body = await c.req.json<{ name?: string; slug?: string; description?: string; parent_id?: number }>();
 
   const existing = await c.env.DB.prepare('SELECT * FROM taxonomies WHERE id = ? AND site_id = ?')
-    .bind(id, siteId).first();
+    .bind(id, siteId).first<{ id: number; name: string; slug: string; language: string | null }>();
   if (!existing) {
     return c.json({ success: false, error: 'Bulunamadı' }, 404);
   }
 
+  let nextSlug = existing.slug;
+  if (body.slug !== undefined) {
+    const raw = body.slug.trim();
+    const source = raw === '' ? (body.name ?? existing.name) : raw;
+    const candidate = createSlug(source);
+    if (candidate && candidate !== existing.slug) {
+      nextSlug = await ensureUniqueSlug(
+        c.env.DB, 'taxonomies', candidate, siteId, existing.language || 'tr'
+      );
+    }
+  }
+
   const result = await c.env.DB.prepare(
-    'UPDATE taxonomies SET name = COALESCE(?, name), description = COALESCE(?, description), parent_id = ? WHERE id = ? RETURNING *'
-  ).bind(body.name ?? null, body.description ?? null, body.parent_id ?? existing.parent_id, id).first();
+    'UPDATE taxonomies SET name = COALESCE(?, name), slug = ?, description = COALESCE(?, description), parent_id = ? WHERE id = ? RETURNING *'
+  ).bind(body.name ?? null, nextSlug, body.description ?? null, body.parent_id ?? null, id).first();
 
   return c.json({ success: true, data: result });
 });
