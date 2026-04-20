@@ -3,7 +3,13 @@ import { LogoSlot } from './LogoSlot';
 import { MenuSlot } from './MenuSlot';
 import { SearchSlot } from './SearchSlot';
 import { UserActionsSlot } from './UserActionsSlot';
+import { ThemeToggleSlot } from './ThemeToggleSlot';
 import { MainContentSlot } from './MainContentSlot';
+import { ButtonSlot } from './ButtonSlot';
+import { SocialIconsSlot } from './SocialIconsSlot';
+import { SpacerSlot } from './SpacerSlot';
+import { DividerSlot } from './DividerSlot';
+import { HtmlBlockSlot } from './HtmlBlockSlot';
 import { WidgetRecentPostsSlot } from './widgets/WidgetRecentPostsSlot';
 import { WidgetCategoriesSlot } from './widgets/WidgetCategoriesSlot';
 import { WidgetTagsSlot } from './widgets/WidgetTagsSlot';
@@ -25,7 +31,13 @@ export const slotRegistry: Record<string, SlotComponent> = {
   menu: MenuSlot,
   search: SearchSlot,
   'user-actions': UserActionsSlot,
+  'theme-toggle': ThemeToggleSlot,
   'main-content': MainContentSlot,
+  button: ButtonSlot,
+  'social-icons': SocialIconsSlot,
+  spacer: SpacerSlot,
+  divider: DividerSlot,
+  'html-block': HtmlBlockSlot,
   'widget:recent-posts': WidgetRecentPostsSlot,
   'widget:categories': WidgetCategoriesSlot,
   'widget:tags': WidgetTagsSlot,

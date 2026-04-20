@@ -10,6 +10,12 @@ import {
   Code2,
   Mail,
   Info,
+  Sun,
+  MousePointerClick,
+  Share2,
+  Move,
+  Minus,
+  Code,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -18,7 +24,7 @@ export interface SlotCatalogEntry {
   id: string;
   label: string;
   icon: LucideIcon;
-  category: 'site' | 'core' | 'widget';
+  category: 'site' | 'core' | 'layout' | 'widget';
   /** When true, only one instance of this slot may exist across the layout. */
   singleton?: boolean;
   /** Initial props applied when the slot is first dropped onto a column. */
@@ -36,8 +42,32 @@ export const SLOT_CATALOG: SlotCatalogEntry[] = [
   // Site chrome
   { id: 'logo', label: 'Logo', icon: ImageIcon, category: 'site', hint: 'Site logosu / metni' },
   { id: 'menu', label: 'Menü', icon: MenuIcon, category: 'site', defaultProps: { menu_id: null }, hint: 'Yatay nav menü' },
-  { id: 'search', label: 'Arama', icon: Search, category: 'site', defaultProps: { placeholder: 'Ara…' } },
+  {
+    id: 'search',
+    label: 'Arama',
+    icon: Search,
+    category: 'site',
+    defaultProps: { variant: 'icon', placeholder: 'Ara…' },
+    hint: 'İkon (popup) veya satır içi tam form',
+  },
+  { id: 'theme-toggle', label: 'Karanlık mod düğmesi', icon: Sun, category: 'site', hint: 'Light / dark mod toggle' },
   { id: 'user-actions', label: 'Kullanıcı butonları', icon: UserCircle, category: 'site' },
+  {
+    id: 'button',
+    label: 'Buton',
+    icon: MousePointerClick,
+    category: 'site',
+    defaultProps: { text: 'Tıkla', href: '#', variant: 'primary', size: 'md' },
+    hint: 'CTA / harekete geçir butonu',
+  },
+  {
+    id: 'social-icons',
+    label: 'Sosyal Medya',
+    icon: Share2,
+    category: 'site',
+    defaultProps: {},
+    hint: 'Instagram / Facebook / X / YouTube / LinkedIn / GitHub',
+  },
 
   // Core
   {
@@ -49,11 +79,37 @@ export const SLOT_CATALOG: SlotCatalogEntry[] = [
     hint: 'Her sayfanın asıl içeriği. Tüm layout\'ta bir kez kullanılabilir.',
   },
 
-  // Widgets (mevcut widget tipleriyle 1:1)
+  // Layout helpers
+  {
+    id: 'spacer',
+    label: 'Esnek boşluk',
+    icon: Move,
+    category: 'layout',
+    defaultProps: {},
+    hint: 'Slot\'ları birbirinden ayırır (esnek veya sabit yükseklik)',
+  },
+  {
+    id: 'divider',
+    label: 'Ayırıcı çizgi',
+    icon: Minus,
+    category: 'layout',
+    defaultProps: { orientation: 'horizontal' },
+    hint: 'Yatay (hr) veya dikey ince çizgi',
+  },
+  {
+    id: 'html-block',
+    label: 'HTML bloğu',
+    icon: Code,
+    category: 'layout',
+    defaultProps: { html: '' },
+    hint: 'Kart çerçevesi olmayan ham HTML / banner / reklam alanı',
+  },
+
+  // Widgets (mevcut widget tipleriyle 1:1, kart çerçeveli)
   { id: 'widget:recent-posts', label: 'Son yazılar', icon: ListOrdered, category: 'widget', defaultProps: { count: 5 } },
   { id: 'widget:categories', label: 'Kategoriler', icon: FolderTree, category: 'widget' },
   { id: 'widget:tags', label: 'Etiketler', icon: Tags, category: 'widget' },
-  { id: 'widget:custom-html', label: 'Özel HTML', icon: Code2, category: 'widget', defaultProps: { html: '' } },
+  { id: 'widget:custom-html', label: 'Özel HTML (kartlı)', icon: Code2, category: 'widget', defaultProps: { html: '' } },
   { id: 'widget:newsletter', label: 'Bülten formu', icon: Mail, category: 'widget' },
   { id: 'widget:about', label: 'Hakkımızda', icon: Info, category: 'widget', defaultProps: { title: '', html: '' } },
 ];
