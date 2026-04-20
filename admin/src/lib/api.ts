@@ -528,6 +528,36 @@ class ApiClient {
   async rebuildSearchIndex() {
     return this.request<{ success: boolean; data: { indexed: number; message: string } }>('/posts/rebuild-search-index', { method: 'POST' });
   }
+
+  // Theme Studio — site_design CRUD
+  async getDesign() {
+    return this.request<{ success: boolean; data: any }>('/design');
+  }
+
+  async saveDesign(payload: {
+    styleTokens?: any;
+    layoutConfig?: any;
+    customCss?: string;
+    presetSlug?: string | null;
+  }) {
+    return this.request<{ success: boolean; data: any }>('/design', {
+      method: 'PUT',
+      body: payload,
+    });
+  }
+
+  async resetDesign(presetSlug?: string) {
+    return this.request<{ success: boolean; data: any }>('/design/reset', {
+      method: 'POST',
+      body: presetSlug ? { presetSlug } : {},
+    });
+  }
+
+  async getDesignPresets() {
+    return this.request<{ success: boolean; data: { default: string; presets: any[] } }>(
+      '/design/presets'
+    );
+  }
 }
 
 export const api = new ApiClient();
