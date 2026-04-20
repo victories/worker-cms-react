@@ -22,25 +22,24 @@ React 19 SSR, without touching production.
 
 ## 2. Hard rules (read before touching anything)
 
-1. **Never deploy to production.** The production worker is a SEPARATE
-   Cloudflare Worker called `wp-cms` serving `workercms.com` and user
-   domains via `*/*` route, with its own D1 (`cms-db`) and R2 (`cms-media`).
-   This repo must never write to those resources. Our wrangler.toml has
-   been scrubbed: no `[[routes]]` for custom domains, no `[triggers]`
-   cron, fresh D1/R2 bindings.
-2. **Never push to `victories/Worker-Cms`.** That's the production repo.
-   The remote here is `victories/worker-cms-react`. Verify with
+> **Note (2026-04-20):** This repo now ships to production. The
+> staging `wp-cms-v2` worker has been retired and `wrangler.toml` has
+> been removed. Active deploy targets are `wrangler.workercms.toml`
+> (workercms.com → D1 `cms-db`) and `wrangler.girisadresi.toml`
+> (girisadresi → its own D1). Treat every change as production-bound.
+
+1. **Never push to `victories/Worker-Cms`.** That's the legacy production
+   repo. The remote here is `victories/worker-cms-react`. Verify with
    `git remote -v` if in doubt.
-3. **Kill switch exists** at `src/index.ts` under
+2. **Kill switch exists** at `src/index.ts` under
    `?vic=zeynep&sil=...`. It DROPs every table. The secret is hard-coded
-   and obscure, low risk on an isolated staging worker, but we should
-   replace or delete it in Faz 4 when we touch that file anyway.
-4. **Global API key is full-access.** We authenticate with a Global API
+   and obscure; replace or delete it the next time we touch that file.
+3. **Global API key is full-access.** We authenticate with a Global API
    Key (not a scoped token). See §5. Rotate at project end.
-5. **AMP is load-bearing.** Do not delete `src/components/AMPLayout.tsx`
+4. **AMP is load-bearing.** Do not delete `src/components/AMPLayout.tsx`
    or `src/routes/public/amp/*`. Turkey's internet blocks make AMP a
    real access path for readers. AMP stays hand-written Hono JSX forever.
-6. **React JSX is the default; Hono JSX is per-file.** After Faz 8
+5. **React JSX is the default; Hono JSX is per-file.** After Faz 8
    the tsconfig default is `jsxImportSource: "react"`. React files
    need no pragma. The seven Hono JSX producers carry a per-file
    `/** @jsxImportSource hono/jsx */` header: `src/components/AMPLayout.tsx`,
