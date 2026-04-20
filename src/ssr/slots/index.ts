@@ -3,6 +3,7 @@ import { LogoSlot } from './LogoSlot';
 import { MenuSlot } from './MenuSlot';
 import { SearchSlot } from './SearchSlot';
 import { UserActionsSlot } from './UserActionsSlot';
+import { MobileMenuSlot } from './MobileMenuSlot';
 import { ThemeToggleSlot } from './ThemeToggleSlot';
 import { MainContentSlot } from './MainContentSlot';
 import { ButtonSlot } from './ButtonSlot';
@@ -31,6 +32,7 @@ export const slotRegistry: Record<string, SlotComponent> = {
   menu: MenuSlot,
   search: SearchSlot,
   'user-actions': UserActionsSlot,
+  'mobile-menu': MobileMenuSlot,
   'theme-toggle': ThemeToggleSlot,
   'main-content': MainContentSlot,
   button: ButtonSlot,

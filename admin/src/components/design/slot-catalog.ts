@@ -2,7 +2,6 @@ import {
   Image as ImageIcon,
   Menu as MenuIcon,
   Search,
-  UserCircle,
   FileText,
   ListOrdered,
   Tags,
@@ -16,6 +15,7 @@ import {
   Move,
   Minus,
   Code,
+  Smartphone,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -51,7 +51,13 @@ export const SLOT_CATALOG: SlotCatalogEntry[] = [
     hint: 'İkon (popup) veya satır içi tam form',
   },
   { id: 'theme-toggle', label: 'Karanlık mod düğmesi', icon: Sun, category: 'site', hint: 'Light / dark mod toggle' },
-  { id: 'user-actions', label: 'Kullanıcı butonları', icon: UserCircle, category: 'site' },
+  {
+    id: 'mobile-menu',
+    label: 'Mobil menü düğmesi',
+    icon: Smartphone,
+    category: 'site',
+    hint: 'Sadece md altı viewport\'larda görünen hamburger menü',
+  },
   {
     id: 'button',
     label: 'Buton',

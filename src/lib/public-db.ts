@@ -527,11 +527,16 @@ export async function searchPosts(
   page: number = 1,
   perPage: number = 10
 ): Promise<{ posts: PublicPost[]; total: number }> {
-  // Try FTS5 first, fallback to LIKE if table doesn't exist
+  // Try FTS5 first; fall back to LIKE both when the index is missing
+  // (thrown error) AND when it returns zero hits (silent index drift).
+  // Without the zero-fallback, posts that haven't been indexed yet are
+  // invisible to search even though they exist in `posts`.
   try {
     const { searchPostsFTS } = await import('./search');
     const result = await searchPostsFTS(db, siteId, query, lang, page, perPage);
-    return { posts: result.posts as unknown as PublicPost[], total: result.total };
+    if (result.total > 0) {
+      return { posts: result.posts as unknown as PublicPost[], total: result.total };
+    }
   } catch {
     // FTS5 table not ready, fall back to LIKE
   }
