@@ -47,6 +47,7 @@ export interface SlotPaletteProps {
 const CATEGORY_LABELS: Record<SlotCatalogEntry['category'], string> = {
   site: 'Site Bileşenleri',
   core: 'Çekirdek',
+  layout: 'Düzen Yardımcıları',
   widget: 'Widget\'lar',
 };
 
@@ -57,7 +58,7 @@ export function SlotPalette({ usedSingletons }: SlotPaletteProps) {
   }, {});
   return (
     <div className="space-y-4">
-      {(['site', 'core', 'widget'] as const).map((cat) => (
+      {(['site', 'core', 'layout', 'widget'] as const).map((cat) => (
         <div key={cat}>
           <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {CATEGORY_LABELS[cat]}
