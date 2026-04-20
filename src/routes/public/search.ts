@@ -86,10 +86,18 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
       })
     : null;
 
-  const themeStylesNode = createElement(ThemeStyles, {
-    light: theme.cssLight,
-    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
-  });
+  const activeDesign = c.get('activeDesign');
+  const themeStylesNode = activeDesign && !activeDesign.isDefault
+    ? createElement(ThemeStyles, {
+        light: activeDesign.styleTokens.light,
+        dark: activeDesign.styleTokens.dark,
+        fonts: activeDesign.styleTokens.fonts,
+        googleFonts: activeDesign.styleTokens.google_fonts,
+      })
+    : createElement(ThemeStyles, {
+        light: theme.cssLight,
+        dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+      });
 
   // ---- Empty query: prompt ----
   if (!query.trim()) {
@@ -123,6 +131,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
           })
         ),
         children: createElement(PublisherLayout, {
+          design: c.get('activeDesign'),
           siteName: site.name,
           siteLogo: theme.site_logo || undefined,
           lang,
@@ -224,6 +233,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
         })
       ),
       children: createElement(PublisherLayout, {
+        design: c.get('activeDesign'),
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,

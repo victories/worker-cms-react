@@ -3,9 +3,12 @@ import { Container } from '@ui/container';
 import { cn } from '@ui/lib/utils';
 import type { NavMenuItem } from '@ui/nav-menu';
 import type { SidebarData } from '../../lib/public-db';
+import type { ActiveDesign } from '../../lib/themes/types';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { Sidebar } from '../components/Sidebar';
+import { RegionRenderer } from '../components/RegionRenderer';
+import type { SlotContext } from '../slots';
 
 /**
  * PublisherLayout — the one React layout for all publisher pages (home,
@@ -65,6 +68,14 @@ export interface PublisherLayoutProps {
   footerStart?: ReactNode;
   /** Plugin `ui.slot.footerEnd` output, pre-fetched by the route handler */
   footerEnd?: ReactNode;
+  /**
+   * Resolved Theme Studio design — when supplied (and `isDefault` is
+   * false), the renderer walks `design.layoutConfig.{header,body,footer}`
+   * via `<RegionRenderer>` instead of using the legacy Header/Sidebar
+   * /Footer trio. Falls back to the legacy layout when omitted or when
+   * the design row is still synthesised defaults.
+   */
+  design?: ActiveDesign | null;
   children: ReactNode;
   className?: string;
 }
@@ -86,6 +97,7 @@ export function PublisherLayout({
   sidebarBottom,
   footerStart,
   footerEnd,
+  design,
   children,
   className,
 }: PublisherLayoutProps) {
@@ -95,6 +107,63 @@ export function PublisherLayout({
   const hasSidebarWidgets = (sidebarData.widgets?.length ?? 0) > 0;
   const hasSidebarSlotContent = sidebarTop != null || sidebarBottom != null;
   const renderSidebar = showSidebar && (hasSidebarWidgets || hasSidebarSlotContent);
+
+  // Theme Studio design path — render header/body/footer via region tree
+  // when the site has saved a design row (i.e. not synthesised defaults).
+  if (design && design.layoutConfig && !design.isDefault) {
+    const ctx: SlotContext = {
+      siteName,
+      siteLogo,
+      lang,
+      lp,
+      navItems,
+      activePath,
+      sidebarData,
+      homeHref,
+      searchAction,
+      searchPlaceholder,
+      supportsDarkMode,
+      children,
+      headerRight,
+      sidebarTop,
+      sidebarBottom,
+    };
+    const year = new Date().getFullYear();
+    return (
+      <div
+        className={cn(
+          'flex min-h-screen flex-col bg-background text-foreground',
+          className
+        )}
+      >
+        <RegionRenderer as="header" config={design.layoutConfig.header} ctx={ctx} />
+        <RegionRenderer as="div" config={design.layoutConfig.body} ctx={ctx} className="flex-1" />
+        <RegionRenderer as="footer" config={design.layoutConfig.footer} ctx={ctx} />
+        <div className="border-t border-border bg-muted/30">
+          <Container size="xl" className="py-4">
+            <div className="flex flex-col items-start justify-between gap-2 text-sm text-muted-foreground md:flex-row md:items-center">
+              <div className="flex flex-col gap-1">
+                <p>
+                  © {year} {siteName}.{' '}
+                  {lang === 'tr' ? 'Tüm hakları saklıdır.' : 'All rights reserved.'}
+                  {hidePoweredBy ? null : (
+                    <>
+                      {' · '}
+                      <span>Powered by WP-Worker</span>
+                    </>
+                  )}
+                </p>
+                {footerText ? (
+                  <p className="text-xs text-muted-foreground/80">{footerText}</p>
+                ) : null}
+              </div>
+              {footerEnd}
+            </div>
+          </Container>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

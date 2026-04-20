@@ -135,12 +135,21 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
     : null;
 
   // Per-site theme palette override — redeclares shadcn HSL tokens on
-  // :root (and .dark for supported themes). Lives in <head> so it
-  // applies before first paint.
-  const themeStylesNode = createElement(ThemeStyles, {
-    light: theme.cssLight,
-    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
-  });
+  // :root (and .dark for supported themes). Theme Studio design wins
+  // when the site has saved one, otherwise falls back to the legacy
+  // theme palette. Lives in <head> so it applies before first paint.
+  const activeDesign = c.get('activeDesign');
+  const themeStylesNode = activeDesign && !activeDesign.isDefault
+    ? createElement(ThemeStyles, {
+        light: activeDesign.styleTokens.light,
+        dark: activeDesign.styleTokens.dark,
+        fonts: activeDesign.styleTokens.fonts,
+        googleFonts: activeDesign.styleTokens.google_fonts,
+      })
+    : createElement(ThemeStyles, {
+        light: theme.cssLight,
+        dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+      });
 
   // ---- Static Page as Homepage ----
   if (
@@ -252,6 +261,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
             })
           ),
           children: createElement(PublisherLayout, {
+            design: c.get('activeDesign'),
             siteName: site.name,
             siteLogo: theme.site_logo || undefined,
             lang,

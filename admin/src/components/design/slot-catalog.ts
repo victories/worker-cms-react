@@ -66,7 +66,7 @@ export const REGION_KEYS = ['header', 'body', 'footer'] as const;
 export type RegionKey = (typeof REGION_KEYS)[number];
 
 export const REGION_LABELS: Record<RegionKey, string> = {
-  header: 'Üst Bölge',
+  header: 'Header',
   body: 'Gövde',
-  footer: 'Alt Bölge',
+  footer: 'Footer',
 };

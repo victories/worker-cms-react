@@ -167,10 +167,18 @@ async function renderArchivePage(
       })
     : null;
 
-  const themeStylesNode = createElement(ThemeStyles, {
-    light: theme.cssLight,
-    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
-  });
+  const activeDesign = c.get('activeDesign');
+  const themeStylesNode = activeDesign && !activeDesign.isDefault
+    ? createElement(ThemeStyles, {
+        light: activeDesign.styleTokens.light,
+        dark: activeDesign.styleTokens.dark,
+        fonts: activeDesign.styleTokens.fonts,
+        googleFonts: activeDesign.styleTokens.google_fonts,
+      })
+    : createElement(ThemeStyles, {
+        light: theme.cssLight,
+        dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+      });
 
   const seoHead = createElement(SEOHead, {
     title: `${typeLabel}: ${taxonomy.name}`,
@@ -205,6 +213,7 @@ async function renderArchivePage(
         })
       ),
       children: createElement(PublisherLayout, {
+        design: c.get('activeDesign'),
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,
