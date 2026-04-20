@@ -315,6 +315,7 @@ export function SlotConfigPanel({ selected, onChangeProps, onClose }: SlotConfig
 
         {[
           'user-actions',
+          'mobile-menu',
           'theme-toggle',
           'main-content',
           'widget:categories',

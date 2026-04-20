@@ -2,13 +2,13 @@ import { ThemeToggle } from '../islands/ThemeToggle';
 import type { SlotProps } from './types';
 
 /**
- * Standalone dark/light mode toggle slot. Renders the same island the
- * UserActionsSlot already wires up, but as its own placeable element
- * so designs can put the toggle anywhere (footer, sidebar, ...) — not
- * just lumped together with the mobile drawer trigger.
+ * Standalone dark/light mode toggle slot. Renders the existing
+ * ThemeToggle island wherever the user drops it (header, sidebar,
+ * footer, ...). Visibility is intentional — if the user placed the
+ * slot they want it shown, even if the legacy theme.supports_dark_mode
+ * flag is false.
  */
-export function ThemeToggleSlot({ ctx }: SlotProps) {
-  if (!ctx.supportsDarkMode) return null;
+export function ThemeToggleSlot(_: SlotProps) {
   return (
     <span data-island="theme-toggle" className="contents">
       <ThemeToggle />
