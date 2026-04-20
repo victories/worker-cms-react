@@ -48,7 +48,16 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
           {config.columns.map((col, i) => (
             <div
               key={i}
-              className="min-w-0 space-y-4"
+              className={cn(
+                'min-w-0',
+                // Header columns lay slots out horizontally so a spacer
+                // pushes neighbours apart instead of vanishing into a
+                // dikey stack. Body/footer keep dikey stacking so widget
+                // cards line up vertically as before.
+                as === 'header'
+                  ? 'flex flex-row items-center gap-3'
+                  : 'space-y-4'
+              )}
               style={{ flex: `0 0 ${col.width}%` }}
             >
               {col.slots.map((slot, j) => {
