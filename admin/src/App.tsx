@@ -27,7 +27,6 @@ import PluginLogs from '@/pages/plugins/PluginLogs';
 import { SliderSettings } from '@/pages/plugins/SliderSettings';
 import { WPImport } from '@/pages/tools/WPImport';
 import { BackupPage } from '@/pages/settings/BackupPage';
-import { WidgetManager } from '@/pages/widgets/WidgetManager';
 import { Analytics } from '@/pages/analytics/Analytics';
 import { ApiKeys } from '@/pages/settings/ApiKeys';
 import { TwoFactorAuth } from '@/pages/settings/TwoFactorAuth';
@@ -121,7 +120,6 @@ export function App() {
           <Route path="categories" element={<TaxonomyList type="category" />} />
           <Route path="tags" element={<TaxonomyList type="tag" />} />
           <Route path="menus" element={<MenuEditor />} />
-          <Route path="widgets" element={<WidgetManager />} />
           <Route path="users" element={<UserList />} />
           <Route path="sites" element={<SiteList />} />
           <Route path="sites/:id/settings" element={<SiteSettings />} />

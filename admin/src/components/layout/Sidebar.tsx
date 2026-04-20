@@ -66,7 +66,6 @@ const navStructure: NavEntry[] = [
       { key: 'nav.design', href: '/design', icon: Paintbrush },
       { key: 'nav.layout', href: '/design/layout', icon: LayoutGrid },
       { key: 'nav.menus', href: '/menus', icon: Menu },
-      { key: 'nav.widgets', href: '/widgets', icon: LayoutGrid },
     ],
   },
   { key: 'nav.users', href: '/users', icon: Users, roles: ['admin', 'super_admin'] },

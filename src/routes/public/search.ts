@@ -19,6 +19,7 @@ import {
   getRichSnippetsSettings,
   hasWhiteLabel,
 } from '../../lib/public-db';
+import { extractMenuSlugsFromDesign } from '../../lib/themes/layout-helpers';
 import { buildSearchResultsSchema, renderJsonLd } from '../../lib/schema';
 import { langPrefix } from '../../lib/lang';
 import {
@@ -52,7 +53,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
   const [theme, sidebarData, analytics, rsConfig, whiteLabel] =
     await Promise.all([
       getSiteTheme(c.env.DB, siteId, c.env.CACHE),
-      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE),
+      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, extractMenuSlugsFromDesign(c.get('activeDesign'))),
       getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),
       getRichSnippetsSettings(c.env.DB, siteId, c.env.CACHE),
       hasWhiteLabel(c.env.DB, siteId),

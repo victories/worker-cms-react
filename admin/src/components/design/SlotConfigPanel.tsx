@@ -22,6 +22,35 @@ export interface SlotConfigPanelProps {
 interface MenuOption {
   id: number;
   name: string;
+  slug: string;
+}
+
+/**
+ * Title input shared by every widget slot. Empty string is meaningful
+ * (=hide the header) so we never treat blank as undefined; placeholder
+ * shows what the SSR fallback would render.
+ */
+function WidgetTitleField({
+  value,
+  placeholder,
+  onChange,
+}: {
+  value: unknown;
+  placeholder: string;
+  onChange(next: string): void;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">Başlık</Label>
+      <Input
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-8 text-xs"
+      />
+      <p className="text-[10px] text-muted-foreground">Boş bırak → sitede başlık gizlenir.</p>
+    </div>
+  );
 }
 
 /**
@@ -33,8 +62,9 @@ export function SlotConfigPanel({ selected, onChangeProps, onClose }: SlotConfig
   const [menus, setMenus] = useState<MenuOption[] | null>(null);
 
   useEffect(() => {
-    // Lazy fetch menus only when the menu slot is selected.
-    if (selected?.id !== 'menu' || menus !== null) return;
+    // Lazy fetch menus when a menu-aware slot is selected.
+    const needsMenus = selected?.id === 'menu' || selected?.id === 'widget:menu';
+    if (!needsMenus || menus !== null) return;
     api
       .request<{ success: boolean; data: MenuOption[] }>('/menus')
       .then((res) => setMenus(res.data ?? []))
@@ -265,42 +295,120 @@ export function SlotConfigPanel({ selected, onChangeProps, onClose }: SlotConfig
         ) : null}
 
         {selected.id === 'widget:recent-posts' ? (
-          <div className="space-y-1">
-            <Label className="text-xs">Yazı sayısı</Label>
-            <Input
-              type="number"
-              min={1}
-              max={20}
-              value={props.count ?? 5}
-              onChange={(e) => setProp('count', Number(e.target.value) || 5)}
-              className="h-8 text-xs"
+          <>
+            <WidgetTitleField
+              value={props.title}
+              placeholder="Son Yazılar"
+              onChange={(v) => setProp('title', v)}
             />
-          </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Yazı sayısı</Label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={props.count ?? 5}
+                onChange={(e) => setProp('count', Number(e.target.value) || 5)}
+                className="h-8 text-xs"
+              />
+            </div>
+          </>
+        ) : null}
+
+        {selected.id === 'widget:categories' ? (
+          <WidgetTitleField
+            value={props.title}
+            placeholder="Kategoriler"
+            onChange={(v) => setProp('title', v)}
+          />
+        ) : null}
+
+        {selected.id === 'widget:tags' ? (
+          <WidgetTitleField
+            value={props.title}
+            placeholder="Etiketler"
+            onChange={(v) => setProp('title', v)}
+          />
+        ) : null}
+
+        {selected.id === 'widget:newsletter' ? (
+          <WidgetTitleField
+            value={props.title}
+            placeholder="Bültenimize Katılın"
+            onChange={(v) => setProp('title', v)}
+          />
         ) : null}
 
         {selected.id === 'widget:custom-html' ? (
-          <div className="space-y-1">
-            <Label className="text-xs">HTML</Label>
-            <Textarea
-              value={props.html ?? ''}
-              onChange={(e) => setProp('html', e.target.value)}
-              rows={8}
-              className="font-mono text-xs"
-              placeholder="<div>…</div>"
+          <>
+            <WidgetTitleField
+              value={props.title}
+              placeholder="(başlıksız)"
+              onChange={(v) => setProp('title', v)}
             />
-          </div>
+            <div className="space-y-1">
+              <Label className="text-xs">HTML</Label>
+              <Textarea
+                value={props.html ?? ''}
+                onChange={(e) => setProp('html', e.target.value)}
+                rows={8}
+                className="font-mono text-xs"
+                placeholder="<div>…</div>"
+              />
+            </div>
+          </>
+        ) : null}
+
+        {selected.id === 'widget:menu' ? (
+          <>
+            <WidgetTitleField
+              value={props.title}
+              placeholder="(menünün adı)"
+              onChange={(v) => setProp('title', v)}
+            />
+            <div className="space-y-1">
+              <Label className="text-xs">Menü</Label>
+              <select
+                value={props.menu_slug ?? ''}
+                onChange={(e) => setProp('menu_slug', e.target.value)}
+                className="h-8 w-full rounded border border-input bg-background px-2 text-xs"
+              >
+                <option value="">— seçin —</option>
+                {(menus ?? []).map((m: any) => (
+                  <option key={m.id} value={m.slug}>
+                    {m.name} ({m.slug})
+                  </option>
+                ))}
+              </select>
+              {menus === null ? (
+                <p className="text-[10px] text-muted-foreground">Menüler yükleniyor…</p>
+              ) : menus.length === 0 ? (
+                <p className="text-[10px] text-amber-600">
+                  Henüz menü tanımlı değil. Menüler sayfasından oluşturabilirsiniz.
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Yön</Label>
+              <select
+                value={props.orientation ?? 'vertical'}
+                onChange={(e) => setProp('orientation', e.target.value)}
+                className="h-8 w-full rounded border border-input bg-background px-2 text-xs"
+              >
+                <option value="vertical">Dikey</option>
+                <option value="horizontal">Yatay</option>
+              </select>
+            </div>
+          </>
         ) : null}
 
         {selected.id === 'widget:about' ? (
           <>
-            <div className="space-y-1">
-              <Label className="text-xs">Başlık</Label>
-              <Input
-                value={props.title ?? ''}
-                onChange={(e) => setProp('title', e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
+            <WidgetTitleField
+              value={props.title}
+              placeholder="Site adı"
+              onChange={(v) => setProp('title', v)}
+            />
             <div className="space-y-1">
               <Label className="text-xs">Metin (HTML kabul edilir)</Label>
               <Textarea
@@ -313,15 +421,7 @@ export function SlotConfigPanel({ selected, onChangeProps, onClose }: SlotConfig
           </>
         ) : null}
 
-        {[
-          'user-actions',
-          'mobile-menu',
-          'theme-toggle',
-          'main-content',
-          'widget:categories',
-          'widget:tags',
-          'widget:newsletter',
-        ].includes(selected.id) ? (
+        {['user-actions', 'mobile-menu', 'theme-toggle', 'main-content'].includes(selected.id) ? (
           <p className="text-[11px] text-muted-foreground">Bu slotun ek ayarı yok.</p>
         ) : null}
       </div>

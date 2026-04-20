@@ -20,6 +20,7 @@ import {
   getRichSnippetsSettings,
   hasWhiteLabel,
 } from '../../lib/public-db';
+import { extractMenuSlugsFromDesign } from '../../lib/themes/layout-helpers';
 import {
   buildCollectionPageSchema,
   buildBreadcrumbSchema,
@@ -65,7 +66,7 @@ async function renderArchivePage(
     await Promise.all([
       getTaxonomyBySlug(c.env.DB, siteId, slug, type, lang),
       getSiteTheme(c.env.DB, siteId, c.env.CACHE),
-      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE),
+      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, extractMenuSlugsFromDesign(c.get('activeDesign'))),
       getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),
       getRichSnippetsSettings(c.env.DB, siteId, c.env.CACHE),
       hasWhiteLabel(c.env.DB, siteId),
