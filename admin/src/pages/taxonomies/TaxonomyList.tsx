@@ -42,7 +42,10 @@ export function TaxonomyList({ type }: TaxonomyListProps) {
   };
 
   const handleSave = async () => {
-    const data = { name, slug: slug || undefined, type, description };
+    // Always send slug (even when empty) so the server can detect an
+    // intentional "regenerate from name" on edit. POST also accepts
+    // empty and falls back to the name-based default.
+    const data = { name, slug, type, description };
     try {
       if (editId) {
         await api.updateTaxonomy(editId, data);
