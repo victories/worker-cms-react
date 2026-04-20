@@ -15,7 +15,7 @@ export interface TokenSectionProps {
  * `useState`-based; we intentionally don't pull in @radix-ui/accordion
  * to keep the admin bundle small for this surface.
  */
-export function TokenSection({ title, description, defaultOpen = true, children }: TokenSectionProps) {
+export function TokenSection({ title, description, defaultOpen = false, children }: TokenSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded border border-border bg-card">

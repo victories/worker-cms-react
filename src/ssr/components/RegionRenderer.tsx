@@ -20,14 +20,18 @@ export interface RegionRendererProps {
 
 const PADDING_CLASS: Record<NonNullable<RegionConfig['padding']>, string> = {
   none: '',
-  sm: 'py-4',
-  md: 'py-6',
-  lg: 'py-10 md:py-14',
+  sm: 'py-2',
+  md: 'py-3',
+  lg: 'py-8 md:py-12',
 };
 
 export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRendererProps) {
   const Tag = as as any;
   const padding = PADDING_CLASS[config.padding ?? 'md'];
+  // Header rows live as a single horizontal strip (logo / nav / actions),
+  // so we vertically center their columns; body and footer keep top
+  // alignment so a long sidebar doesn't push other columns down.
+  const align = as === 'header' ? 'md:items-center' : 'md:items-start';
 
   return (
     <Tag
@@ -40,7 +44,7 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
       )}
     >
       <Container size="xl" className={padding}>
-        <div className="flex flex-col items-stretch gap-6 md:flex-row">
+        <div className={cn('flex flex-col gap-6 md:flex-row', align)}>
           {config.columns.map((col, i) => (
             <div
               key={i}
