@@ -17,6 +17,7 @@ import { WidgetTagsSlot } from './widgets/WidgetTagsSlot';
 import { WidgetCustomHtmlSlot } from './widgets/WidgetCustomHtmlSlot';
 import { WidgetNewsletterSlot } from './widgets/WidgetNewsletterSlot';
 import { WidgetAboutSlot } from './widgets/WidgetAboutSlot';
+import { WidgetMenuSlot } from './widgets/WidgetMenuSlot';
 
 export type { SlotContext, SlotProps, SlotComponent } from './types';
 
@@ -46,4 +47,5 @@ export const slotRegistry: Record<string, SlotComponent> = {
   'widget:custom-html': WidgetCustomHtmlSlot,
   'widget:newsletter': WidgetNewsletterSlot,
   'widget:about': WidgetAboutSlot,
+  'widget:menu': WidgetMenuSlot,
 };

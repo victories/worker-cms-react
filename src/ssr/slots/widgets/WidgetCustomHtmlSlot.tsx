@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
 import type { SlotProps } from '../types';
+import { resolveTitle } from './title';
 
 /**
  * Renders raw HTML supplied by the admin. The content is *not*
- * sanitised — admin-only surface, trusted operator.
+ * sanitised — admin-only surface, trusted operator. No localised
+ * default for the title since this is a freeform block.
  */
 export function WidgetCustomHtmlSlot({ props }: SlotProps) {
   const html = (props?.html as string) || '';
-  const title = (props?.title as string) || '';
+  const title = resolveTitle(props?.title, '');
   if (!html) return null;
   return (
     <Card>

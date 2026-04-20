@@ -23,6 +23,7 @@ import {
   getRichSnippetsSettings,
   hasWhiteLabel,
 } from '../../lib/public-db';
+import { extractMenuSlugsFromDesign } from '../../lib/themes/layout-helpers';
 import {
   buildArticleSchema,
   buildBreadcrumbSchema,
@@ -195,7 +196,7 @@ async function renderPostPage(
     getSiteTheme(c.env.DB, siteId, c.env.CACHE),
     getPostTaxonomies(c.env.DB, p.id),
     showComments ? getRecentComments(c.env.DB, p.id) : Promise.resolve([]),
-    getSidebarData(c.env.DB, siteId, lang, c.env.CACHE),
+    getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, extractMenuSlugsFromDesign(c.get('activeDesign'))),
     getAmpSettings(c.env.DB, siteId),
     getRecaptchaSettings(c.env.DB, siteId),
     getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),

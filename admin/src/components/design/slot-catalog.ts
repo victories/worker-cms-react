@@ -16,6 +16,7 @@ import {
   Minus,
   Code,
   Smartphone,
+  Menu as MenuListIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -118,6 +119,14 @@ export const SLOT_CATALOG: SlotCatalogEntry[] = [
   { id: 'widget:custom-html', label: 'Özel HTML (kartlı)', icon: Code2, category: 'widget', defaultProps: { html: '' } },
   { id: 'widget:newsletter', label: 'Bülten formu', icon: Mail, category: 'widget' },
   { id: 'widget:about', label: 'Hakkımızda', icon: Info, category: 'widget', defaultProps: { title: '', html: '' } },
+  {
+    id: 'widget:menu',
+    label: 'Menü Listesi',
+    icon: MenuListIcon,
+    category: 'widget',
+    defaultProps: { menu_slug: '', orientation: 'vertical' },
+    hint: 'Sidebar veya footer için menü (header menüsünden ayrı)',
+  },
 ];
 
 export function getSlotEntry(id: string): SlotCatalogEntry | undefined {

@@ -666,9 +666,15 @@ export async function getSidebarData(
   db: D1Database,
   siteId: number,
   lang: string,
-  kv?: KVNamespace
+  kv?: KVNamespace,
+  /** Extra menu slugs to load — used by Theme Studio's `widget:menu` slot
+   *  so menus referenced from the layout JSON come along for the ride. */
+  extraMenuSlugs: string[] = []
 ): Promise<SidebarData> {
-  return cached(kv, `site:${siteId}:${lang}:sidebar`, 1800, async () => {
+  const slugSuffix = extraMenuSlugs.length > 0
+    ? `:menus=${[...extraMenuSlugs].sort().join(',')}`
+    : '';
+  return cached(kv, `site:${siteId}:${lang}:sidebar${slugSuffix}`, 1800, async () => {
   // Load ALL active widgets (sidebar + footer + slider + header areas)
   const widgetResult = await db.prepare(
     "SELECT * FROM widgets WHERE site_id = ? AND area IN ('sidebar','footer-1','footer-2','footer-3','footer-4','slider','header') AND is_active = 1 ORDER BY area, position ASC"
@@ -689,8 +695,9 @@ export async function getSidebarData(
   const needRecentPosts = allWidgets.some(w => w.widget_type === 'recent_posts');
   const needTags = allWidgets.some(w => w.widget_type === 'tags');
 
-  // Collect menu slugs from ALL menu widgets (sidebar + footer)
-  const menuSlugs: string[] = [];
+  // Collect menu slugs from ALL menu widgets (sidebar + footer) plus
+  // any extras the caller asked for (Theme Studio layout slots).
+  const menuSlugs: string[] = [...extraMenuSlugs];
   for (const w of allWidgets) {
     if (w.widget_type === 'menu' && w.config) {
       try {
