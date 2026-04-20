@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip';
 import {
   LayoutDashboard, FileText, Image, FolderTree, Tag, MessageSquare, Mail,
   Menu, Users, Settings, Plug, Globe, BarChart3, Upload, Database, LayoutGrid,
-  Key, Shield, Zap, X, ChevronDown, Paintbrush, Palette, Code, ArrowRightLeft, Link2,
+  Key, Shield, Zap, X, ChevronDown, Paintbrush, Code, ArrowRightLeft, Link2,
   Rocket, Crown, Package, CreditCard, Sparkles, Bot,
 } from 'lucide-react';
 
@@ -63,8 +63,6 @@ const navStructure: NavEntry[] = [
     icon: Paintbrush,
     roles: ['admin', 'super_admin'],
     children: [
-      { key: 'nav.themes', href: '/themes', icon: Palette },
-      { key: 'nav.theme', href: '/settings/theme', icon: Paintbrush },
       { key: 'nav.menus', href: '/menus', icon: Menu },
       { key: 'nav.widgets', href: '/widgets', icon: LayoutGrid },
     ],

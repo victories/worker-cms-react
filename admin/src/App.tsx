@@ -32,7 +32,6 @@ import { Analytics } from '@/pages/analytics/Analytics';
 import { ApiKeys } from '@/pages/settings/ApiKeys';
 import { TwoFactorAuth } from '@/pages/settings/TwoFactorAuth';
 import { AMPSettings } from '@/pages/settings/AMPSettings';
-import { ThemeSettings } from '@/pages/settings/ThemeSettings';
 import { Profile } from '@/pages/profile/Profile';
 import { ShortcodeManager } from '@/pages/shortcodes/ShortcodeManager';
 import { MessageList } from '@/pages/messages/MessageList';
@@ -40,8 +39,6 @@ import { RedirectSettings } from '@/pages/settings/RedirectSettings';
 import { ShortUrlManager } from '@/pages/settings/ShortUrlManager';
 import { ContetyPage } from '@/pages/contety/ContetyPage';
 import { CmsHubBot } from '@/pages/cmshub/CmsHubBot';
-import { ThemeStore } from '@/pages/themes/ThemeStore';
-import { ThemeCustomizer } from '@/pages/themes/ThemeCustomizer';
 import { LandingSettings } from '@/pages/settings/LandingSettings';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
@@ -132,9 +129,6 @@ export function App() {
           <Route path="settings/api-keys" element={<ApiKeys />} />
           <Route path="settings/2fa" element={<TwoFactorAuth />} />
           <Route path="settings/amp" element={<AMPSettings />} />
-          <Route path="settings/theme" element={<ThemeSettings />} />
-          <Route path="themes" element={<ThemeStore />} />
-          <Route path="themes/:id/customize" element={<ThemeCustomizer />} />
           <Route path="plugins" element={<PluginList />} />
           <Route path="plugins/new" element={<PluginUpload />} />
           <Route path="plugins/:slug/logs" element={<PluginLogs />} />
