@@ -60,6 +60,18 @@ export interface ShellProps {
  */
 export const DEFAULT_THEME_BOOT = `(function(){try{var s=localStorage.getItem('wp-color-mode');var d=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
+/**
+ * Self-gating preview bridge for the Theme Studio. Always emitted into
+ * `<body>` but a no-op unless the page was loaded with
+ * `?design_preview=1`. When preview is on, it listens for `message`
+ * events from the admin iframe parent and rewrites a single
+ * `<style id="design-preview-vars">` tag with the proposed style
+ * tokens (light + dark CSS var maps) and font families. Parent then
+ * sees a `design-preview-ready` message back so it knows when to push
+ * its initial state.
+ */
+export const DESIGN_PREVIEW_BRIDGE = `(function(){try{if(new URLSearchParams(location.search).get('design_preview')!=='1')return;var s=document.getElementById('design-preview-vars');if(!s){s=document.createElement('style');s.id='design-preview-vars';document.head.appendChild(s);}var fs=document.getElementById('design-preview-fonts');if(!fs){fs=document.createElement('style');fs.id='design-preview-fonts';document.head.appendChild(fs);}function obj2css(sel,o){if(!o)return '';var p=Object.entries(o).filter(function(e){return typeof e[1]==='string'&&e[1].length}).map(function(e){return e[0]+':'+e[1]}).join(';');return p?sel+'{'+p+'}':''}function apply(t){if(!t)return;s.textContent=obj2css(':root',t.light)+obj2css('.dark',t.dark);if(t.fonts){var f=t.fonts;var fc=':root{';if(f.sans)fc+='--font-sans:\\''+f.sans+'\\',ui-sans-serif,system-ui;';if(f.heading)fc+='--font-heading:\\''+f.heading+'\\',ui-sans-serif,system-ui;';if(f.mono)fc+='--font-mono:\\''+f.mono+'\\',ui-monospace,monospace;';fc+='}';fs.textContent=fc;}if(t.google_fonts&&t.google_fonts.length){var u='https://fonts.googleapis.com/css2?'+t.google_fonts.map(function(g){var p=g.split(':');var fam=p[0].replace(/ /g,'+');var w=p[1]?'wght@'+p[1]:'';return 'family='+fam+(w?':'+w:'');}).join('&')+'&display=swap';var lk=document.getElementById('design-preview-fonts-link');if(!lk){lk=document.createElement('link');lk.id='design-preview-fonts-link';lk.rel='stylesheet';document.head.appendChild(lk);}lk.href=u;}}window.addEventListener('message',function(e){if(!e.data||typeof e.data!=='object')return;if(e.data.type==='design-update'&&e.data.styleTokens)apply(e.data.styleTokens);if(e.data.type==='design-mode'){if(e.data.mode==='dark')document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}});if(window.parent&&window.parent!==window){window.parent.postMessage({type:'design-preview-ready'},'*');}}catch(e){console.error('[design-preview]',e);}})();`;
+
 export function Shell({
   lang = 'tr',
   title,
@@ -95,6 +107,7 @@ export function Shell({
         {children}
         {bodyEnd}
         {clientBundle ? <script type="module" src={clientBundle} /> : null}
+        <script dangerouslySetInnerHTML={{ __html: DESIGN_PREVIEW_BRIDGE }} />
       </body>
     </html>
   );

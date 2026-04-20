@@ -39,6 +39,7 @@ import { RedirectSettings } from '@/pages/settings/RedirectSettings';
 import { ShortUrlManager } from '@/pages/settings/ShortUrlManager';
 import { ContetyPage } from '@/pages/contety/ContetyPage';
 import { CmsHubBot } from '@/pages/cmshub/CmsHubBot';
+import { StyleEditor } from '@/pages/design/StyleEditor';
 import { LandingSettings } from '@/pages/settings/LandingSettings';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
@@ -129,6 +130,7 @@ export function App() {
           <Route path="settings/api-keys" element={<ApiKeys />} />
           <Route path="settings/2fa" element={<TwoFactorAuth />} />
           <Route path="settings/amp" element={<AMPSettings />} />
+          <Route path="design" element={<StyleEditor />} />
           <Route path="plugins" element={<PluginList />} />
           <Route path="plugins/new" element={<PluginUpload />} />
           <Route path="plugins/:slug/logs" element={<PluginLogs />} />
