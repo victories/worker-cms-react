@@ -19,6 +19,7 @@ export interface Variables {
   user: JWTPayload | null;
   lang: string;
   activeTheme: import('./lib/themes/types').ActiveTheme | null;
+  activeDesign: import('./lib/themes/types').ActiveDesign | null;
   // Set by userApiKeyAuth — 'user' for cross-site keys, 'site' for keys
   // bound to a single site (then apiKeySiteId is the only site they reach).
   apiKeyScope?: 'user' | 'site';
