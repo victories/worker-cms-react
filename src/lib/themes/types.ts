@@ -119,3 +119,105 @@ export interface ActiveTheme {
   /** CSS vars to apply on `.dark`. */
   cssDark: CssVars;
 }
+
+// ── Theme Studio (v3) ────────────────────────────────────────────────
+//
+// The Theme Studio replaces the old "pick a theme + palette" flow with
+// a single per-site `site_design` row that the user edits directly.
+// Two orthogonal concerns:
+//
+//   1. **Style** — color/typography tokens (`StyleTokens`)
+//   2. **Layout** — region tree of slots (`LayoutConfig`)
+//
+// Both ship in the `site_design` table as JSON columns. The legacy
+// `themes` + `site_themes` tables stay until Faz 6 cutover.
+
+/**
+ * Style tokens for a site. Mirrors the on-disk shape stored in
+ * `site_design.style_tokens`. Light + dark are full shadcn HSL maps;
+ * `fonts` carries family names, with `google_fonts` listing the
+ * specifier strings (`"Inter:400,500,600,700"`) the SSR shell preloads.
+ */
+export interface StyleTokens {
+  light: CssVars;
+  dark: CssVars;
+  fonts: {
+    sans: string;
+    heading: string;
+    mono: string;
+  };
+  google_fonts: string[];
+}
+
+/**
+ * One renderable item inside a layout column. `id` is a registry key
+ * (`'logo'`, `'menu'`, `'widget:recent-posts'`, ...); `props` is an
+ * opaque per-slot config bag forwarded to the slot component at SSR.
+ */
+export interface SlotInstance {
+  id: string;
+  props?: Record<string, unknown>;
+}
+
+/**
+ * One column inside a region. `width` is a percentage of the
+ * container (1–100); columns in the same region must sum to 100, but
+ * the SSR layer is forgiving — flex-shrink fixes minor drift.
+ */
+export interface LayoutColumn {
+  width: number;
+  slots: SlotInstance[];
+}
+
+/**
+ * One region (header / body / footer / etc.). The Layout Builder
+ * edits these as a flat tree keyed by region name.
+ */
+export interface RegionConfig {
+  type: 'row';
+  /** Vertical padding scale token, e.g. 'sm' | 'md' | 'lg'. */
+  padding?: 'none' | 'sm' | 'md' | 'lg';
+  /** Stick the region to the viewport top. Header-only typically. */
+  sticky?: boolean;
+  columns: LayoutColumn[];
+}
+
+/**
+ * Full layout tree for a site. Header / body / footer are the only
+ * required regions in v1; further keys (e.g. 'topbar', 'preFooter')
+ * may appear once the builder grows.
+ */
+export interface LayoutConfig {
+  header: RegionConfig;
+  body: RegionConfig;
+  footer: RegionConfig;
+  [region: string]: RegionConfig;
+}
+
+/**
+ * Raw DB row from `site_design`. Strings are still un-parsed JSON.
+ */
+export interface SiteDesignRow {
+  site_id: number;
+  style_tokens: string;
+  layout_config: string;
+  custom_css: string;
+  google_fonts: string;
+  preset_slug: string | null;
+  updated_at: string;
+}
+
+/**
+ * Resolved per-site design ready for SSR. Produced by
+ * `loadActiveDesign` in `design.ts`. The Theme Studio (Faz 3+) reads
+ * this; the SSR refactor (Faz 5) renders from it.
+ */
+export interface ActiveDesign {
+  styleTokens: StyleTokens;
+  layoutConfig: LayoutConfig;
+  customCss: string;
+  presetSlug: string | null;
+  updatedAt: string;
+  /** True when the row was synthesised from defaults (no DB row yet). */
+  isDefault: boolean;
+}

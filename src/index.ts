@@ -44,6 +44,7 @@ import { handleStripeWebhook } from './routes/api/subscriptions';
 import { expireSubscriptions } from './routes/api/subscriptions';
 import contetyRoutes from './routes/api/contety';
 import themeRoutes from './routes/api/themes';
+import designRoutes from './routes/api/design';
 import contentTypesRoutes from './routes/api/content-types';
 import mcpRoutes from './routes/api/mcp';
 
@@ -237,6 +238,7 @@ app.route('/api/packages', packageRoutes);
 app.route('/api/subscriptions', subscriptionRoutes);
 app.route('/api/contety', contetyRoutes);
 app.route('/api/themes', themeRoutes);
+app.route('/api/design', designRoutes);
 app.route('/api/content-types', contentTypesRoutes);
 
 // MCP server endpoint (root-level for clean URLs)

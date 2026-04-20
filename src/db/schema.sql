@@ -247,6 +247,20 @@ CREATE TABLE IF NOT EXISTS site_themes (
 CREATE INDEX IF NOT EXISTS idx_site_themes_site ON site_themes(site_id);
 CREATE INDEX IF NOT EXISTS idx_site_themes_active ON site_themes(site_id, is_active);
 
+-- Theme Studio: per-site design (style tokens + region/slot layout tree).
+-- Replaces the user-facing surface of `themes` + `site_themes`. Those
+-- legacy tables stay until Faz 6 cutover.
+CREATE TABLE IF NOT EXISTS site_design (
+  site_id INTEGER PRIMARY KEY,
+  style_tokens TEXT NOT NULL DEFAULT '{}',
+  layout_config TEXT NOT NULL DEFAULT '{}',
+  custom_css TEXT NOT NULL DEFAULT '',
+  google_fonts TEXT NOT NULL DEFAULT '[]',
+  preset_slug TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+);
+
 -- API keys: scope='site' bound to one site (X-Site-Id resolved), scope='user'
 -- spans every site the owner can access (used by external integrations
 -- like worker-ai-bot for cross-site discovery + dispatch).

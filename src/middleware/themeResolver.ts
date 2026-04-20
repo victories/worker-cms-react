@@ -1,6 +1,7 @@
 import type { Context, Next } from 'hono';
 import type { Bindings, Variables } from '../types';
 import { loadActiveTheme } from '../lib/themes/engine';
+import { loadActiveDesign } from '../lib/themes/design';
 
 export async function themeResolverMiddleware(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,
@@ -17,8 +18,9 @@ export async function themeResolverMiddleware(
     return next();
   }
 
+  const db = c.env.DB;
+
   try {
-    const db = c.env.DB;
     const activeTheme = await loadActiveTheme(db, siteId);
     if (activeTheme) {
       c.set('activeTheme', activeTheme);
@@ -26,6 +28,13 @@ export async function themeResolverMiddleware(
   } catch (e) {
     // Don't break the request if theme loading fails
     console.error('Theme resolver error:', e);
+  }
+
+  try {
+    const activeDesign = await loadActiveDesign(db, siteId);
+    c.set('activeDesign', activeDesign);
+  } catch (e) {
+    console.error('Design resolver error:', e);
   }
 
   return next();
