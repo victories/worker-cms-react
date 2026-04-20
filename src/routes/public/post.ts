@@ -368,11 +368,19 @@ async function renderPostPage(
       })
     : null;
 
-  // Per-site theme palette override.
-  const themeStylesNode = createElement(ThemeStyles, {
-    light: theme.cssLight,
-    dark: theme.supports_dark_mode ? theme.cssDark : undefined,
-  });
+  // Per-site theme palette override (Theme Studio design wins).
+  const activeDesign = c.get('activeDesign');
+  const themeStylesNode = activeDesign && !activeDesign.isDefault
+    ? createElement(ThemeStyles, {
+        light: activeDesign.styleTokens.light,
+        dark: activeDesign.styleTokens.dark,
+        fonts: activeDesign.styleTokens.fonts,
+        googleFonts: activeDesign.styleTokens.google_fonts,
+      })
+    : createElement(ThemeStyles, {
+        light: theme.cssLight,
+        dark: theme.supports_dark_mode ? theme.cssDark : undefined,
+      });
 
   // ---- Featured image src (rewritten) ----
   const featuredImageSrc = p.featured_image_url
@@ -474,6 +482,7 @@ async function renderPostPage(
         })
       ),
       children: createElement(PublisherLayout, {
+        design: c.get('activeDesign'),
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,

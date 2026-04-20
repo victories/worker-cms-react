@@ -27,6 +27,14 @@ export interface ThemeStylesProps {
   light: Record<string, string>;
   /** CSS custom properties to set on .dark (dark mode override) */
   dark?: Record<string, string>;
+  /** Font family slots — emitted as `--font-sans/heading/mono` CSS vars. */
+  fonts?: { sans?: string; heading?: string; mono?: string };
+  /**
+   * Google Fonts specifier strings ("Inter:400,500,600,700"). Emitted
+   * as a single Google Fonts CSS link so designs can swap typography
+   * without a build step.
+   */
+  googleFonts?: string[];
 }
 
 function toBlock(selector: string, vars: Record<string, string>): string {
@@ -38,10 +46,35 @@ function toBlock(selector: string, vars: Record<string, string>): string {
   return `${selector}{${entries}}`;
 }
 
-export function ThemeStyles({ light, dark }: ThemeStylesProps) {
-  const css = [toBlock(':root', light), dark ? toBlock('.dark', dark) : '']
+function buildFontVars(fonts?: ThemeStylesProps['fonts']): string {
+  if (!fonts) return '';
+  const entries: string[] = [];
+  if (fonts.sans) entries.push(`--font-sans:'${fonts.sans}',ui-sans-serif,system-ui`);
+  if (fonts.heading) entries.push(`--font-heading:'${fonts.heading}',ui-sans-serif,system-ui`);
+  if (fonts.mono) entries.push(`--font-mono:'${fonts.mono}',ui-monospace,monospace`);
+  return entries.length ? `:root{${entries.join(';')}}` : '';
+}
+
+function buildGoogleFontsHref(specifiers: string[] = []): string | null {
+  if (specifiers.length === 0) return null;
+  const families = specifiers.map((spec) => {
+    const [name, weights] = spec.split(':');
+    const family = name.trim().replace(/ /g, '+');
+    return weights ? `family=${family}:wght@${weights}` : `family=${family}`;
+  });
+  return `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap`;
+}
+
+export function ThemeStyles({ light, dark, fonts, googleFonts }: ThemeStylesProps) {
+  const css = [toBlock(':root', light), dark ? toBlock('.dark', dark) : '', buildFontVars(fonts)]
     .filter(Boolean)
     .join('');
-  if (!css) return null;
-  return <style dangerouslySetInnerHTML={{ __html: css }} />;
+  const gFontsHref = buildGoogleFontsHref(googleFonts);
+  if (!css && !gFontsHref) return null;
+  return (
+    <>
+      {gFontsHref ? <link rel="stylesheet" href={gFontsHref} /> : null}
+      {css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null}
+    </>
+  );
 }
