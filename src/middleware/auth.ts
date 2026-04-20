@@ -82,15 +82,13 @@ export const requireSite = createMiddleware<{ Bindings: Bindings; Variables: Var
   await next();
 });
 
-// User-scoped API key auth — used by external integrations (e.g. worker-ai-bot)
-// that need to discover sites and dispatch content across multiple sites
-// the owning user can access. Accepts the key via:
-//   - Authorization: Bearer <key>
-//   - X-API-Key: <key>
-// On success, sets c.var.user with the owning user's payload (sub, role, ...)
-// and c.var.apiKey with the key row. Does NOT set c.var.siteId — handlers
-// that need a per-site context should also accept X-Site-Id and check it
-// against user_sites for non-super_admin users.
+// API key auth for external integrations (e.g. worker-ai-bot). Accepts the
+// key via X-API-Key or Authorization: Bearer. Resolves both scopes:
+//   - scope='user': key works across every site the owning user reaches.
+//     c.var.apiKeySiteId stays null; handlers query by user_sites.
+//   - scope='site': key is bound to one site. c.var.apiKeySiteId is set;
+//     handlers must reject any other site_id with 403.
+// In both cases c.var.user is the owning user's payload.
 export const userApiKeyAuth = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
   const headerKey = c.req.header('X-API-Key')
     ?? (c.req.header('Authorization')?.startsWith('Bearer ')
@@ -107,9 +105,11 @@ export const userApiKeyAuth = createMiddleware<{ Bindings: Bindings; Variables: 
 
   const keyHash = await hashApiKey(headerKey);
   const row = await c.env.DB.prepare(
-    "SELECT k.id, k.user_id, k.expires_at, k.permissions, u.email, u.role, u.display_name FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.key_hash = ? AND k.scope = 'user'"
+    "SELECT k.id, k.scope, k.site_id, k.user_id, k.expires_at, k.permissions, u.email, u.role, u.display_name FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.key_hash = ?"
   ).bind(keyHash).first<{
     id: number;
+    scope: 'user' | 'site';
+    site_id: number | null;
     user_id: number;
     expires_at: string | null;
     permissions: string;
@@ -132,6 +132,8 @@ export const userApiKeyAuth = createMiddleware<{ Bindings: Bindings; Variables: 
     role: row.role,
     display_name: row.display_name,
   } as any);
+  c.set('apiKeyScope', row.scope);
+  c.set('apiKeySiteId', row.site_id);
 
   c.executionCtx.waitUntil(
     c.env.DB.prepare("UPDATE api_keys SET last_used = datetime('now') WHERE id = ?").bind(row.id).run()
