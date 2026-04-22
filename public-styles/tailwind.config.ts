@@ -63,9 +63,27 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
+        // `--font-*` CSS vars come from ThemeStyles (server-rendered) or
+        // the design-preview bridge (live admin preview). Fallback to the
+        // system stack so a default install without a theme still reads
+        // cleanly. Tailwind's preflight uses whatever `sans` resolves to
+        // for the document body, so changing --font-sans in the admin
+        // actually repaints everywhere, not just components that opt in
+        // with `font-sans` / `font-heading` classes.
         sans: [
-          'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont',
+          'var(--font-sans, ui-sans-serif)',
+          'system-ui', '-apple-system', 'BlinkMacSystemFont',
           '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+        heading: [
+          'var(--font-heading, ui-sans-serif)',
+          'system-ui', '-apple-system', 'BlinkMacSystemFont',
+          '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+        mono: [
+          'var(--font-mono, ui-monospace)',
+          'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas',
+          '"Liberation Mono"', '"Courier New"', 'monospace',
         ],
       },
     },
