@@ -19,7 +19,7 @@ import {
   getRichSnippetsSettings,
   hasWhiteLabel,
 } from '../../lib/public-db';
-import { extractMenuSlugsFromDesign } from '../../lib/themes/layout-helpers';
+import { extractDesignSidebarNeeds } from '../../lib/themes/layout-helpers';
 import { buildSearchResultsSchema, renderJsonLd } from '../../lib/schema';
 import { langPrefix } from '../../lib/lang';
 import {
@@ -50,10 +50,16 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
   const query = c.req.query('q') || '';
   const page = parseInt(c.req.query('page') || '1');
 
+  const searchNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
   const [theme, sidebarData, analytics, rsConfig, whiteLabel] =
     await Promise.all([
       getSiteTheme(c.env.DB, siteId, c.env.CACHE),
-      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, extractMenuSlugsFromDesign(c.get('activeDesign'))),
+      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, {
+        extraMenuSlugs: searchNeeds.menuSlugs,
+        needCategories: searchNeeds.needCategories,
+        needRecentPosts: searchNeeds.needRecentPosts,
+        needTags: searchNeeds.needTags,
+      }),
       getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),
       getRichSnippetsSettings(c.env.DB, siteId, c.env.CACHE),
       hasWhiteLabel(c.env.DB, siteId),

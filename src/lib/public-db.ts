@@ -662,19 +662,42 @@ export interface SidebarData {
   menus: Record<string, SidebarMenuData>; // keyed by menu slug
 }
 
+export interface SidebarDataOptions {
+  /** Extra menu slugs to load — used by Theme Studio's `widget:menu` slot
+   *  so menus referenced from the layout JSON come along for the ride. */
+  extraMenuSlugs?: string[];
+  /** OR'd with the legacy widgets-table check for the same widget type.
+   *  Theme Studio slots (`widget:categories`, `widget:recent-posts`,
+   *  `widget:tags`) live in `site_design.layout_config` — not in the
+   *  `widgets` table — so we have to tell `getSidebarData` out-of-band
+   *  when the design needs these lists. */
+  needCategories?: boolean;
+  needRecentPosts?: boolean;
+  needTags?: boolean;
+}
+
 export async function getSidebarData(
   db: D1Database,
   siteId: number,
   lang: string,
   kv?: KVNamespace,
-  /** Extra menu slugs to load — used by Theme Studio's `widget:menu` slot
-   *  so menus referenced from the layout JSON come along for the ride. */
-  extraMenuSlugs: string[] = []
+  options: SidebarDataOptions = {}
 ): Promise<SidebarData> {
+  const extraMenuSlugs = options.extraMenuSlugs ?? [];
+  const designNeedCategories = options.needCategories ?? false;
+  const designNeedRecentPosts = options.needRecentPosts ?? false;
+  const designNeedTags = options.needTags ?? false;
+
   const slugSuffix = extraMenuSlugs.length > 0
     ? `:menus=${[...extraMenuSlugs].sort().join(',')}`
     : '';
-  return cached(kv, `site:${siteId}:${lang}:sidebar${slugSuffix}`, 1800, async () => {
+  // Fold design needs into the cache key so a layout adding or
+  // removing a categories/recent-posts/tags slot invalidates its row.
+  const needsSuffix =
+    (designNeedCategories ? ':c' : '') +
+    (designNeedRecentPosts ? ':r' : '') +
+    (designNeedTags ? ':t' : '');
+  return cached(kv, `site:${siteId}:${lang}:sidebar${slugSuffix}${needsSuffix}`, 1800, async () => {
   // Load ALL active widgets (sidebar + footer + slider + header areas)
   const widgetResult = await db.prepare(
     "SELECT * FROM widgets WHERE site_id = ? AND area IN ('sidebar','footer-1','footer-2','footer-3','footer-4','slider','header') AND is_active = 1 ORDER BY area, position ASC"
@@ -691,9 +714,9 @@ export async function getSidebarData(
     'footer-4': allWidgets.filter(w => w.area === 'footer-4'),
   };
 
-  const needCategories = allWidgets.some(w => w.widget_type === 'categories');
-  const needRecentPosts = allWidgets.some(w => w.widget_type === 'recent_posts');
-  const needTags = allWidgets.some(w => w.widget_type === 'tags');
+  const needCategories = designNeedCategories || allWidgets.some(w => w.widget_type === 'categories');
+  const needRecentPosts = designNeedRecentPosts || allWidgets.some(w => w.widget_type === 'recent_posts');
+  const needTags = designNeedTags || allWidgets.some(w => w.widget_type === 'tags');
 
   // Collect menu slugs from ALL menu widgets (sidebar + footer) plus
   // any extras the caller asked for (Theme Studio layout slots).
