@@ -92,3 +92,61 @@ if (document.readyState === 'loading') {
 } else {
   hydrateIslands();
 }
+
+/**
+ * Sticky-column top adjuster.
+ *
+ * Columns marked with `data-sticky-column` use `position: sticky`. CSS
+ * alone can only set a single `top` value per column, but the UX we
+ * want depends on the column's height relative to the viewport:
+ *
+ *   - Short sidebar (fits in viewport): stick just below the sticky
+ *     header so the widgets stay visible while the user reads.
+ *   - Tall sidebar (taller than viewport): don't stick at the top —
+ *     the user wouldn't be able to scroll to see the bottom widgets.
+ *     Instead, stick so the *bottom* of the column sits near the
+ *     viewport bottom; the user first scrolls past the whole sidebar,
+ *     then it pins in that final position as they keep scrolling the
+ *     main column.
+ *
+ * We compute this once on load and again on resize. Cheap, runs on the
+ * hydration pass so it doesn't block the initial paint.
+ */
+const HEADER_OFFSET_REM = 5;   // matches the tailwind `top-20` (5rem)
+const BOTTOM_GAP_PX = 16;
+function computeStickyTops(): void {
+  const rootSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const headerOffsetPx = HEADER_OFFSET_REM * rootSize;
+  const cols = document.querySelectorAll<HTMLElement>('[data-sticky-column]');
+  for (const col of cols) {
+    // Temporarily clear top so getBoundingClientRect gives natural height.
+    col.style.top = '';
+    const h = col.getBoundingClientRect().height;
+    const vh = window.innerHeight;
+    if (h <= vh - headerOffsetPx - BOTTOM_GAP_PX) {
+      col.style.top = `${headerOffsetPx}px`;
+    } else {
+      // Negative top — element scrolls naturally until it has traveled
+      // up by (h - vh + gap), at which point its bottom is `gap` above
+      // the viewport bottom. Stops there.
+      const offset = vh - h - BOTTOM_GAP_PX;
+      col.style.top = `${offset}px`;
+    }
+  }
+}
+
+function initStickyColumns(): void {
+  computeStickyTops();
+  let raf = 0;
+  const onResize = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(computeStickyTops);
+  };
+  window.addEventListener('resize', onResize);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStickyColumns, { once: true });
+} else {
+  initStickyColumns();
+}
