@@ -33,10 +33,16 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
   // alignment so a long sidebar doesn't push other columns down.
   const align = as === 'header' ? 'md:items-center' : 'md:items-start';
 
+  // `sticky` is only meaningful for the header — a sticky body wrapper
+  // pins the entire content column to the top of the viewport, and the
+  // bundled `backdrop-blur` applies to every pixel underneath, which
+  // looks like a full-page filigree/blur. Ignore the flag elsewhere.
+  const isSticky = Boolean(config.sticky) && as === 'header';
+
   return (
     <Tag
       className={cn(
-        config.sticky
+        isSticky
           ? 'sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60'
           : '',
         as === 'footer' ? 'mt-20 border-t border-border bg-muted/30' : '',
