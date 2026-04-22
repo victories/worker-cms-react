@@ -51,9 +51,7 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
     >
       <Container size="xl" className={padding}>
         <div className={cn('flex flex-col gap-6 md:flex-row', align)}>
-          {config.columns.map((col, i) => {
-            const isStickyCol = col.sticky && as !== 'header';
-            return (
+          {config.columns.map((col, i) => (
             <div
               key={i}
               className={cn(
@@ -65,15 +63,16 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
                 as === 'header'
                   ? 'flex flex-row items-center gap-3'
                   : 'space-y-4',
-                // Per-column sticky — a client-side helper in
-                // publisher-entry.ts sets the concrete `top` value
-                // based on the column's height vs. viewport so tall
-                // sidebars scroll through fully before pinning at
-                // their bottom, while short sidebars pin just below
-                // the header. Pure-CSS can only do one or the other.
-                isStickyCol && 'md:sticky md:self-start'
+                // Per-column sticky — lets a short sidebar pin itself
+                // to the top so long content next to it doesn't leave
+                // a wall of whitespace. `top-20` (5rem) clears the
+                // sticky header. Only takes effect on md+ viewports
+                // where the columns are side-by-side. For sidebars
+                // taller than the viewport the bottom widgets get
+                // clipped — the admin should keep sticky columns
+                // short enough to fit.
+                col.sticky && as !== 'header' && 'md:sticky md:top-20 md:self-start'
               )}
-              data-sticky-column={isStickyCol ? '' : undefined}
               style={{ flex: `0 0 ${col.width}%` }}
             >
               {col.slots.map((slot, j) => {
@@ -91,8 +90,7 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
                 return <Comp key={j} ctx={ctx} props={slot.props} />;
               })}
             </div>
-            );
-          })}
+          ))}
         </div>
       </Container>
     </Tag>
