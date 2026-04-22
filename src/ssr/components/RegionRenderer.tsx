@@ -51,7 +51,9 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
     >
       <Container size="xl" className={padding}>
         <div className={cn('flex flex-col gap-6 md:flex-row', align)}>
-          {config.columns.map((col, i) => (
+          {config.columns.map((col, i) => {
+            const isStickyCol = col.sticky && as !== 'header';
+            return (
             <div
               key={i}
               className={cn(
@@ -63,14 +65,15 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
                 as === 'header'
                   ? 'flex flex-row items-center gap-3'
                   : 'space-y-4',
-                // Per-column sticky — lets a short sidebar pin itself
-                // to the top so it doesn't leave whitespace next to a
-                // long article body. `top-20` (5rem) clears a 4rem
-                // sticky header with a little breathing room. Only
-                // applied on md+ viewports where the columns actually
-                // sit side-by-side.
-                col.sticky && as !== 'header' && 'md:sticky md:top-20 md:self-start'
+                // Per-column sticky — a client-side helper in
+                // publisher-entry.ts sets the concrete `top` value
+                // based on the column's height vs. viewport so tall
+                // sidebars scroll through fully before pinning at
+                // their bottom, while short sidebars pin just below
+                // the header. Pure-CSS can only do one or the other.
+                isStickyCol && 'md:sticky md:self-start'
               )}
+              data-sticky-column={isStickyCol ? '' : undefined}
               style={{ flex: `0 0 ${col.width}%` }}
             >
               {col.slots.map((slot, j) => {
@@ -88,7 +91,8 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
                 return <Comp key={j} ctx={ctx} props={slot.props} />;
               })}
             </div>
-          ))}
+            );
+          })}
         </div>
       </Container>
     </Tag>
