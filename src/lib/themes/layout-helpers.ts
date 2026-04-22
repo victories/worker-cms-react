@@ -14,6 +14,12 @@ export interface DesignSidebarNeeds {
   needRecentPosts: boolean;
   /** True if any slot is `widget:tags`. */
   needTags: boolean;
+  /** Raw shortcode strings referenced by `widget:shortcode` slots
+   *  (e.g. `"[son-yazilar sayi=3]"`). Route handlers pre-render each
+   *  and pass the outputs through ctx so the slot can render HTML
+   *  synchronously. De-duplicated — the same string produces one
+   *  rendered output reused across every placement. */
+  shortcodes: string[];
 }
 
 /**
@@ -34,10 +40,12 @@ export function extractDesignSidebarNeeds(
     needCategories: false,
     needRecentPosts: false,
     needTags: false,
+    shortcodes: [],
   };
   if (!design || !design.layoutConfig) return result;
 
   const slugs = new Set<string>();
+  const shortcodes = new Set<string>();
   const layout = design.layoutConfig as LayoutConfig;
   for (const region of Object.values(layout)) {
     if (!region || !Array.isArray(region.columns)) continue;
@@ -53,11 +61,15 @@ export function extractDesignSidebarNeeds(
           result.needRecentPosts = true;
         } else if (slot.id === 'widget:tags') {
           result.needTags = true;
+        } else if (slot.id === 'widget:shortcode' && typeof slot.props?.shortcode === 'string') {
+          const s = (slot.props.shortcode as string).trim();
+          if (s) shortcodes.add(s);
         }
       }
     }
   }
   result.menuSlugs = [...slugs];
+  result.shortcodes = [...shortcodes];
   return result;
 }
 

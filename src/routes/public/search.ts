@@ -20,6 +20,7 @@ import {
   hasWhiteLabel,
 } from '../../lib/public-db';
 import { extractDesignSidebarNeeds } from '../../lib/themes/layout-helpers';
+import { renderShortcodeBatch } from '../../lib/shortcodes/index';
 import { buildSearchResultsSchema, renderJsonLd } from '../../lib/schema';
 import { langPrefix } from '../../lib/lang';
 import {
@@ -51,6 +52,18 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
   const page = parseInt(c.req.query('page') || '1');
 
   const searchNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
+  const searchBaseUrl = new URL(c.req.url);
+  const layoutShortcodeOutputs =
+    searchNeeds.shortcodes.length > 0
+      ? await renderShortcodeBatch(searchNeeds.shortcodes, {
+          db: c.env.DB,
+          siteId,
+          lang,
+          defaultLang,
+          origin: searchBaseUrl.origin,
+          langPrefix: lp,
+        })
+      : undefined;
   const [theme, sidebarData, analytics, rsConfig, whiteLabel] =
     await Promise.all([
       getSiteTheme(c.env.DB, siteId, c.env.CACHE),
@@ -139,6 +152,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
         ),
         children: createElement(PublisherLayout, {
           design: c.get('activeDesign'),
+          shortcodeOutputs: layoutShortcodeOutputs,
           siteName: site.name,
           siteLogo: theme.site_logo || undefined,
           lang,
@@ -241,6 +255,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
       ),
       children: createElement(PublisherLayout, {
         design: c.get('activeDesign'),
+        shortcodeOutputs: layoutShortcodeOutputs,
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,

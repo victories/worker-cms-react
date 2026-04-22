@@ -167,6 +167,11 @@ export interface SlotInstance {
 export interface LayoutColumn {
   width: number;
   slots: SlotInstance[];
+  /** Stick this column to the viewport so long sibling columns (e.g. a
+   *  6000px article body next to a 400px sidebar) don't leave this one
+   *  stranded with empty whitespace below it. Uses `position:sticky`
+   *  with a top offset that clears the sticky header. */
+  sticky?: boolean;
 }
 
 /**

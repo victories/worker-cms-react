@@ -21,6 +21,7 @@ import {
   hasWhiteLabel,
 } from '../../lib/public-db';
 import { extractDesignSidebarNeeds } from '../../lib/themes/layout-helpers';
+import { renderShortcodeBatch } from '../../lib/shortcodes/index';
 import {
   buildCollectionPageSchema,
   buildBreadcrumbSchema,
@@ -63,6 +64,18 @@ async function renderArchivePage(
   const page = parseInt(c.req.query('page') || '1');
 
   const archiveNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
+  const archiveBaseUrl = new URL(c.req.url);
+  const layoutShortcodeOutputs =
+    archiveNeeds.shortcodes.length > 0
+      ? await renderShortcodeBatch(archiveNeeds.shortcodes, {
+          db: c.env.DB,
+          siteId,
+          lang,
+          defaultLang,
+          origin: archiveBaseUrl.origin,
+          langPrefix: lp,
+        })
+      : undefined;
   const [taxonomy, theme, sidebarData, analytics, rsConfig, whiteLabel] =
     await Promise.all([
       getTaxonomyBySlug(c.env.DB, siteId, slug, type, lang),
@@ -221,6 +234,7 @@ async function renderArchivePage(
       ),
       children: createElement(PublisherLayout, {
         design: c.get('activeDesign'),
+        shortcodeOutputs: layoutShortcodeOutputs,
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,

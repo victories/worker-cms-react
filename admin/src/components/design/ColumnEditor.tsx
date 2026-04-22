@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Trash2, GripVertical, X } from 'lucide-react';
+import { Trash2, GripVertical, X, Pin, PinOff } from 'lucide-react';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { cn } from '@ui/lib/utils';
@@ -20,10 +20,15 @@ export interface ColumnEditorProps {
   width: number;
   slots: SlotInstanceUI[];
   selectedUid: string | null;
+  sticky?: boolean;
+  /** Non-header regions only — sticky is meaningless for the header
+   *  (the region itself has its own sticky flag).  */
+  canStick?: boolean;
   onSelect(uid: string | null): void;
   onWidthChange(next: number): void;
   onRemoveColumn(): void;
   onRemoveSlot(uid: string): void;
+  onToggleSticky?(next: boolean): void;
 }
 
 interface SortableSlotProps {
@@ -87,10 +92,13 @@ export function ColumnEditor({
   width,
   slots,
   selectedUid,
+  sticky,
+  canStick,
   onSelect,
   onWidthChange,
   onRemoveColumn,
   onRemoveSlot,
+  onToggleSticky,
 }: ColumnEditorProps) {
   const droppableId = `column:${regionKey}:${columnIndex}`;
   const { setNodeRef, isOver } = useDroppable({
@@ -113,6 +121,24 @@ export function ColumnEditor({
         />
         <span className="text-[10px] text-muted-foreground">%</span>
         <div className="flex-1" />
+        {canStick && onToggleSticky ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onToggleSticky(!sticky)}
+            className={cn(
+              'h-6 w-6 p-0',
+              sticky ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+            )}
+            title={
+              sticky
+                ? 'Sabit: uzun sayfalarda kolon viewport üstüne yapışır — kapatmak için tıkla'
+                : 'Kolonu sabitle — uzun içerik yanında kaydırmayı takip eder (sticky)'
+            }
+          >
+            {sticky ? <Pin className="h-3 w-3" /> : <PinOff className="h-3 w-3" />}
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="ghost"

@@ -76,6 +76,10 @@ export interface PublisherLayoutProps {
    * the design row is still synthesised defaults.
    */
   design?: ActiveDesign | null;
+  /** Pre-rendered shortcode HTML keyed by raw shortcode string —
+   *  threaded straight into SlotContext.shortcodeOutputs so the
+   *  `widget:shortcode` slot can emit HTML synchronously. */
+  shortcodeOutputs?: Record<string, string>;
   children: ReactNode;
   className?: string;
 }
@@ -98,6 +102,7 @@ export function PublisherLayout({
   footerStart,
   footerEnd,
   design,
+  shortcodeOutputs,
   children,
   className,
 }: PublisherLayoutProps) {
@@ -127,6 +132,7 @@ export function PublisherLayout({
       headerRight,
       sidebarTop,
       sidebarBottom,
+      shortcodeOutputs,
     };
     const year = new Date().getFullYear();
     return (

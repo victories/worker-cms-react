@@ -29,6 +29,11 @@ export interface SlotContext {
   headerRight?: ReactNode;
   sidebarTop?: ReactNode;
   sidebarBottom?: ReactNode;
+  /** Pre-rendered HTML for every shortcode referenced by a
+   *  `widget:shortcode` slot in the layout. Keyed by the raw
+   *  shortcode string (e.g. `"[son-yazilar sayi=3]"`) so the slot can
+   *  read the output synchronously at render time. */
+  shortcodeOutputs?: Record<string, string>;
 }
 
 /**
