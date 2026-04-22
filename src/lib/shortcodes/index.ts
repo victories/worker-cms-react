@@ -24,6 +24,31 @@ export { ShortcodeContext } from './registry';
 export { getRegisteredNames } from './registry';
 
 /**
+ * Batch-render a set of raw shortcode strings and return a map from
+ * input string to rendered HTML. Used by the Theme Studio
+ * `widget:shortcode` slot so the route handler can pre-compute every
+ * unique shortcode once (per request), and the synchronous React
+ * render pass just reads the output string.
+ */
+export async function renderShortcodeBatch(
+  shortcodes: readonly string[],
+  ctx: ShortcodeContext,
+  staticShortcodes?: Map<string, string>,
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const raw of shortcodes) {
+    if (!raw) continue;
+    if (out[raw] != null) continue;
+    try {
+      out[raw] = await processAllShortcodes(raw, ctx, staticShortcodes);
+    } catch {
+      out[raw] = '';
+    }
+  }
+  return out;
+}
+
+/**
  * Process all shortcodes in the given HTML content.
  * Handles both built-in shortcodes and static shortcodes from DB.
  * Runs up to 3 passes to handle nested shortcodes.

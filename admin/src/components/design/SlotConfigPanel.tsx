@@ -421,6 +421,30 @@ export function SlotConfigPanel({ selected, onChangeProps, onClose }: SlotConfig
           </>
         ) : null}
 
+        {selected.id === 'widget:shortcode' ? (
+          <>
+            <WidgetTitleField
+              value={props.title}
+              placeholder=""
+              onChange={(v) => setProp('title', v)}
+            />
+            <div className="space-y-1">
+              <Label className="text-xs">Shortcode</Label>
+              <Textarea
+                value={props.shortcode ?? ''}
+                onChange={(e) => setProp('shortcode', e.target.value)}
+                rows={3}
+                placeholder="[son-yazilar sayi=5]"
+                className="font-mono text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Yazı içeriğinde kullanılan her shortcode burada da çalışır:
+                built-in'ler (son-yazilar, kategori, slider…) + yönetim paneli → Shortcodes'tan tanımladığın özel parçalar.
+              </p>
+            </div>
+          </>
+        ) : null}
+
         {['user-actions', 'mobile-menu', 'theme-toggle', 'main-content'].includes(selected.id) ? (
           <p className="text-[11px] text-muted-foreground">Bu slotun ek ayarı yok.</p>
         ) : null}

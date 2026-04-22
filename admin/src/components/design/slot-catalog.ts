@@ -17,6 +17,7 @@ import {
   Code,
   Smartphone,
   Menu as MenuListIcon,
+  SquareCode,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -126,6 +127,14 @@ export const SLOT_CATALOG: SlotCatalogEntry[] = [
     category: 'widget',
     defaultProps: { menu_slug: '', orientation: 'vertical' },
     hint: 'Sidebar veya footer için menü (header menüsünden ayrı)',
+  },
+  {
+    id: 'widget:shortcode',
+    label: 'Kısa Kod',
+    icon: SquareCode,
+    category: 'widget',
+    defaultProps: { shortcode: '', title: '' },
+    hint: 'Herhangi bir shortcode\'u layout\'a yerleştir (ör. [son-yazilar sayi=5])',
   },
 ];
 

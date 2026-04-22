@@ -31,7 +31,7 @@ import {
 } from '../../lib/schema';
 import { getEffectiveSetting } from '../../lib/settings';
 import { langPrefix } from '../../lib/lang';
-import { processAllShortcodes, ShortcodeContext } from '../../lib/shortcodes/index';
+import { processAllShortcodes, renderShortcodeBatch, ShortcodeContext } from '../../lib/shortcodes/index';
 import { processLayout } from '../../lib/layout';
 import { renderAmpForPost } from './amp/dynamic';
 import { getRecaptchaSettings } from '../../lib/recaptcha';
@@ -182,6 +182,14 @@ async function renderPostPage(
   const showComments = siteCommentsEnabled && p.comment_status === 'open';
   const showReadingTime = settingsMap.show_reading_time === 'true';
 
+  const postDesignNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
+  const postSidebarNeeds = {
+    extraMenuSlugs: postDesignNeeds.menuSlugs,
+    needCategories: postDesignNeeds.needCategories,
+    needRecentPosts: postDesignNeeds.needRecentPosts,
+    needTags: postDesignNeeds.needTags,
+  };
+
   const [
     theme,
     taxonomies,
@@ -196,15 +204,7 @@ async function renderPostPage(
     getSiteTheme(c.env.DB, siteId, c.env.CACHE),
     getPostTaxonomies(c.env.DB, p.id),
     showComments ? getRecentComments(c.env.DB, p.id) : Promise.resolve([]),
-    (() => {
-      const needs = extractDesignSidebarNeeds(c.get('activeDesign'));
-      return getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, {
-        extraMenuSlugs: needs.menuSlugs,
-        needCategories: needs.needCategories,
-        needRecentPosts: needs.needRecentPosts,
-        needTags: needs.needTags,
-      });
-    })(),
+    getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, postSidebarNeeds),
     getAmpSettings(c.env.DB, siteId),
     getRecaptchaSettings(c.env.DB, siteId),
     getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),
@@ -241,6 +241,11 @@ async function renderPostPage(
     origin: baseUrl.origin,
     langPrefix: lp,
   };
+
+  const layoutShortcodeOutputs =
+    postDesignNeeds.shortcodes.length > 0
+      ? await renderShortcodeBatch(postDesignNeeds.shortcodes, scCtx)
+      : undefined;
 
   let renderedContent: string;
   if (layoutJson) {
@@ -492,6 +497,7 @@ async function renderPostPage(
       ),
       children: createElement(PublisherLayout, {
         design: c.get('activeDesign'),
+        shortcodeOutputs: layoutShortcodeOutputs,
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,

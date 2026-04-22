@@ -30,7 +30,7 @@ import {
   renderJsonLd,
 } from '../../lib/schema';
 import { langPrefix } from '../../lib/lang';
-import { processAllShortcodes, ShortcodeContext } from '../../lib/shortcodes/index';
+import { processAllShortcodes, renderShortcodeBatch, ShortcodeContext } from '../../lib/shortcodes/index';
 import { processLayout } from '../../lib/layout';
 import {
   collectDocumentSlots,
@@ -87,6 +87,18 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
 
   const designForLayout = c.get('activeDesign');
   const homeNeeds = extractDesignSidebarNeeds(designForLayout);
+  const homeBaseUrl = new URL(c.req.url);
+  const layoutShortcodeOutputs =
+    homeNeeds.shortcodes.length > 0
+      ? await renderShortcodeBatch(homeNeeds.shortcodes, {
+          db: c.env.DB,
+          siteId,
+          lang,
+          defaultLang,
+          origin: homeBaseUrl.origin,
+          langPrefix: lp,
+        })
+      : undefined;
 
   const [
     theme,
@@ -271,6 +283,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
           ),
           children: createElement(PublisherLayout, {
             design: c.get('activeDesign'),
+            shortcodeOutputs: layoutShortcodeOutputs,
             siteName: site.name,
             siteLogo: theme.site_logo || undefined,
             lang,
@@ -389,6 +402,8 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
         })
       ),
       children: createElement(PublisherLayout, {
+        design: c.get('activeDesign'),
+        shortcodeOutputs: layoutShortcodeOutputs,
         siteName: site.name,
         siteLogo: theme.site_logo || undefined,
         lang,

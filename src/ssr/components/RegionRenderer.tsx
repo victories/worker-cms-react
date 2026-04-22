@@ -62,7 +62,14 @@ export function RegionRenderer({ config, ctx, as = 'div', className }: RegionRen
                 // cards line up vertically as before.
                 as === 'header'
                   ? 'flex flex-row items-center gap-3'
-                  : 'space-y-4'
+                  : 'space-y-4',
+                // Per-column sticky — lets a short sidebar pin itself
+                // to the top so it doesn't leave whitespace next to a
+                // long article body. `top-20` (5rem) clears a 4rem
+                // sticky header with a little breathing room. Only
+                // applied on md+ viewports where the columns actually
+                // sit side-by-side.
+                col.sticky && as !== 'header' && 'md:sticky md:top-20 md:self-start'
               )}
               style={{ flex: `0 0 ${col.width}%` }}
             >

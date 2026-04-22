@@ -42,6 +42,7 @@ function fromStored(stored: any): LayoutUI {
       sticky: !!r.sticky,
       columns: r.columns.map((c: any) => ({
         width: Number(c.width) || 0,
+        sticky: !!c.sticky,
         slots: (Array.isArray(c.slots) ? c.slots : []).map((s: any) => ({
           uid: nextUid(),
           id: String(s.id),
@@ -64,6 +65,8 @@ function toStored(layout: LayoutUI): any {
       sticky: !!r.sticky,
       columns: r.columns.map((c) => ({
         width: c.width,
+        // Only include sticky when true — keep default rows lean.
+        ...(c.sticky ? { sticky: true } : {}),
         slots: c.slots.map((s) => ({ id: s.id, props: s.props ?? {} })),
       })),
     };

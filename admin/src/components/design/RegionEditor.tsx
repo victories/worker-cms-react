@@ -7,7 +7,7 @@ export interface RegionUI {
   type: 'row';
   padding?: 'none' | 'sm' | 'md' | 'lg';
   sticky?: boolean;
-  columns: { width: number; slots: SlotInstanceUI[] }[];
+  columns: { width: number; slots: SlotInstanceUI[]; sticky?: boolean }[];
 }
 
 export interface RegionEditorProps {
@@ -122,11 +122,22 @@ export function RegionEditor({ regionKey, region, selectedUid, onSelect, onChang
             columnIndex={i}
             width={col.width}
             slots={col.slots}
+            sticky={!!col.sticky}
+            // Column-sticky is for "sidebar stays pinned as the main
+            // column scrolls" — the header has its own region-level
+            // sticky control above, so we hide the column knob there.
+            canStick={regionKey !== 'header'}
             selectedUid={selectedUid}
             onSelect={onSelect}
             onWidthChange={(w) => setColumnWidth(i, w)}
             onRemoveColumn={() => removeColumn(i)}
             onRemoveSlot={(uid) => removeSlot(i, uid)}
+            onToggleSticky={(next) => {
+              const cols = region.columns.map((c, j) =>
+                j === i ? { ...c, sticky: next } : c,
+              );
+              onChange({ ...region, columns: cols });
+            }}
           />
         ))}
         {region.columns.length < MAX_COLUMNS ? (
