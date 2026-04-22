@@ -9,6 +9,8 @@ import { Save, RotateCcw, Sun, Moon, Loader2, Shuffle } from 'lucide-react';
 import { HslColorPicker } from '@/components/design/HslColorPicker';
 import { SidebarRow } from '@/components/design/SidebarRow';
 import { PresetGrid, type PresetEntry } from '@/components/design/PresetGrid';
+import { StylePresetGrid } from '@/components/design/StylePresetGrid';
+import { STYLE_PRESETS, type StylePreset } from '@/components/design/style-presets';
 import { GoogleFontPicker, POPULAR_FONTS } from '@/components/design/GoogleFontPicker';
 import { PreviewFrame, type PreviewDevice } from '@/components/design/PreviewFrame';
 
@@ -105,6 +107,41 @@ export function StyleEditor() {
     () => presets.find((p) => p.slug === presetSlug) ?? null,
     [presets, presetSlug],
   );
+
+  // Which Style bundle (Nova / Mono / Editorial / …) matches the
+  // current tokens? Derived — we don't persist the style slug, so a
+  // user who hand-tweaks fonts after picking Nova sees the row
+  // reflect that the bundle is "mixed" (null) instead of stuck on Nova.
+  const activeStyleSlug = useMemo(() => {
+    if (!tokens || !presetSlug) return null;
+    const match = STYLE_PRESETS.find(
+      (s) =>
+        s.paletteSlug === presetSlug &&
+        (tokens.light['--radius'] ?? '0.5rem') === s.radius &&
+        tokens.fonts.sans === s.fonts.sans &&
+        tokens.fonts.heading === s.fonts.heading &&
+        tokens.fonts.mono === s.fonts.mono,
+    );
+    return match?.slug ?? null;
+  }, [tokens, presetSlug]);
+
+  function applyStylePreset(style: StylePreset, palette: PresetEntry) {
+    if (!tokens) return;
+    // One-shot apply: palette + radius + fonts — mirrors shadcn's
+    // Style picker that swaps everything at once.
+    const nextFonts = { ...style.fonts };
+    const families = [style.fonts.heading, style.fonts.sans, style.fonts.mono].filter(Boolean);
+    const google = families
+      .filter((f, i, arr) => arr.indexOf(f) === i)
+      .map((f) => `${f}:400,500,600,700`);
+    setTokens({
+      light: { ...palette.light, '--radius': style.radius },
+      dark: { ...palette.dark, '--radius': style.radius },
+      fonts: nextFonts,
+      google_fonts: google,
+    });
+    setPresetSlug(palette.slug);
+  }
 
   function applyPreset(p: PresetEntry) {
     if (!tokens) return;
@@ -244,7 +281,11 @@ export function StyleEditor() {
           <div className="space-y-2">
             <SidebarRow
               label="Stil"
-              value={activePreset?.name ?? '—'}
+              value={
+                activeStyleSlug
+                  ? STYLE_PRESETS.find((s) => s.slug === activeStyleSlug)?.name ?? 'Özel'
+                  : 'Özel'
+              }
               active={activeSection === 'style'}
               indicator={
                 activePreset ? (
@@ -258,8 +299,20 @@ export function StyleEditor() {
               onClick={() => toggle('style')}
             />
             {activeSection === 'style' && (
-              <div className="rounded-md border border-border bg-background p-2">
-                <PresetGrid presets={presets} activeSlug={presetSlug} onPick={applyPreset} />
+              <div className="space-y-3 rounded-md border border-border bg-background p-2">
+                <StylePresetGrid
+                  palettes={presets}
+                  activeSlug={activeStyleSlug}
+                  onPick={applyStylePreset}
+                />
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground">
+                    Sadece paleti değiştir
+                  </summary>
+                  <div className="mt-2">
+                    <PresetGrid presets={presets} activeSlug={presetSlug} onPick={applyPreset} />
+                  </div>
+                </details>
               </div>
             )}
 
