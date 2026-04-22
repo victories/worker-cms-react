@@ -52,6 +52,28 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      fontFamily: {
+        // Match the public-side config so the in-admin design preview
+        // and the admin UI itself both honour `--font-*` vars. Admin
+        // doesn't currently set these vars, so the fallbacks are what
+        // actually ship — but wiring the var keeps the two codebases
+        // consistent and future-proofs admin-side typography overrides.
+        sans: [
+          'var(--font-sans, ui-sans-serif)',
+          'system-ui', '-apple-system', 'BlinkMacSystemFont',
+          '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+        heading: [
+          'var(--font-heading, ui-sans-serif)',
+          'system-ui', '-apple-system', 'BlinkMacSystemFont',
+          '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+        mono: [
+          'var(--font-mono, ui-monospace)',
+          'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas',
+          '"Liberation Mono"', '"Courier New"', 'monospace',
+        ],
+      },
     },
   },
   plugins: [],
