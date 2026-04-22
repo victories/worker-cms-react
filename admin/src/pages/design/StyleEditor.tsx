@@ -5,9 +5,9 @@ import { useSiteStore } from '@/stores/siteStore';
 import { useToast } from '@ui/toast-notification';
 import { Button } from '@ui/button';
 import { Skeleton } from '@ui/skeleton';
-import { Save, RotateCcw, Sun, Moon, Loader2 } from 'lucide-react';
+import { Save, RotateCcw, Sun, Moon, Loader2, Shuffle } from 'lucide-react';
 import { HslColorPicker } from '@/components/design/HslColorPicker';
-import { TokenSection } from '@/components/design/TokenSection';
+import { SidebarRow } from '@/components/design/SidebarRow';
 import { PresetGrid, type PresetEntry } from '@/components/design/PresetGrid';
 import { GoogleFontPicker, POPULAR_FONTS } from '@/components/design/GoogleFontPicker';
 import { PreviewFrame, type PreviewDevice } from '@/components/design/PreviewFrame';
@@ -30,41 +30,31 @@ interface ActiveDesign {
   isDefault: boolean;
 }
 
-const TOKEN_GROUPS: { title: string; description?: string; tokens: string[] }[] = [
-  {
-    title: 'Background & Surface',
-    description: 'Sayfa zemini, kart ve popover arka planları.',
-    tokens: ['--background', '--foreground', '--card', '--card-foreground', '--popover', '--popover-foreground'],
-  },
-  {
-    title: 'Brand Colors',
-    description: 'Birincil + ikincil + accent vurgu renkleri.',
-    tokens: [
-      '--primary', '--primary-foreground',
-      '--secondary', '--secondary-foreground',
-      '--accent', '--accent-foreground',
-    ],
-  },
-  {
-    title: 'Status & Muted',
-    description: 'Hata renkleri ve devre dışı / pasif yüzeyler.',
-    tokens: ['--destructive', '--destructive-foreground', '--muted', '--muted-foreground'],
-  },
-  {
-    title: 'Borders & Focus',
-    description: 'Çerçeve, input ve focus halkası.',
-    tokens: ['--border', '--input', '--ring'],
-  },
-];
+type SectionKey = 'style' | 'base' | 'accent' | 'status' | 'borders' | 'heading' | 'body' | 'radius';
+
+// Which tokens live under each expandable section.
+const BASE_TOKENS = ['--background', '--foreground', '--card', '--card-foreground', '--popover', '--popover-foreground'];
+const ACCENT_TOKENS = ['--primary', '--primary-foreground', '--secondary', '--secondary-foreground', '--accent', '--accent-foreground'];
+const STATUS_TOKENS = ['--destructive', '--destructive-foreground', '--muted', '--muted-foreground'];
+const BORDER_TOKENS = ['--border', '--input', '--ring'];
 
 function previewSiteUrl(activeSite: any): string {
   const primary = activeSite?.domains?.find((d: any) => d.is_primary)?.domain;
   const fallback = activeSite?.domains?.[0]?.domain;
   const host = primary || fallback;
   if (host) return `https://${host}/`;
-  // Local dev fallback — same origin as admin
   if (typeof window !== 'undefined') return window.location.origin + '/';
   return '/';
+}
+
+/** Tiny color swatch used as the row indicator. */
+function ColorDot({ hsl, className = 'h-4 w-4' }: { hsl: string | undefined; className?: string }) {
+  return (
+    <span
+      className={`rounded-full border border-border ${className}`}
+      style={{ background: hsl ? `hsl(${hsl})` : 'transparent' }}
+    />
+  );
 }
 
 export function StyleEditor() {
@@ -79,8 +69,8 @@ export function StyleEditor() {
   const [defaultPreset, setDefaultPreset] = useState<string>('neutral');
   const [mode, setMode] = useState<'light' | 'dark'>('light');
   const [device, setDevice] = useState<PreviewDevice>('desktop');
+  const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
 
-  // Initial load: design + presets in parallel.
   useEffect(() => {
     if (!activeSite) return;
     let cancelled = false;
@@ -111,6 +101,11 @@ export function StyleEditor() {
     return JSON.stringify(tokens) !== JSON.stringify(original);
   }, [tokens, original]);
 
+  const activePreset = useMemo(
+    () => presets.find((p) => p.slug === presetSlug) ?? null,
+    [presets, presetSlug],
+  );
+
   function applyPreset(p: PresetEntry) {
     if (!tokens) return;
     setTokens({
@@ -124,15 +119,11 @@ export function StyleEditor() {
 
   function setColorToken(key: string, value: string) {
     if (!tokens) return;
-    setTokens({
-      ...tokens,
-      [mode]: { ...tokens[mode], [key]: value },
-    });
+    setTokens({ ...tokens, [mode]: { ...tokens[mode], [key]: value } });
   }
 
   function setFont(slot: 'sans' | 'heading' | 'mono', font: string) {
     if (!tokens) return;
-    // Update the family AND keep google_fonts in sync (one specifier per slot).
     const familyKey = font.trim();
     const next = { ...tokens.fonts, [slot]: familyKey };
     const otherFamilies = Object.values(next).filter((f) => f && f !== familyKey);
@@ -141,6 +132,13 @@ export function StyleEditor() {
       .filter((f, i, arr) => arr.indexOf(f) === i)
       .map((f) => `${f}:400,500,600,700`);
     setTokens({ ...tokens, fonts: next, google_fonts: google });
+  }
+
+  function shuffle() {
+    if (presets.length === 0) return;
+    const pool = presets.filter((p) => p.slug !== presetSlug);
+    const pick = pool[Math.floor(Math.random() * pool.length)] ?? presets[0];
+    applyPreset(pick);
   }
 
   async function save() {
@@ -174,7 +172,6 @@ export function StyleEditor() {
   }
 
   const siteUrl = activeSite ? previewSiteUrl(activeSite) : '';
-  const currentTokens = tokens?.[mode] ?? {};
 
   if (loading) {
     return (
@@ -184,10 +181,15 @@ export function StyleEditor() {
       </div>
     );
   }
-
   if (!tokens) {
     return <div className="p-6 text-sm text-muted-foreground">{t('design.no_data')}</div>;
   }
+
+  const currentTokens = tokens[mode];
+  const radiusRem =
+    parseFloat((tokens.light['--radius'] ?? '0.5rem').replace('rem', '')) || 0.5;
+
+  const toggle = (k: SectionKey) => setActiveSection((cur) => (cur === k ? null : k));
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
@@ -197,6 +199,9 @@ export function StyleEditor() {
           <p className="text-xs text-muted-foreground">{t('design.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={shuffle} disabled={saving}>
+            <Shuffle className="mr-1 h-3.5 w-3.5" /> Shuffle
+          </Button>
           <Button size="sm" variant="outline" onClick={resetToPreset} disabled={saving}>
             <RotateCcw className="mr-1 h-3.5 w-3.5" /> {t('design.reset')}
           </Button>
@@ -207,18 +212,11 @@ export function StyleEditor() {
         </div>
       </div>
 
-      <div className="grid flex-1 grid-cols-12 overflow-hidden">
-        {/* Left: presets */}
-        <div className="col-span-3 overflow-y-auto border-r border-border bg-muted/20 p-3">
-          <h2 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-            {t('design.presets')}
-          </h2>
-          <PresetGrid presets={presets} activeSlug={presetSlug} onPick={applyPreset} />
-        </div>
-
-        {/* Middle: token editor */}
-        <div className="col-span-4 overflow-y-auto border-r border-border p-3">
-          <div className="mb-3 flex items-center gap-1 rounded border border-border p-1">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r border-border bg-muted/20 p-3">
+          {/* Light / Dark toggle */}
+          <div className="mb-3 flex items-center gap-1 rounded-md border border-border bg-card p-1">
             <button
               type="button"
               onClick={() => setMode('light')}
@@ -244,9 +242,37 @@ export function StyleEditor() {
           </div>
 
           <div className="space-y-2">
-            {TOKEN_GROUPS.map((group) => (
-              <TokenSection key={group.title} title={group.title} description={group.description}>
-                {group.tokens.map((tk) => (
+            <SidebarRow
+              label="Stil"
+              value={activePreset?.name ?? '—'}
+              active={activeSection === 'style'}
+              indicator={
+                activePreset ? (
+                  <span className="flex items-center gap-0.5">
+                    <ColorDot hsl={activePreset.light['--primary']} className="h-3 w-3" />
+                    <ColorDot hsl={activePreset.light['--accent']} className="h-3 w-3" />
+                    <ColorDot hsl={activePreset.light['--background']} className="h-3 w-3" />
+                  </span>
+                ) : null
+              }
+              onClick={() => toggle('style')}
+            />
+            {activeSection === 'style' && (
+              <div className="rounded-md border border-border bg-background p-2">
+                <PresetGrid presets={presets} activeSlug={presetSlug} onPick={applyPreset} />
+              </div>
+            )}
+
+            <SidebarRow
+              label="Ana Renk"
+              value="Zemin & yüzey"
+              active={activeSection === 'base'}
+              indicator={<ColorDot hsl={currentTokens['--background']} />}
+              onClick={() => toggle('base')}
+            />
+            {activeSection === 'base' && (
+              <SectionBody>
+                {BASE_TOKENS.map((tk) => (
                   <HslColorPicker
                     key={tk}
                     tokenName={tk.replace(/^--/, '')}
@@ -254,56 +280,151 @@ export function StyleEditor() {
                     onChange={(v) => setColorToken(tk, v)}
                   />
                 ))}
-              </TokenSection>
-            ))}
+              </SectionBody>
+            )}
 
-            <TokenSection title={t('design.typography')} description={t('design.typography_hint')}>
-              <GoogleFontPicker
-                label={t('design.font_sans')}
-                value={tokens.fonts.sans}
-                options={POPULAR_FONTS.sans}
-                onChange={(f) => setFont('sans', f)}
-              />
-              <GoogleFontPicker
-                label={t('design.font_heading')}
-                value={tokens.fonts.heading}
-                options={POPULAR_FONTS.heading}
-                onChange={(f) => setFont('heading', f)}
-              />
-              <GoogleFontPicker
-                label={t('design.font_mono')}
-                value={tokens.fonts.mono}
-                options={POPULAR_FONTS.mono}
-                onChange={(f) => setFont('mono', f)}
-              />
-            </TokenSection>
+            <SidebarRow
+              label="Vurgu"
+              value="Birincil + accent"
+              active={activeSection === 'accent'}
+              indicator={<ColorDot hsl={currentTokens['--primary']} />}
+              onClick={() => toggle('accent')}
+            />
+            {activeSection === 'accent' && (
+              <SectionBody>
+                {ACCENT_TOKENS.map((tk) => (
+                  <HslColorPicker
+                    key={tk}
+                    tokenName={tk.replace(/^--/, '')}
+                    value={currentTokens[tk] ?? ''}
+                    onChange={(v) => setColorToken(tk, v)}
+                  />
+                ))}
+              </SectionBody>
+            )}
 
-            <TokenSection title={t('design.radius')} description={t('design.radius_hint')}>
-              <input
-                type="range"
-                min={0}
-                max={1.5}
-                step={0.05}
-                value={parseFloat((tokens.light['--radius'] ?? '0.5rem').replace('rem', '')) || 0.5}
-                onChange={(e) => {
-                  const r = `${e.target.value}rem`;
-                  setTokens({
-                    ...tokens,
-                    light: { ...tokens.light, '--radius': r },
-                    dark: { ...tokens.dark, '--radius': r },
-                  });
-                }}
-                className="w-full"
-              />
-              <div className="text-center font-mono text-xs text-muted-foreground">
-                {tokens.light['--radius'] ?? '0.5rem'}
-              </div>
-            </TokenSection>
+            <SidebarRow
+              label="Durum"
+              value="Hata & pasif"
+              active={activeSection === 'status'}
+              indicator={<ColorDot hsl={currentTokens['--destructive']} />}
+              onClick={() => toggle('status')}
+            />
+            {activeSection === 'status' && (
+              <SectionBody>
+                {STATUS_TOKENS.map((tk) => (
+                  <HslColorPicker
+                    key={tk}
+                    tokenName={tk.replace(/^--/, '')}
+                    value={currentTokens[tk] ?? ''}
+                    onChange={(v) => setColorToken(tk, v)}
+                  />
+                ))}
+              </SectionBody>
+            )}
+
+            <SidebarRow
+              label="Çerçeve"
+              value="Border & focus"
+              active={activeSection === 'borders'}
+              indicator={<ColorDot hsl={currentTokens['--border']} />}
+              onClick={() => toggle('borders')}
+            />
+            {activeSection === 'borders' && (
+              <SectionBody>
+                {BORDER_TOKENS.map((tk) => (
+                  <HslColorPicker
+                    key={tk}
+                    tokenName={tk.replace(/^--/, '')}
+                    value={currentTokens[tk] ?? ''}
+                    onChange={(v) => setColorToken(tk, v)}
+                  />
+                ))}
+              </SectionBody>
+            )}
+
+            <SidebarRow
+              label="Başlık"
+              value={tokens.fonts.heading || 'Inter'}
+              active={activeSection === 'heading'}
+              indicator={<span className="text-xs font-semibold">Aa</span>}
+              onClick={() => toggle('heading')}
+            />
+            {activeSection === 'heading' && (
+              <SectionBody>
+                <GoogleFontPicker
+                  label={t('design.font_heading')}
+                  value={tokens.fonts.heading}
+                  options={POPULAR_FONTS.heading}
+                  onChange={(f) => setFont('heading', f)}
+                />
+              </SectionBody>
+            )}
+
+            <SidebarRow
+              label="Yazı"
+              value={tokens.fonts.sans || 'Inter'}
+              active={activeSection === 'body'}
+              indicator={<span className="text-xs">Aa</span>}
+              onClick={() => toggle('body')}
+            />
+            {activeSection === 'body' && (
+              <SectionBody>
+                <GoogleFontPicker
+                  label={t('design.font_sans')}
+                  value={tokens.fonts.sans}
+                  options={POPULAR_FONTS.sans}
+                  onChange={(f) => setFont('sans', f)}
+                />
+                <GoogleFontPicker
+                  label={t('design.font_mono')}
+                  value={tokens.fonts.mono}
+                  options={POPULAR_FONTS.mono}
+                  onChange={(f) => setFont('mono', f)}
+                />
+              </SectionBody>
+            )}
+
+            <SidebarRow
+              label="Köşe"
+              value={`${radiusRem.toFixed(2)}rem`}
+              active={activeSection === 'radius'}
+              indicator={
+                <span
+                  className="h-4 w-4 border border-border"
+                  style={{ borderRadius: `${radiusRem / 1.5}rem` }}
+                />
+              }
+              onClick={() => toggle('radius')}
+            />
+            {activeSection === 'radius' && (
+              <SectionBody>
+                <input
+                  type="range"
+                  min={0}
+                  max={1.5}
+                  step={0.05}
+                  value={radiusRem}
+                  onChange={(e) => {
+                    const r = `${e.target.value}rem`;
+                    setTokens({
+                      ...tokens,
+                      light: { ...tokens.light, '--radius': r },
+                      dark: { ...tokens.dark, '--radius': r },
+                    });
+                  }}
+                  className="w-full"
+                />
+                <div className="text-center font-mono text-xs text-muted-foreground">
+                  {tokens.light['--radius'] ?? '0.5rem'}
+                </div>
+              </SectionBody>
+            )}
           </div>
-        </div>
+        </aside>
 
-        {/* Right: preview */}
-        <div className="col-span-5 overflow-hidden">
+        {/* Preview */}
+        <div className="flex-1 overflow-hidden">
           {siteUrl ? (
             <PreviewFrame
               siteUrl={siteUrl}
@@ -319,6 +440,14 @@ export function StyleEditor() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SectionBody({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="space-y-3 rounded-md border border-border bg-background p-3">
+      {children}
     </div>
   );
 }
