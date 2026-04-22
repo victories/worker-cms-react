@@ -22,7 +22,7 @@ import {
   getRichSnippetsSettings,
   hasWhiteLabel,
 } from '../../lib/public-db';
-import { extractMenuSlugsFromDesign } from '../../lib/themes/layout-helpers';
+import { extractDesignSidebarNeeds } from '../../lib/themes/layout-helpers';
 import {
   buildWebSiteSchema,
   buildOrganizationSchema,
@@ -86,7 +86,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
   const lp = langPrefix(lang, defaultLang);
 
   const designForLayout = c.get('activeDesign');
-  const extraMenuSlugs = extractMenuSlugsFromDesign(designForLayout);
+  const homeNeeds = extractDesignSidebarNeeds(designForLayout);
 
   const [
     theme,
@@ -97,7 +97,12 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
     whiteLabel,
   ] = await Promise.all([
     getSiteTheme(c.env.DB, siteId, c.env.CACHE),
-    getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, extraMenuSlugs),
+    getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, {
+      extraMenuSlugs: homeNeeds.menuSlugs,
+      needCategories: homeNeeds.needCategories,
+      needRecentPosts: homeNeeds.needRecentPosts,
+      needTags: homeNeeds.needTags,
+    }),
     getHomepageSettings(c.env.DB, siteId),
     getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),
     getRichSnippetsSettings(c.env.DB, siteId, c.env.CACHE),

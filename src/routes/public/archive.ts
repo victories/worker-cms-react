@@ -20,7 +20,7 @@ import {
   getRichSnippetsSettings,
   hasWhiteLabel,
 } from '../../lib/public-db';
-import { extractMenuSlugsFromDesign } from '../../lib/themes/layout-helpers';
+import { extractDesignSidebarNeeds } from '../../lib/themes/layout-helpers';
 import {
   buildCollectionPageSchema,
   buildBreadcrumbSchema,
@@ -62,11 +62,17 @@ async function renderArchivePage(
   const lp = langPrefix(lang, defaultLang);
   const page = parseInt(c.req.query('page') || '1');
 
+  const archiveNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
   const [taxonomy, theme, sidebarData, analytics, rsConfig, whiteLabel] =
     await Promise.all([
       getTaxonomyBySlug(c.env.DB, siteId, slug, type, lang),
       getSiteTheme(c.env.DB, siteId, c.env.CACHE),
-      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, extractMenuSlugsFromDesign(c.get('activeDesign'))),
+      getSidebarData(c.env.DB, siteId, lang, c.env.CACHE, {
+        extraMenuSlugs: archiveNeeds.menuSlugs,
+        needCategories: archiveNeeds.needCategories,
+        needRecentPosts: archiveNeeds.needRecentPosts,
+        needTags: archiveNeeds.needTags,
+      }),
       getAnalyticsSettings(c.env.DB, siteId, c.env.CACHE),
       getRichSnippetsSettings(c.env.DB, siteId, c.env.CACHE),
       hasWhiteLabel(c.env.DB, siteId),
