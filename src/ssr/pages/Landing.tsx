@@ -265,7 +265,7 @@ interface NavProps {
   brandName: string;
 }
 
-function Nav({ brandName }: NavProps) {
+export function Nav({ brandName }: NavProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Container size="xl" className="flex h-16 items-center justify-between">
@@ -443,7 +443,7 @@ interface SectionHeaderProps {
   inverted?: boolean;
 }
 
-function SectionHeader({ title, subtitle }: SectionHeaderProps) {
+export function SectionHeader({ title, subtitle }: SectionHeaderProps) {
   if (!title && !subtitle) return null;
   return (
     <div className="mx-auto mb-16 max-w-2xl text-center">
@@ -463,7 +463,7 @@ interface FeaturesProps {
   features: NonNullable<LandingConfig['features']>;
 }
 
-function Features({ features }: FeaturesProps) {
+export function Features({ features }: FeaturesProps) {
   const items = features.items ?? [];
   if (items.length === 0) return null;
   return (
@@ -499,7 +499,7 @@ interface PricingProps {
   pricing: NonNullable<LandingConfig['pricing']>;
 }
 
-function Pricing({ pricing }: PricingProps) {
+export function Pricing({ pricing }: PricingProps) {
   const plans = pricing.plans ?? [];
   if (plans.length === 0) return null;
   return (
@@ -631,7 +631,7 @@ interface TestimonialsProps {
   testimonials: NonNullable<LandingConfig['testimonials']>;
 }
 
-function Testimonials({ testimonials }: TestimonialsProps) {
+export function Testimonials({ testimonials }: TestimonialsProps) {
   const items = testimonials.items ?? [];
   if (items.length === 0) return null;
   return (
@@ -675,7 +675,7 @@ interface CTAProps {
   cta: NonNullable<LandingConfig['cta']>;
 }
 
-function CTABand({ cta }: CTAProps) {
+export function CTABand({ cta }: CTAProps) {
   if (!cta.title && !cta.button_text) return null;
   return (
     <section className="relative overflow-hidden border-t border-border/40 py-24 sm:py-28">
@@ -713,7 +713,7 @@ interface LandingFooterProps {
   footer: NonNullable<LandingConfig['footer']>;
 }
 
-function LandingFooter({ footer }: LandingFooterProps) {
+export function LandingFooter({ footer }: LandingFooterProps) {
   return (
     <footer className="border-t border-border/40 py-8">
       <Container size="xl">
