@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import type { Bindings, Variables } from '../../types';
 import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
-import { Landing, type LandingConfig } from '../../ssr/pages/Landing';
+import { Landing, type LandingConfig } from '../../ssr/pages/landing/Landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
 
 /**

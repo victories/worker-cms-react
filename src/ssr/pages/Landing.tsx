@@ -69,6 +69,30 @@ export interface LandingFooterLink {
   url: string;
 }
 
+export interface LandingMigrationStep {
+  label: string;
+  desc: string;
+  icon?: string;
+}
+
+export interface LandingCostRow {
+  label: string;
+  before: string;
+  after: string;
+  saving?: string;
+}
+
+export interface LandingMultisiteSite {
+  name: string;
+  visits?: string;
+  status?: 'live' | 'draft' | 'error';
+}
+
+export interface LandingFaqItem {
+  q: string;
+  a: string;
+}
+
 export interface LandingConfig {
   enabled?: boolean;
   brand?: { name?: string; tagline?: string };
@@ -105,6 +129,36 @@ export interface LandingConfig {
   footer?: {
     text?: string;
     links?: LandingFooterLink[];
+  };
+  labels?: {
+    nav?: { features?: string; pricing?: string; faq?: string;
+            login?: string; cta?: string };
+    pricing?: { popular_badge?: string; per_month_suffix?: string };
+    common?: { learn_more?: string; get_started?: string };
+  };
+  migration?: {
+    title?: string;
+    subtitle?: string;
+    steps?: LandingMigrationStep[];
+  };
+  costCompare?: {
+    title?: string;
+    subtitle?: string;
+    before_label?: string;
+    after_label?: string;
+    rows?: LandingCostRow[];
+    footnote?: string;
+  };
+  multisite?: {
+    title?: string;
+    subtitle?: string;
+    bullets?: string[];
+    dashboard?: { sites?: LandingMultisiteSite[] };
+  };
+  faq?: {
+    title?: string;
+    subtitle?: string;
+    items?: LandingFaqItem[];
   };
 }
 
