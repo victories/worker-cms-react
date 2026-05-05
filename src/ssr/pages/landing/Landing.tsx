@@ -7,6 +7,7 @@ import { CostCompare } from './sections/CostCompare';
 import { MultiSite } from './sections/MultiSite';
 import { Pricing } from './sections/Pricing';
 import { Testimonials } from './sections/Testimonials';
+import { Faq } from './sections/Faq';
 import { FinalCta } from './sections/FinalCta';
 
 export type {
@@ -46,7 +47,7 @@ export function Landing({ config }: LandingProps) {
         {config.multisite ? <MultiSite multisite={config.multisite} /> : null}
         {config.pricing ? <Pricing pricing={config.pricing} labels={config.labels} /> : null}
         {config.testimonials ? <Testimonials testimonials={config.testimonials} /> : null}
-        {/* FAQ added in task 11 */}
+        {config.faq ? <Faq faq={config.faq} /> : null}
         <FinalCta cta={config.cta ?? {}} footer={config.footer ?? {}} />
       </main>
     </div>
