@@ -10,6 +10,7 @@ import { Hero } from './sections/Hero';
 import { MigrationStrip } from './sections/MigrationStrip';
 import { Features } from './sections/Features';
 import { CostCompare } from './sections/CostCompare';
+import { MultiSite } from './sections/MultiSite';
 
 export type {
   LandingConfig,
@@ -50,6 +51,7 @@ export function Landing({ config }: LandingProps) {
         {config.migration ? <MigrationStrip migration={config.migration} /> : null}
         {config.features ? <Features features={config.features} /> : null}
         {config.costCompare ? <CostCompare costCompare={config.costCompare} /> : null}
+        {config.multisite ? <MultiSite multisite={config.multisite} /> : null}
         {/* Sections below come from legacy until each is migrated in tasks 5-11 */}
         <LegacyPricing pricing={pricing} />
         <LegacyTestimonials testimonials={testimonials} />
