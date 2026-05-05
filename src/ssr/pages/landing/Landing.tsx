@@ -1,5 +1,5 @@
 import type { LandingConfig as LegacyLandingConfig } from '../Landing';
-import { Nav as LegacyNav } from '../Landing';
+import { Nav } from './sections/Nav';
 import { Hero } from './sections/Hero';
 import { MigrationStrip } from './sections/MigrationStrip';
 import { Features } from './sections/Features';
@@ -37,7 +37,7 @@ export function Landing({ config }: LandingProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground antialiased [scroll-behavior:smooth]">
-      <LegacyNav brandName={brandName} />
+      <Nav brandName={brandName} labels={config.labels} />
       <main className="flex-1">
         <Hero hero={config.hero ?? {}} brandName={brandName} />
         {config.migration ? <MigrationStrip migration={config.migration} /> : null}
