@@ -1,5 +1,5 @@
 import { cn } from '@ui/lib/utils';
-import type { LandingMultisiteSite } from '../../Landing';
+import type { LandingMultisiteSite } from '../Landing';
 import { Icon } from './Icon';
 
 interface DashboardMockProps {
