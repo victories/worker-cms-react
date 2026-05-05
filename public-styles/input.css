@@ -8,6 +8,7 @@
  * Content paths scanned for utility classes live in ./tailwind.config.ts.
  */
 
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "../packages/ui/tokens/design-tokens.css";
 
 @tailwind base;

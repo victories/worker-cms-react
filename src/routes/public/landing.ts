@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createElement } from 'react';
+import { createElement, Fragment } from 'react';
 import type { Bindings, Variables } from '../../types';
 import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
@@ -148,11 +148,19 @@ export async function serveLanding(c: {
   const description = config.hero?.subtitle;
 
   const head = createElement(
-    'link',
-    {
+    Fragment,
+    null,
+    createElement('link', {
+      key: 1,
       rel: 'preconnect',
       href: 'https://fonts.googleapis.com',
-    }
+    }),
+    createElement('link', {
+      key: 2,
+      rel: 'preconnect',
+      href: 'https://fonts.gstatic.com',
+      crossOrigin: 'anonymous',
+    })
   );
 
   // Inline the pre-bundled landing hydration script via bodyEnd.
