@@ -1,5 +1,13 @@
-import type { LandingConfig } from '../../pages/Landing';
-import { Landing as LegacyLanding } from '../../pages/Landing';
+import type { LandingConfig } from '../Landing';
+import { Landing as LegacyLanding } from '../Landing';
+
+export type {
+  LandingConfig,
+  LandingMigrationStep,
+  LandingCostRow,
+  LandingMultisiteSite,
+  LandingFaqItem,
+} from '../Landing';
 
 export interface LandingProps {
   config: LandingConfig;
