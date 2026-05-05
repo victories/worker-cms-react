@@ -8,6 +8,7 @@ import {
   LandingFooter as LegacyLandingFooter,
 } from '../Landing';
 import { Hero } from './sections/Hero';
+import { MigrationStrip } from './sections/MigrationStrip';
 
 export type {
   LandingConfig,
@@ -46,6 +47,7 @@ export function Landing({ config }: LandingProps) {
       <LegacyNav brandName={brandName} />
       <main className="flex-1">
         <Hero hero={hero} brandName={brandName} />
+        {config.migration ? <MigrationStrip migration={config.migration} /> : null}
         {/* Sections below come from legacy until each is migrated in tasks 5-11 */}
         <LegacyFeatures features={features} />
         <LegacyPricing pricing={pricing} />
