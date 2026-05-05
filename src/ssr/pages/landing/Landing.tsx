@@ -1,7 +1,6 @@
 import type { LandingConfig as LegacyLandingConfig } from '../Landing';
 import {
   Nav as LegacyNav,
-  Features as LegacyFeatures,
   Pricing as LegacyPricing,
   Testimonials as LegacyTestimonials,
   CTABand as LegacyCTABand,
@@ -9,6 +8,7 @@ import {
 } from '../Landing';
 import { Hero } from './sections/Hero';
 import { MigrationStrip } from './sections/MigrationStrip';
+import { Features } from './sections/Features';
 
 export type {
   LandingConfig,
@@ -36,7 +36,6 @@ export function Landing({ config }: LandingProps) {
   const brand = config.brand ?? {};
   const brandName = brand.name || 'WorkerCms';
   const hero = config.hero ?? {};
-  const features = config.features ?? {};
   const pricing = config.pricing ?? {};
   const testimonials = config.testimonials ?? {};
   const cta = config.cta ?? {};
@@ -48,8 +47,8 @@ export function Landing({ config }: LandingProps) {
       <main className="flex-1">
         <Hero hero={hero} brandName={brandName} />
         {config.migration ? <MigrationStrip migration={config.migration} /> : null}
+        {config.features ? <Features features={config.features} /> : null}
         {/* Sections below come from legacy until each is migrated in tasks 5-11 */}
-        <LegacyFeatures features={features} />
         <LegacyPricing pricing={pricing} />
         <LegacyTestimonials testimonials={testimonials} />
         <LegacyCTABand cta={cta} />
