@@ -1,5 +1,6 @@
 import { m, useReducedMotion } from 'framer-motion';
 import { useMemo } from 'react';
+import { cn } from '@ui/lib/utils';
 import { AnimatedWordmark } from '../../ssr/pages/landing/components/AnimatedWordmark';
 
 interface WordmarkProps {
@@ -25,7 +26,7 @@ export function Wordmark({ text, className }: WordmarkProps) {
 
   return (
     <m.span
-      className={`font-heading inline-block tracking-[-0.04em] ${className ?? ''}`}
+      className={cn('font-heading inline-block tracking-[-0.04em]', className)}
       aria-label={text}
       initial="hidden"
       animate="visible"
