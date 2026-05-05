@@ -1,16 +1,13 @@
 import type { LandingConfig as LegacyLandingConfig } from '../Landing';
-import {
-  Nav as LegacyNav,
-  Pricing as LegacyPricing,
-  Testimonials as LegacyTestimonials,
-  CTABand as LegacyCTABand,
-  LandingFooter as LegacyLandingFooter,
-} from '../Landing';
+import { Nav as LegacyNav } from '../Landing';
 import { Hero } from './sections/Hero';
 import { MigrationStrip } from './sections/MigrationStrip';
 import { Features } from './sections/Features';
 import { CostCompare } from './sections/CostCompare';
 import { MultiSite } from './sections/MultiSite';
+import { Pricing } from './sections/Pricing';
+import { Testimonials } from './sections/Testimonials';
+import { FinalCta } from './sections/FinalCta';
 
 export type {
   LandingConfig,
@@ -30,34 +27,28 @@ export interface LandingProps {
  * by name and rebuild the page composition explicitly with the new
  * Hero substituted at the top of `<main>`.
  *
- * As subsequent tasks land (5: Migration strip, 6: Features,
- * 7: CostCompare, 8: MultiSite, 9: Pricing+Testimonials+FinalCta,
- * 10: Nav, 11: FAQ), each `Legacy*` import is replaced one at a time.
+ * As subsequent tasks land (10: Nav, 11: FAQ, 13: Footer), each
+ * `Legacy*` import is replaced one at a time. After Task 9 only
+ * `LegacyNav` remains.
  */
 export function Landing({ config }: LandingProps) {
   const brand = config.brand ?? {};
   const brandName = brand.name || 'WorkerCms';
-  const hero = config.hero ?? {};
-  const pricing = config.pricing ?? {};
-  const testimonials = config.testimonials ?? {};
-  const cta = config.cta ?? {};
-  const footer = config.footer ?? {};
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground antialiased [scroll-behavior:smooth]">
       <LegacyNav brandName={brandName} />
       <main className="flex-1">
-        <Hero hero={hero} brandName={brandName} />
+        <Hero hero={config.hero ?? {}} brandName={brandName} />
         {config.migration ? <MigrationStrip migration={config.migration} /> : null}
         {config.features ? <Features features={config.features} /> : null}
         {config.costCompare ? <CostCompare costCompare={config.costCompare} /> : null}
         {config.multisite ? <MultiSite multisite={config.multisite} /> : null}
-        {/* Sections below come from legacy until each is migrated in tasks 5-11 */}
-        <LegacyPricing pricing={pricing} />
-        <LegacyTestimonials testimonials={testimonials} />
-        <LegacyCTABand cta={cta} />
+        {config.pricing ? <Pricing pricing={config.pricing} labels={config.labels} /> : null}
+        {config.testimonials ? <Testimonials testimonials={config.testimonials} /> : null}
+        {/* FAQ added in task 11 */}
+        <FinalCta cta={config.cta ?? {}} footer={config.footer ?? {}} />
       </main>
-      <LegacyLandingFooter footer={footer} />
     </div>
   );
 }
