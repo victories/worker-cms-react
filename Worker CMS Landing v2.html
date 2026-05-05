@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Worker CMS — Edge'de çalışan modern içerik platformu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        serif: ['"Instrument Serif"', 'ui-serif', 'Georgia'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      colors: {
+        ink: {
+          0: '#0A0A0B', 50: '#0F0F11', 100: '#141418', 200: '#1B1B20',
+          300: '#26262C', 400: '#3A3A42', 500: '#5C5C66', 600: '#8A8A93',
+          700: '#B5B5BC', 800: '#E2E2E5', 900: '#FAFAF7',
+        },
+        amber: { 400: '#F5A524', 500: '#E89312' },
+        accent: { 500: '#F5A524', 600: '#E89312' },
+      },
+    },
+  },
+};
+</script>
+<style>
+  :root { color-scheme: dark; }
+  html, body { background: #0A0A0B; }
+  body { font-family: 'Inter', sans-serif; color: #E2E2E5; -webkit-font-smoothing: antialiased; }
+  .font-display { font-family: 'Instrument Serif', serif; letter-spacing: -0.01em; }
+  .font-mono   { font-family: 'JetBrains Mono', monospace; }
+
+  .grain::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay; opacity: .5;
+  }
+
+  .hero-glow {
+    background:
+      radial-gradient(80% 60% at 50% 0%, rgba(245,165,36,0.16) 0%, rgba(245,165,36,0) 55%),
+      radial-gradient(40% 30% at 50% 0%, rgba(245,165,36,0.18) 0%, rgba(245,165,36,0) 70%),
+      linear-gradient(180deg, #0A0A0B 0%, #0A0A0B 100%);
+  }
+
+  .grid-dots {
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .code-line { display:block; padding-left: 3.25rem; position: relative; }
+  .code-line::before {
+    content: attr(data-ln); position: absolute; left: 0; width: 2.25rem;
+    text-align: right; color: #3A3A42; font-variant-numeric: tabular-nums;
+  }
+  .tok-c { color: #5C5C66; font-style: italic; }
+  .tok-k { color: #F5A524; }
+  .tok-s { color: #B5B5BC; }
+  .tok-f { color: #E2E2E5; }
+  .tok-p { color: #8A8A93; }
+  .tok-n { color: #FAFAF7; }
+
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee-track { animation: marquee 50s linear infinite; }
+
+  @keyframes dashflow { to { stroke-dashoffset: -32; } }
+  .flow { stroke-dasharray: 4 6; animation: dashflow 1.6s linear infinite; }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(245,165,36,0.5); }
+    100% { box-shadow: 0 0 0 18px rgba(245,165,36,0); }
+  }
+  .pulse-ring { animation: pulse-ring 2.4s ease-out infinite; }
+
+  .reveal { opacity: 0; transform: translateY(8px); transition: opacity .6s cubic-bezier(.2,0,.2,1), transform .6s cubic-bezier(.2,0,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  .feat-card { transition: border-color .2s, background .2s, transform .2s; }
+  .feat-card:hover { border-color: #3A3A42; background: #141418; }
+
+  ::selection { background: rgba(245,165,36,0.35); color: #FAFAF7; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0A0A0B; }
+  ::-webkit-scrollbar-thumb { background: #1B1B20; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #26262C; }
+
+  /* Pricing card emphasis */
+  .price-pop {
+    background: linear-gradient(180deg, rgba(245,165,36,0.06), rgba(245,165,36,0) 80%), #0F0F11;
+    box-shadow: 0 0 0 1px rgba(245,165,36,0.35), 0 30px 60px -30px rgba(245,165,36,0.25);
+  }
+</style>
+</head>
+<body class="bg-ink-0 text-ink-800">
+
+<!-- ===================== NAV ===================== -->
+<header class="sticky top-0 z-50 border-b border-ink-200/60 backdrop-blur-xl bg-ink-0/72">
+  <div class="max-w-[1280px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5 group">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="#0F0F11" stroke="#26262C"/>
+        <path d="M8 11 L16 7 L24 11 L24 21 L16 25 L8 21 Z" stroke="#F5A524" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M8 11 L16 15 L24 11 M16 15 L16 25" stroke="#F5A524" stroke-width="1.25" stroke-linejoin="round" opacity=".6"/>
+        <circle cx="16" cy="15" r="1.6" fill="#F5A524"/>
+      </svg>
+      <span class="font-semibold tracking-tight text-ink-900">Worker CMS</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-8 text-sm text-ink-700">
+      <a href="#features" class="hover:text-ink-900 transition-colors">Özellikler</a>
+      <a href="#architecture" class="hover:text-ink-900 transition-colors">Performans</a>
+      <a href="#mcp" class="hover:text-ink-900 transition-colors">AI Entegrasyonu</a>
+      <a href="#plugins" class="hover:text-ink-900 transition-colors">Eklentiler</a>
+      <a href="#pricing" class="hover:text-ink-900 transition-colors">Fiyatlandırma</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <a href="#" class="hidden sm:inline-flex items-center text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 transition-colors">Giriş yap</a>
+      <a href="#pricing" class="text-sm font-semibold bg-amber-400 text-ink-0 px-4 py-1.5 rounded-md hover:bg-amber-500 transition-colors">
+        Ücretsiz başla
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="relative overflow-hidden hero-glow grain">
+  <div class="absolute inset-0 grid-dots opacity-50 pointer-events-none"></div>
+  <div class="relative max-w-[1280px] mx-auto px-6 lg:px-12 pt-24 pb-28 lg:pt-32 lg:pb-36">
+
+    <div class="reveal flex items-center gap-2 text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-8">
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 pulse-ring"></span>
+      <span>Edge-native CMS · 300+ konum · ~30ms p50</span>
+    </div>
+
+    <h1 class="reveal font-display text-5xl sm:text-6xl lg:text-7xl xl:text-[88px] leading-[0.98] text-ink-900 max-w-5xl">
+      WordPress'in özgürlüğü, <span class="italic text-amber-400">saniyenin onda biri</span> hızında.
+    </h1>
+    <p class="reveal mt-8 text-lg lg:text-xl text-ink-700 max-w-2xl leading-relaxed">
+      Worker CMS, sınırsız siteyi tek panelden yöneten bulut tabanlı içerik platformu. <span class="text-ink-900">Yapılandırma yok, sunucu yönetimi yok, eklenti çakışması yok</span> — sadece içerik üretin.
+    </p>
+
+    <div class="reveal mt-10 flex flex-wrap items-center gap-3">
+      <a href="#pricing" class="group inline-flex items-center gap-2 bg-amber-400 text-ink-0 px-6 py-3 rounded-md text-sm font-bold hover:bg-amber-500 transition-colors">
+        Ücretsiz başla
+        <span class="ml-1 group-hover:translate-x-0.5 transition-transform">→</span>
+      </a>
+      <a href="#features" class="inline-flex items-center gap-2 border border-ink-300 hover:border-ink-400 text-ink-800 px-6 py-3 rounded-md text-sm font-medium transition-colors">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Demo izle
+      </a>
+      <span class="text-xs text-ink-600 font-mono ml-2 hidden sm:inline">Kredi kartı gerekmez</span>
+    </div>
+
+    <!-- Stats strip -->
+    <div class="reveal mt-20 grid grid-cols-2 sm:grid-cols-4 gap-px bg-ink-300 border border-ink-300 rounded-xl overflow-hidden max-w-4xl">
+      <div class="bg-ink-50 p-6">
+        <div class="font-display text-4xl text-ink-900">~30<span class="text-amber-400">ms</span></div>
+        <div class="text-xs text-ink-600 mt-1 uppercase tracking-wider">Yanıt süresi</div>
+      </div>
+      <div class="bg-ink-50 p-6">
+        <div class="font-display text-4xl text-ink-900">99.99<span class="text-amber-400">%</span></div>
+        <div class="text-xs text-ink-600 mt-1 uppercase tracking-wider">Çalışma süresi</div>
+      </div>
+      <div class="bg-ink-50 p-6">
+        <div class="font-display text-4xl text-ink-900">∞</div>
+        <div class="text-xs text-ink-600 mt-1 uppercase tracking-wider">Site sayısı</div>
+      </div>
+      <div class="bg-ink-50 p-6">
+        <div class="font-display text-4xl text-ink-900">300<span class="text-amber-400">+</span></div>
+        <div class="text-xs text-ink-600 mt-1 uppercase tracking-wider">Edge konumu</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== MARQUEE — VALUE PROPS ===================== -->
+<section class="border-y border-ink-200 bg-ink-50 py-6 overflow-hidden">
+  <div class="flex items-center gap-12 marquee-track whitespace-nowrap text-ink-600">
+    <span class="font-mono text-sm">Sınırsız çoklu site</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Yerleşik AI asistanı</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">AMP otomatik</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">FTS arama dahili</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Eklenti sandbox</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Çift editör</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">SEO analizci</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Çoklu dil</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">2FA + RBAC</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">WordPress'ten göç</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Server-side analytics</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Otomatik yedekleme</span><span class="text-ink-400">●</span>
+
+    <span class="font-mono text-sm">Sınırsız çoklu site</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Yerleşik AI asistanı</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">AMP otomatik</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">FTS arama dahili</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Eklenti sandbox</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Çift editör</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">SEO analizci</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Çoklu dil</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">2FA + RBAC</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">WordPress'ten göç</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Server-side analytics</span><span class="text-ink-400">●</span>
+    <span class="font-mono text-sm">Otomatik yedekleme</span><span class="text-ink-400">●</span>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE / SPEED ===================== -->
+<section id="architecture" class="relative py-28 lg:py-36">
+  <div class="max-w-[1280px] mx-auto px-6 lg:px-12">
+    <div class="grid lg:grid-cols-12 gap-12 items-start">
+      <div class="lg:col-span-5 reveal">
+        <div class="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-5">[ 01 ] Performans</div>
+        <h2 class="font-display text-4xl lg:text-5xl text-ink-900 leading-[1.05]">Kullanıcınıza <em class="text-amber-400 not-italic">en yakın noktadan</em> servis.</h2>
+        <p class="mt-6 text-ink-700 leading-relaxed">
+          Sayfa, kullanıcının coğrafi olarak en yakın olduğu sunucudan üretilir. Tek sunuculu klasik CMS'lerde 800ms süren bir istek, Worker CMS'de <span class="text-ink-900">30 milisaniyede</span> tamamlanır. Origin sunucusu yok, soğuk başlatma yok, ölçeklenme bekleme yok.
+        </p>
+        <ul class="mt-8 space-y-3 text-sm text-ink-700">
+          <li class="flex gap-3"><span class="text-amber-400 font-mono">→</span> Domain başına izole edilmiş içerik ve kullanıcılar</li>
+          <li class="flex gap-3"><span class="text-amber-400 font-mono">→</span> Yerleşik edge cache, içerik değişiminde otomatik temizlenir</li>
+          <li class="flex gap-3"><span class="text-amber-400 font-mono">→</span> Sayfa görüntüleme kayıtları yanıtı geciktirmez (arka plan)</li>
+          <li class="flex gap-3"><span class="text-amber-400 font-mono">→</span> Streaming HTML — ilk byte 50ms altında</li>
+        </ul>
+      </div>
+
+      <div class="lg:col-span-7 reveal">
+        <div class="relative bg-ink-50 border border-ink-200 rounded-2xl p-8 lg:p-10 overflow-hidden">
+          <div class="absolute inset-0 grid-dots opacity-40 pointer-events-none"></div>
+
+          <svg viewBox="0 0 560 420" class="relative w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+            <g>
+              <rect x="20" y="20" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42"/>
+              <text x="80" y="42" text-anchor="middle" fill="#E2E2E5" font-family="Inter" font-size="11" font-weight="600">Ziyaretçi</text>
+              <text x="80" y="56" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">istanbul</text>
+            </g>
+
+            <path d="M140 44 L210 44" stroke="#F5A524" stroke-width="1.5" class="flow"/>
+            <polygon points="210,44 204,40 204,48" fill="#F5A524"/>
+
+            <g>
+              <rect x="210" y="20" width="180" height="48" rx="8" fill="#1B1B20" stroke="#F5A524" stroke-opacity=".5"/>
+              <circle cx="228" cy="44" r="4" fill="#F5A524"/>
+              <text x="246" y="42" fill="#FAFAF7" font-family="Inter" font-size="11" font-weight="600">En Yakın Edge</text>
+              <text x="246" y="56" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">~12ms RTT</text>
+            </g>
+
+            <path d="M390 44 L460 44 L460 100" stroke="#3A3A42" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+            <g>
+              <rect x="60" y="100" width="440" height="220" rx="12" fill="#0F0F11" stroke="#26262C"/>
+              <text x="80" y="124" fill="#FAFAF7" font-family="Inter" font-size="12" font-weight="600">Worker CMS Runtime</text>
+              <text x="80" y="138" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">tüm istekler edge'de işlenir · origin yok</text>
+
+              <g transform="translate(80, 158)">
+                <rect width="400" height="32" rx="6" fill="#141418" stroke="#26262C"/>
+                <text x="12" y="20" fill="#B5B5BC" font-family="JetBrains Mono" font-size="10">Güvenlik</text>
+                <text x="78" y="20" fill="#5C5C66">→</text>
+                <text x="94" y="20" fill="#B5B5BC" font-family="JetBrains Mono" font-size="10">Hız Limiti</text>
+                <text x="166" y="20" fill="#5C5C66">→</text>
+                <text x="182" y="20" fill="#F5A524" font-family="JetBrains Mono" font-size="10" font-weight="600">Site Çözümleme</text>
+                <text x="288" y="20" fill="#5C5C66">→</text>
+                <text x="304" y="20" fill="#B5B5BC" font-family="JetBrains Mono" font-size="10">Dil</text>
+                <text x="328" y="20" fill="#5C5C66">→</text>
+                <text x="344" y="20" fill="#F5A524" font-family="JetBrains Mono" font-size="10" font-weight="600">Eklentiler</text>
+              </g>
+
+              <g transform="translate(80, 210)">
+                <rect width="120" height="90" rx="8" fill="#141418" stroke="#26262C"/>
+                <text x="60" y="22" text-anchor="middle" fill="#FAFAF7" font-family="Inter" font-size="11" font-weight="600">REST API</text>
+                <text x="60" y="40" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">JWT + 2FA</text>
+                <text x="60" y="60" text-anchor="middle" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">4 rol RBAC</text>
+                <text x="60" y="76" text-anchor="middle" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">API anahtarları</text>
+              </g>
+              <g transform="translate(220, 210)">
+                <rect width="120" height="90" rx="8" fill="#141418" stroke="#F5A524" stroke-opacity=".4"/>
+                <text x="60" y="22" text-anchor="middle" fill="#FAFAF7" font-family="Inter" font-size="11" font-weight="600">Render Motoru</text>
+                <text x="60" y="40" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">streaming HTML</text>
+                <text x="60" y="60" text-anchor="middle" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">+ AMP</text>
+                <text x="60" y="76" text-anchor="middle" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">+ RSS · Sitemap</text>
+              </g>
+              <g transform="translate(360, 210)">
+                <rect width="120" height="90" rx="8" fill="#141418" stroke="#26262C"/>
+                <text x="60" y="22" text-anchor="middle" fill="#FAFAF7" font-family="Inter" font-size="11" font-weight="600">Yönetim Paneli</text>
+                <text x="60" y="40" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">çift editör</text>
+                <text x="60" y="60" text-anchor="middle" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">SEO · medya</text>
+                <text x="60" y="76" text-anchor="middle" fill="#5C5C66" font-family="JetBrains Mono" font-size="9">analytics</text>
+              </g>
+            </g>
+
+            <path d="M180 320 L180 360" stroke="#F5A524" stroke-width="1.5" class="flow"/>
+            <path d="M280 320 L280 360" stroke="#F5A524" stroke-width="1.5" class="flow"/>
+            <path d="M380 320 L380 360" stroke="#F5A524" stroke-width="1.5" class="flow"/>
+
+            <g>
+              <rect x="120" y="360" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42"/>
+              <text x="180" y="382" text-anchor="middle" fill="#E2E2E5" font-family="Inter" font-size="11" font-weight="600">İçerik Veritabanı</text>
+              <text x="180" y="396" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">FTS arama dahili</text>
+            </g>
+            <g>
+              <rect x="220" y="360" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42"/>
+              <text x="280" y="382" text-anchor="middle" fill="#E2E2E5" font-family="Inter" font-size="11" font-weight="600">Medya Depolama</text>
+              <text x="280" y="396" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">sınırsız dosya</text>
+            </g>
+            <g>
+              <rect x="320" y="360" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42"/>
+              <text x="380" y="382" text-anchor="middle" fill="#E2E2E5" font-family="Inter" font-size="11" font-weight="600">Edge Cache</text>
+              <text x="380" y="396" text-anchor="middle" fill="#8A8A93" font-family="JetBrains Mono" font-size="9">otomatik purge</text>
+            </g>
+          </svg>
+
+          <div class="mt-6 flex items-center justify-between text-[10px] font-mono text-ink-600 uppercase tracking-wider">
+            <span>↳ Origin yok · Tek istek · ~30ms p50</span>
+            <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>canlı</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURES GRID ===================== -->
+<section id="features" class="relative py-24 lg:py-32 border-t border-ink-200">
+  <div class="max-w-[1280px] mx-auto px-6 lg:px-12">
+    <div class="reveal flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-16">
+      <div class="max-w-2xl">
+        <div class="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-5">[ 02 ] Özellikler</div>
+        <h2 class="font-display text-4xl lg:text-5xl text-ink-900 leading-[1.05]">Bir CMS'den bekleyeceğiniz her şey, <em class="text-amber-400 not-italic">artısı</em>.</h2>
+      </div>
+      <p class="text-ink-700 max-w-md text-sm leading-relaxed">
+        Tek hesapla sınırsız siteyi yönetin. Her birinin kendi domain'i, içeriği, ekibi ve diliyle.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-ink-200 border border-ink-200 rounded-2xl overflow-hidden">
+
+      <div class="feat-card bg-ink-50 p-8 reveal">
+        <div class="flex items-center justify-between mb-6">
+          <div class="w-10 h-10 rounded-lg bg-ink-100 border border-ink-300 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <span class="font-mono text-[10px] text-ink-600 uppercase tracking-wider">01</span>
+        </div>
+        <h3 class="font-display text-2xl text-ink-900 mb-3">Sınırsız Çoklu Site</h3>
+        <p class="text-sm text-ink-700 leading-relaxed">
+          Tek hesap, sınırsız bağımsız site. Her sitenin kendi domain'i, içeriği, ekibi ve diliyle. Tek panelden hepsini yönetin.
+        </p>
+        <div class="mt-6 pt-6 border-t border-ink-300/60 font-mono text-[11px] text-ink-600 flex items-center gap-3">
+          <span class="text-amber-400">●</span> blog.com
+          <span class="text-ink-400">·</span>
+          <span class="text-amber-400">●</span> shop.io
+          <span class="text-ink-400">·</span>
+          <span class="text-amber-400">●</span> docs.dev
+        </div>
+      </div>
+
+      <div class="feat-card bg-ink-50 p-8 reveal">
+        <div class="flex items-center justify-between mb-6">
+          <div class="w-10 h-10 rounded-lg bg-ink-100 border border-ink-300 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+          <span class="font-mono text-[10px] text-ink-600 uppercase tracking-wider">02</span>
+        </div>
+        <h3 class="font-display text-2xl text-ink-900 mb-3">Çift Editör + SEO</h3>
+        <p class="text-sm text-ink-700 leading-relaxed">
+          Zengin metin editörü ve blok editör yan yana. Yazı bazında meta yönetimi, OpenGraph, dahili SEO analizci ve otomatik revizyon geçmişi.
+        </p>
+        <div class="mt-6 pt-6 border-t border-ink-300/60 flex gap-2 flex-wrap">
+          <span class="text-[10px] font-mono text-ink-700 px-2 py-0.5 bg-ink-100 border border-ink-300 rounded">WYSIWYG</span>
+          <span class="text-[10px] font-mono text-ink-700 px-2 py-0.5 bg-ink-100 border border-ink-300 rounded">Blok editör</span>
+          <span class="text-[10px] font-mono text-ink-700 px-2 py-0.5 bg-ink-100 border border-ink-300 rounded">Revizyon</span>
+        </div>
+      </div>
+
+      <div class="feat-card bg-ink-50 p-8 reveal">
+        <div class="flex items-center justify-between mb-6">
+          <div class="w-10 h-10 rounded-lg bg-ink-100 border border-ink-300 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M3 8h18l-1 12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M9 14h6"/></svg>
+          </div>
+          <span class="font-mono text-[10px] text-ink-600 uppercase tracking-wider">03</span>
+        </div>
+        <h3 class="font-display text-2xl text-ink-900 mb-3">Eklenti Sandbox</h3>
+        <p class="text-sm text-ink-700 leading-relaxed">
+          Hook tabanlı eklenti sistemi. Her eklenti izin listesiyle çalışır, izinsiz işlem otomatik engellenir. WordPress'in eklenti çakışmaları artık tarihte.
+        </p>
+        <div class="mt-6 pt-6 border-t border-ink-300/60 font-mono text-[11px] text-ink-600">
+          izin tabanlı<span class="text-ink-400"> · </span>
+          izole çalışma<span class="text-ink-400"> · </span>
+          hata yalıtımı
+        </div>
+      </div>
+
+      <div class="feat-card bg-ink-50 p-8 reveal">
+        <div class="flex items-center justify-between mb-6">
+          <div class="w-10 h-10 rounded-lg bg-ink-100 border border-ink-300 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <span class="font-mono text-[10px] text-ink-600 uppercase tracking-wider">04</span>
+        </div>
+        <h3 class="font-display text-2xl text-ink-900 mb-3">AMP Otomatik</h3>
+        <p class="text-sm text-ink-700 leading-relaxed">
+          Mobilde Google'ın hızlandırılmış sayfa formatı bir tıkla aktif. <code class="font-mono text-xs text-ink-800 bg-ink-100 px-1 rounded">&lt;img&gt;</code> → <code class="font-mono text-xs text-ink-800 bg-ink-100 px-1 rounded">&lt;amp-img&gt;</code> dönüşümü, AMP analytics, özel domain.
+        </p>
+        <div class="mt-6 pt-6 border-t border-ink-300/60 font-mono text-[11px] text-ink-600">
+          Mobil hız puanı 100<span class="text-ink-400"> · </span>arama görünürlüğü +
+        </div>
+      </div>
+
+      <div class="feat-card bg-ink-50 p-8 reveal">
+        <div class="flex items-center justify-between mb-6">
+          <div class="w-10 h-10 rounded-lg bg-ink-100 border border-ink-300 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <span class="font-mono text-[10px] text-ink-600 uppercase tracking-wider">05</span>
+        </div>
+        <h3 class="font-display text-2xl text-ink-900 mb-3">Yerleşik Tam Metin Arama</h3>
+        <p class="text-sm text-ink-700 leading-relaxed">
+          Site içi arama dahili. BM25 sıralama: başlık 10x, özet 5x, içerik 1x ağırlıklı. Algolia'ya, Elasticsearch'e ihtiyaç yok.
+        </p>
+        <div class="mt-6 pt-6 border-t border-ink-300/60 font-mono text-[11px] text-ink-600">
+          Milisaniye altı yanıt<span class="text-ink-400"> · </span>çoklu dil
+        </div>
+      </div>
+
+      <div class="feat-card bg-ink-50 p-8 reveal">
+        <div class="flex items-center justify-between mb-6">
+          <div class="w-10 h-10 rounded-lg bg-ink-100 border border-ink-300 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <span class="font-mono text-[10px] text-ink-600 uppercase tracking-wider">06</span>
+        </div>
+        <h3 class="font-display text-2xl text-ink-900 mb-3">Akıllı Edge Cache</h3>
+        <p class="text-sm text-ink-700 leading-relaxed">
+          Sık ziyaret edilen sayfalar otomatik önbelleğe alınır. İçerik güncellendiğinde cache otomatik temizlenir — manuel purge'e veda.
+        </p>
+        <div class="mt-6 pt-6 border-t border-ink-300/60 flex items-baseline gap-3">
+          <span class="font-display text-3xl text-ink-900">~30<span class="text-amber-400 text-xl">ms</span></span>
+          <span class="text-[10px] font-mono text-ink-600 uppercase tracking-wider">cache hit</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sub-feature mini grid -->
+    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="reveal flex items-start gap-3 p-4 rounded-lg border border-ink-200 hover:border-ink-300 transition-colors">
+        <svg width="18" height="18" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+        <div><div class="text-sm font-medium text-ink-900">Kurumsal güvenlik</div><div class="text-xs text-ink-600 mt-1">2FA, RBAC, API anahtarları</div></div>
+      </div>
+      <div class="reveal flex items-start gap-3 p-4 rounded-lg border border-ink-200 hover:border-ink-300 transition-colors">
+        <svg width="18" height="18" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" stroke-width="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <div><div class="text-sm font-medium text-ink-900">Server-side analytics</div><div class="text-xs text-ink-600 mt-1">Bot filtreleme, ülke algılama</div></div>
+      </div>
+      <div class="reveal flex items-start gap-3 p-4 rounded-lg border border-ink-200 hover:border-ink-300 transition-colors">
+        <svg width="18" height="18" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10Z"/></svg>
+        <div><div class="text-sm font-medium text-ink-900">Çoklu dil</div><div class="text-xs text-ink-600 mt-1">Çeviri grupları, dil rotaları</div></div>
+      </div>
+      <div class="reveal flex items-start gap-3 p-4 rounded-lg border border-ink-200 hover:border-ink-300 transition-colors">
+        <svg width="18" height="18" class="mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <div><div class="text-sm font-medium text-ink-900">WordPress göçü</div><div class="text-xs text-ink-600 mt-1">WXR import, tek tıkla aktarım</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== MCP / AI SHOWCASE ===================== -->
+<section id="mcp" class="relative py-28 lg:py-36 border-t border-ink-200 bg-ink-50">
+  <div class="absolute inset-0 grid-dots opacity-30 pointer-events-none"></div>
+  <div class="relative max-w-[1280px] mx-auto px-6 lg:px-12">
+
+    <div class="grid lg:grid-cols-12 gap-12 items-start">
+      <div class="lg:col-span-5 reveal">
+        <div class="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-5">[ 03 ] AI Entegrasyonu</div>
+        <h2 class="font-display text-4xl lg:text-5xl text-ink-900 leading-[1.05]">CMS'inizi AI'ya <em class="text-amber-400 not-italic">teslim edin</em>.</h2>
+        <p class="mt-6 text-ink-700 leading-relaxed">
+          Worker CMS, yapay zeka asistanlarıyla yerleşik olarak konuşur. Claude, Cursor veya kendi AI aracınız doğrudan içerik üretir, yorumları moderasyona alır, analytics okur. <span class="text-ink-900">Kopyala-yapıştır iş akışına son.</span>
+        </p>
+
+        <ul class="mt-8 space-y-3 text-sm">
+          <li class="flex items-center gap-3 text-ink-700"><span class="font-mono text-amber-400 w-6">20</span><span>hazır araç: yazılar, medya, taksonomi, yorum, analytics</span></li>
+          <li class="flex items-center gap-3 text-ink-700"><span class="font-mono text-amber-400 w-6">∞</span><span>tek hesap, tüm sitelerinizde geçerli</span></li>
+          <li class="flex items-center gap-3 text-ink-700"><span class="font-mono text-amber-400 w-6">0</span><span>ek lisans, ek araç, ek aylık ücret</span></li>
+        </ul>
+
+        <div class="mt-8 inline-flex items-center gap-2 text-xs text-ink-600 font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          Tüm planlarda dahil
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 reveal space-y-4">
+
+        <!-- Chat-style demo -->
+        <div class="rounded-xl border border-ink-200 bg-ink-100 overflow-hidden shadow-2xl shadow-black/40">
+          <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="font-mono text-[11px] text-ink-600">AI Asistanı · workercms</span>
+            <span class="ml-auto inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>bağlı
+            </span>
+          </div>
+          <div class="p-5 space-y-4 text-sm">
+            <div>
+              <div class="text-[10px] font-mono text-ink-600 uppercase mb-1.5">SİZ</div>
+              <div class="text-ink-800 bg-ink-200/40 border border-ink-300 rounded-lg px-4 py-3">
+                Site 1'de bekleyen yorumları onayla, sonra son 5 yazıyı listele.
+              </div>
+            </div>
+            <div>
+              <div class="text-[10px] font-mono text-amber-400 uppercase mb-1.5 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>ASİSTAN
+              </div>
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 text-xs font-mono text-ink-700 bg-ink-200/40 border border-ink-300 rounded px-3 py-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Bekleyen yorumları al → <span class="text-emerald-400">3 sonuç</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-mono text-ink-700 bg-ink-200/40 border border-ink-300 rounded px-3 py-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  3 yorumu onayla → <span class="text-emerald-400">başarılı</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-mono text-ink-700 bg-ink-200/40 border border-ink-300 rounded px-3 py-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  Son 5 yazıyı getir → <span class="text-emerald-400">5 sonuç</span>
+                </div>
+                <div class="text-ink-800 pt-2 leading-relaxed">
+                  3 yorum onaylandı. İşte son 5 yazı: <span class="text-ink-600">"Edge'de yayıncılık", "AI ile içerik akışı", ...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compatibility row -->
+        <div class="rounded-xl border border-ink-200 bg-ink-100 px-5 py-4 flex items-center justify-between">
+          <div class="text-xs text-ink-600 font-mono uppercase tracking-wider">Uyumlu</div>
+          <div class="flex items-center gap-5 text-sm text-ink-800">
+            <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Claude</span>
+            <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Cursor</span>
+            <span class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>ChatGPT</span>
+            <span class="flex items-center gap-2 text-ink-600"><span class="w-1.5 h-1.5 rounded-full bg-ink-400"></span>+ standart protokol</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PLUGINS / SHORTCODES ===================== -->
+<section id="plugins" class="relative py-28 lg:py-36 border-t border-ink-200">
+  <div class="max-w-[1280px] mx-auto px-6 lg:px-12">
+    <div class="reveal max-w-2xl mb-16">
+      <div class="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-5">[ 04 ] Genişletme</div>
+      <h2 class="font-display text-4xl lg:text-5xl text-ink-900 leading-[1.05]">Eklentiler ve <em class="text-amber-400 not-italic">kısa kodlar</em>.</h2>
+      <p class="mt-6 text-ink-700 leading-relaxed">
+        Kutudan çıkan dahili eklentiler işin %80'ini halleder. Kısa kodlar her yazıya bir satırla galeri, slider, form, son yazı listesi yerleştirir.
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-12 gap-px bg-ink-200 border border-ink-200 rounded-2xl overflow-hidden">
+
+      <!-- Built-in plugins -->
+      <div class="lg:col-span-7 bg-ink-50 p-8 lg:p-10 reveal">
+        <div class="font-mono text-xs text-ink-600 mb-6">Dahili eklentiler</div>
+        <div class="space-y-4">
+
+          <div class="flex gap-4 p-4 rounded-lg border border-ink-200 bg-ink-100/40">
+            <div class="w-10 h-10 rounded-md bg-ink-100 border border-ink-300 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-sm font-semibold text-ink-900">SEO Optimizer</div>
+                <span class="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 bg-emerald-400/10 rounded">aktif</span>
+              </div>
+              <p class="text-xs text-ink-600 leading-relaxed">Otomatik meta açıklama, başlık uyarıları, okuma süresi rozeti, OpenGraph etiketleri.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4 p-4 rounded-lg border border-ink-200 bg-ink-100/40">
+            <div class="w-10 h-10 rounded-md bg-ink-100 border border-ink-300 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-sm font-semibold text-ink-900">Sosyal Paylaşım</div>
+                <span class="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 bg-emerald-400/10 rounded">aktif</span>
+              </div>
+              <p class="text-xs text-ink-600 leading-relaxed">9 platforma stillenmiş paylaşım butonları. Yazı altına otomatik eklenir.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4 p-4 rounded-lg border border-ink-200 bg-ink-100/40">
+            <div class="w-10 h-10 rounded-md bg-ink-100 border border-ink-300 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-sm font-semibold text-ink-900">İletişim Formu</div>
+                <span class="text-[10px] font-mono text-ink-600 px-1.5 py-0.5 bg-ink-100 rounded">opsiyonel</span>
+              </div>
+              <p class="text-xs text-ink-600 leading-relaxed">reCAPTCHA korumalı form. Mesajlar admin paneline düşer, e-posta bildirimi gönderilir.</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4 p-4 rounded-lg border border-ink-200 bg-ink-100/40">
+            <div class="w-10 h-10 rounded-md bg-ink-100 border border-ink-300 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="text-sm font-semibold text-ink-900">Hero Slider</div>
+                <span class="text-[10px] font-mono text-ink-600 px-1.5 py-0.5 bg-ink-100 rounded">opsiyonel</span>
+              </div>
+              <p class="text-xs text-ink-600 leading-relaxed">Otomatik oynatma, dokunmatik kaydırma, palet uyumlu stil.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Shortcodes list -->
+      <div class="lg:col-span-5 bg-ink-50 p-8 lg:p-10 reveal">
+        <div class="font-mono text-xs text-ink-600 mb-5">14+ kısa kod</div>
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[slider]</code>
+            <span class="text-xs text-ink-600">görsel karusel</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[galeri]</code>
+            <span class="text-xs text-ink-600">medya ızgarası</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[son-yazilar]</code>
+            <span class="text-xs text-ink-600">son n yazı</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[iletisim-formu]</code>
+            <span class="text-xs text-ink-600">korumalı form</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[sosyal-medya]</code>
+            <span class="text-xs text-ink-600">9 platform</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[arama-formu]</code>
+            <span class="text-xs text-ink-600">site içi arama</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-ink-200/60">
+            <code class="font-mono text-sm text-amber-400">[menu]</code>
+            <span class="text-xs text-ink-600">navigasyon</span>
+          </div>
+          <div class="flex items-center justify-between py-2">
+            <code class="font-mono text-sm text-amber-400">[ozel-html]</code>
+            <span class="text-xs text-ink-600">raw HTML</span>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-ink-300/60 text-xs text-ink-600">
+          + <span class="text-ink-800 font-medium">video, kategori, widget, ayırıcı, boşluk, yazı</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRICING ===================== -->
+<section id="pricing" class="relative py-28 lg:py-36 border-t border-ink-200 overflow-hidden">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full opacity-30 pointer-events-none"
+       style="background: radial-gradient(closest-side, rgba(245,165,36,0.25), transparent 70%);"></div>
+
+  <div class="relative max-w-[1280px] mx-auto px-6 lg:px-12">
+    <div class="reveal text-center max-w-3xl mx-auto mb-16">
+      <div class="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-5">[ 05 ] Fiyatlandırma</div>
+      <h2 class="font-display text-4xl lg:text-6xl text-ink-900 leading-[1.05]">Bir fiyat. <em class="text-amber-400 not-italic">Sürpriz yok.</em></h2>
+      <p class="mt-6 text-ink-700">Tüm planlarda AI asistanı, edge cache, eklenti sandbox ve sınırsız sayfa görüntüleme dahil.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+
+      <!-- Starter -->
+      <div class="reveal rounded-2xl border border-ink-200 bg-ink-50 p-8 flex flex-col">
+        <div class="text-xs font-mono uppercase tracking-wider text-ink-600 mb-2">Starter</div>
+        <div class="flex items-baseline gap-1.5 mb-1">
+          <span class="font-display text-5xl text-ink-900">Ücretsiz</span>
+        </div>
+        <div class="text-xs text-ink-600 mb-7">Kişisel projeler için</div>
+        <ul class="space-y-3 text-sm text-ink-700 flex-1">
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>1 site, 1 domain</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>2 ekip üyesi</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>5 GB medya depolama</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>AI asistanı (aylık 100 işlem)</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>Tüm dahili eklentiler</span></li>
+        </ul>
+        <a href="#" class="mt-8 text-center block border border-ink-300 hover:border-ink-400 text-ink-800 px-5 py-3 rounded-md text-sm font-medium transition-colors">
+          Hemen başla
+        </a>
+      </div>
+
+      <!-- Pro -->
+      <div class="reveal rounded-2xl price-pop p-8 flex flex-col relative">
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-ink-0 text-[10px] font-bold px-3 py-1 rounded-full font-mono uppercase tracking-wider">En popüler</div>
+        <div class="text-xs font-mono uppercase tracking-wider text-amber-400 mb-2">Pro</div>
+        <div class="flex items-baseline gap-1.5 mb-1">
+          <span class="font-display text-5xl text-ink-900">$29</span>
+          <span class="text-sm text-ink-600">/ ay</span>
+        </div>
+        <div class="text-xs text-ink-600 mb-7">Yayıncılar ve küçük ekipler</div>
+        <ul class="space-y-3 text-sm text-ink-800 flex-1">
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>10 site, sınırsız domain</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>Sınırsız ekip üyesi</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>100 GB medya depolama</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>AI asistanı (sınırsız)</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>WordPress göç asistanı</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>Öncelikli destek</span></li>
+        </ul>
+        <a href="#" class="mt-8 text-center block bg-amber-400 hover:bg-amber-500 text-ink-0 px-5 py-3 rounded-md text-sm font-bold transition-colors">
+          Pro'ya geç
+        </a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="reveal rounded-2xl border border-ink-200 bg-ink-50 p-8 flex flex-col">
+        <div class="text-xs font-mono uppercase tracking-wider text-ink-600 mb-2">Enterprise</div>
+        <div class="flex items-baseline gap-1.5 mb-1">
+          <span class="font-display text-5xl text-ink-900">Özel</span>
+        </div>
+        <div class="text-xs text-ink-600 mb-7">Ajanslar ve kurumlar</div>
+        <ul class="space-y-3 text-sm text-ink-700 flex-1">
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>Sınırsız site</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>SSO + SAML</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>SLA garantisi (%99.99)</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>Özel eklenti geliştirme</span></li>
+          <li class="flex gap-2.5"><span class="text-amber-400 mt-0.5">✓</span><span>Atanmış müşteri yöneticisi</span></li>
+        </ul>
+        <a href="#" class="mt-8 text-center block border border-ink-300 hover:border-ink-400 text-ink-800 px-5 py-3 rounded-md text-sm font-medium transition-colors">
+          Bizimle görüşün
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Final CTA -->
+    <div class="reveal mt-24 text-center">
+      <h3 class="font-display text-3xl lg:text-4xl text-ink-900">Birkaç dakikada yayında.</h3>
+      <p class="mt-3 text-ink-700">İlk sitenizi 60 saniyede oluşturun. Kredi kartı gerekmez.</p>
+      <a href="#" class="mt-8 inline-flex items-center gap-2 bg-amber-400 text-ink-0 px-6 py-3 rounded-md text-sm font-bold hover:bg-amber-500 transition-colors">
+        Ücretsiz hesap oluştur
+        <span>→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="border-t border-ink-200 bg-ink-50">
+  <div class="max-w-[1280px] mx-auto px-6 lg:px-12 py-16 grid md:grid-cols-12 gap-10">
+    <div class="md:col-span-5">
+      <div class="flex items-center gap-2.5 mb-4">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="1" y="1" width="30" height="30" rx="8" fill="#0F0F11" stroke="#26262C"/>
+          <path d="M8 11 L16 7 L24 11 L24 21 L16 25 L8 21 Z" stroke="#F5A524" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M8 11 L16 15 L24 11 M16 15 L16 25" stroke="#F5A524" stroke-width="1.25" stroke-linejoin="round" opacity=".6"/>
+          <circle cx="16" cy="15" r="1.6" fill="#F5A524"/>
+        </svg>
+        <span class="font-semibold tracking-tight text-ink-900">Worker CMS</span>
+      </div>
+      <p class="text-sm text-ink-700 max-w-sm leading-relaxed">
+        Edge'de çalışan, çoklu site destekli modern içerik yönetim platformu. WordPress'in özgürlüğü, modern yazılımın hızıyla.
+      </p>
+    </div>
+
+    <div class="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
+      <div>
+        <div class="text-[11px] font-mono uppercase tracking-wider text-ink-600 mb-3">Ürün</div>
+        <ul class="space-y-2 text-sm text-ink-700">
+          <li><a href="#features" class="hover:text-ink-900 transition-colors">Özellikler</a></li>
+          <li><a href="#architecture" class="hover:text-ink-900 transition-colors">Performans</a></li>
+          <li><a href="#mcp" class="hover:text-ink-900 transition-colors">AI Entegrasyonu</a></li>
+          <li><a href="#plugins" class="hover:text-ink-900 transition-colors">Eklentiler</a></li>
+          <li><a href="#pricing" class="hover:text-ink-900 transition-colors">Fiyatlandırma</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-[11px] font-mono uppercase tracking-wider text-ink-600 mb-3">Şirket</div>
+        <ul class="space-y-2 text-sm text-ink-700">
+          <li><a href="#" class="hover:text-ink-900 transition-colors">Hakkımızda</a></li>
+          <li><a href="#" class="hover:text-ink-900 transition-colors">Blog</a></li>
+          <li><a href="#" class="hover:text-ink-900 transition-colors">Kariyer</a></li>
+          <li><a href="#" class="hover:text-ink-900 transition-colors">İletişim</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="text-[11px] font-mono uppercase tracking-wider text-ink-600 mb-3">Yasal</div>
+        <ul class="space-y-2 text-sm text-ink-700">
+          <li><a href="#" class="hover:text-ink-900 transition-colors">Gizlilik</a></li>
+          <li><a href="#" class="hover:text-ink-900 transition-colors">Kullanım koşulları</a></li>
+          <li><a href="#" class="hover:text-ink-900 transition-colors">KVKK</a></li>
+          <li><a href="#" class="hover:text-ink-900 transition-colors">Durum</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-ink-200">
+    <div class="max-w-[1280px] mx-auto px-6 lg:px-12 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-ink-600">
+      <div>© 2026 Worker CMS</div>
+      <div class="font-mono">Edge-native · Sınırsız ölçek</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
