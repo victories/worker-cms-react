@@ -7,6 +7,7 @@ import { LandingPage } from '../../ssr/pages/Landing';
 import { LEGAL_PAGES, findLegalPage, renderLegalContent } from '../../lib/legal-pages';
 import { loadLandingConfig } from './landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
+import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 
 /**
  * Default legal page route — `/legal/:slug`.
@@ -49,8 +50,10 @@ async function renderLegal(
       lang,
       title: `${title} — ${brand}`,
       description,
+      themeClass: 'dark',
       // themeBootScript intentionally omitted — landing v2 is dark-only, no client toggle to avoid React #418 hydration mismatch
       cspNonce,
+      tailwindCss: TAILWIND_LANDING_CSS,
       head: createElement(
         Fragment,
         null,
