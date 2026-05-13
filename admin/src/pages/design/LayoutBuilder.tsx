@@ -17,6 +17,8 @@ import { SlotPalette } from '@/components/design/SlotPalette';
 import { RegionEditor, type RegionUI } from '@/components/design/RegionEditor';
 import { SlotConfigPanel } from '@/components/design/SlotConfigPanel';
 import { SLOT_CATALOG, REGION_KEYS, REGION_LABELS, type RegionKey, getSlotEntry } from '@/components/design/slot-catalog';
+import { LayoutPresetGrid } from '@/components/design/LayoutPresetGrid';
+import type { LayoutPreset } from '@/components/design/layout-presets';
 
 type LayoutUI = Record<string, RegionUI>;
 
@@ -106,6 +108,7 @@ export function LayoutBuilder() {
   const [original, setOriginal] = useState<LayoutUI | null>(null);
   const [activeRegion, setActiveRegion] = useState<RegionKey>('header');
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
+  const [activePresetSlug, setActivePresetSlug] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -270,6 +273,22 @@ export function LayoutBuilder() {
     if (!original) return;
     setLayout(original);
     setSelectedUid(null);
+    setActivePresetSlug(null);
+  }
+
+  /** Overwrite the in-memory layout with a preset's region tree. Asks
+   *  for confirmation since the operation wipes any unsaved drag-drop
+   *  work. The preset only becomes persistent once the user clicks
+   *  "Kaydet" — until then they can still hit "Geri al". */
+  function applyPreset(preset: LayoutPreset) {
+    const confirmed = window.confirm(
+      `"${preset.name}" şablonu uygulanacak. Mevcut düzen değişiklikleri kaybolacak. Devam edilsin mi?`,
+    );
+    if (!confirmed) return;
+    const hydrated = fromStored(preset.layout_config);
+    setLayout(hydrated);
+    setSelectedUid(null);
+    setActivePresetSlug(preset.slug);
   }
 
   if (loading) {
@@ -336,12 +355,26 @@ export function LayoutBuilder() {
               ))}
             </nav>
             <div className="flex-1 overflow-y-auto p-3">
+              <section className="mb-4">
+                <h2 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                  Hazır şablonlar
+                </h2>
+                <LayoutPresetGrid
+                  activeSlug={activePresetSlug}
+                  onPick={applyPreset}
+                />
+              </section>
               <RegionEditor
                 regionKey={activeRegion}
                 region={layout[activeRegion]}
                 selectedUid={selectedUid}
                 onSelect={setSelectedUid}
-                onChange={(next) => setRegion(activeRegion, next)}
+                onChange={(next) => {
+                  setRegion(activeRegion, next);
+                  // Manual edits invalidate the "active preset" badge —
+                  // the layout no longer matches a pristine preset.
+                  if (activePresetSlug) setActivePresetSlug(null);
+                }}
               />
             </div>
           </main>
