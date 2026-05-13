@@ -5,6 +5,7 @@ import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { Landing, type LandingConfig } from '../../ssr/pages/Landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
+import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 
 /**
  * Public landing route.
@@ -210,6 +211,7 @@ export async function serveLanding(c: {
       themeClass: 'dark',
       // themeBootScript intentionally omitted — landing v2 is dark-only, no client toggle to avoid React #418 hydration mismatch
       cspNonce,
+      tailwindCss: TAILWIND_LANDING_CSS,
       head,
       bodyEnd: clientScript,
       children: createElement(Landing, { config }),
