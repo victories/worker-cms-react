@@ -3,9 +3,8 @@ import { createElement, Fragment } from 'react';
 import type { Bindings, Variables } from '../../types';
 import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
-import { Landing, type LandingConfig } from '../../ssr/pages/landing/Landing';
+import { Landing, type LandingConfig } from '../../ssr/pages/Landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
-import { LANDING_DEFAULTS } from '../../ssr/pages/landing-defaults';
 
 /**
  * Public landing route.
@@ -117,32 +116,6 @@ async function mergePackagesIntoPricing(
  * (no row, invalid JSON, or `enabled: false`) so callers can fall
  * through to the next route.
  */
-// Deep-merge admin-supplied DB config on top of the platform LANDING_DEFAULTS
-// so the v2 Landing tree (Hero / MigrationStrip / CostCompare / MultiSite /
-// Faq / FinalCta etc.) always has the data it needs to render, even when
-// the stored JSON pre-dates a section the redesign added.
-function mergeWithDefaults<T extends Record<string, any>>(defaults: T, overrides: any): T {
-  if (overrides == null || typeof overrides !== 'object') return defaults;
-  const out: any = Array.isArray(defaults) ? [...defaults] : { ...defaults };
-  for (const [k, v] of Object.entries(overrides)) {
-    if (v == null) continue;
-    const d = (defaults as any)[k];
-    if (
-      d &&
-      typeof d === 'object' &&
-      !Array.isArray(d) &&
-      v &&
-      typeof v === 'object' &&
-      !Array.isArray(v)
-    ) {
-      out[k] = mergeWithDefaults(d, v);
-    } else {
-      out[k] = v;
-    }
-  }
-  return out;
-}
-
 async function loadLandingConfig(c: {
   env: Bindings;
 }): Promise<LandingConfig | null> {
@@ -150,16 +123,14 @@ async function loadLandingConfig(c: {
     "SELECT value FROM global_settings WHERE key = 'landing_config'"
   ).first<{ value: string }>();
 
-  let stored: any = null;
+  let config: LandingConfig | null = null;
   try {
-    stored = result?.value ? JSON.parse(result.value) : null;
+    config = result?.value ? (JSON.parse(result.value) as LandingConfig) : null;
   } catch {
-    stored = null;
+    config = null;
   }
-  // Explicit disable wins over defaults; missing/invalid → use defaults.
-  if (stored && stored.enabled === false) return null;
+  if (!config || !config.enabled) return null;
 
-  const config = mergeWithDefaults(LANDING_DEFAULTS as any, stored ?? {}) as LandingConfig;
   await mergePackagesIntoPricing(c, config);
   return config;
 }
@@ -186,19 +157,34 @@ export async function serveLanding(c: {
   const title = `${brand.name || 'WorkerCms'}${brand.tagline ? ' — ' + brand.tagline : ''}`;
   const description = config.hero?.subtitle;
 
+  // Google Fonts for the v2 landing design — Inter (body), Instrument
+  // Serif (display), JetBrains Mono (code/labels). Preconnect first to
+  // shave the RTT, then the stylesheet itself. CSP middleware already
+  // allow-lists fonts.googleapis.com (style-src) and fonts.gstatic.com
+  // (font-src), see src/middleware/csp.ts.
   const head = createElement(
     Fragment,
     null,
     createElement('link', {
-      key: 1,
+      key: 'gf-preconnect-1',
       rel: 'preconnect',
       href: 'https://fonts.googleapis.com',
     }),
     createElement('link', {
-      key: 2,
+      key: 'gf-preconnect-2',
       rel: 'preconnect',
       href: 'https://fonts.gstatic.com',
       crossOrigin: 'anonymous',
+    }),
+    createElement('link', {
+      key: 'gf-stylesheet',
+      rel: 'stylesheet',
+      href:
+        'https://fonts.googleapis.com/css2?' +
+        'family=Inter:wght@400;500;600;700&' +
+        'family=Instrument+Serif:ital@0;1&' +
+        'family=JetBrains+Mono:wght@400;500;600&' +
+        'display=swap',
     })
   );
 
