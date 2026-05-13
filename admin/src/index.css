@@ -261,3 +261,64 @@ figure img {
 .transition-theme {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+
+/* ============================================
+   Auth v2 — login / register / forgot / reset
+   Scoped dark theme that mirrors the public landing v2 design so the
+   auth journey from the marketing site into the admin feels continuous.
+   ============================================ */
+.auth-v2 {
+  color-scheme: dark;
+  background: #0A0A0B;
+  color: #E2E2E5;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow: hidden;
+}
+.auth-v2 .font-serif {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  letter-spacing: -0.01em;
+}
+.auth-v2 .font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.auth-v2 .hero-glow {
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(245, 165, 36, 0.16) 0%, rgba(245, 165, 36, 0) 55%),
+    radial-gradient(40% 30% at 50% 0%, rgba(245, 165, 36, 0.18) 0%, rgba(245, 165, 36, 0) 70%),
+    linear-gradient(180deg, #0A0A0B 0%, #0A0A0B 100%);
+}
+.auth-v2 .grid-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+@keyframes auth-pulse-ring {
+  0%   { box-shadow: 0 0 0 0    rgba(245, 165, 36, 0.5); }
+  100% { box-shadow: 0 0 0 18px rgba(245, 165, 36, 0); }
+}
+.auth-v2 .pulse-ring {
+  animation: auth-pulse-ring 2.4s ease-out infinite;
+}
+.auth-v2 ::selection {
+  background: rgba(245, 165, 36, 0.35);
+  color: #FAFAF7;
+}
+/* Inputs / buttons inside auth-v2 — override admin's light shadcn tokens */
+.auth-v2 input,
+.auth-v2 select,
+.auth-v2 textarea {
+  background: #0F0F11 !important;
+  border-color: #26262C !important;
+  color: #FAFAF7 !important;
+}
+.auth-v2 input::placeholder,
+.auth-v2 textarea::placeholder { color: #5C5C66 !important; }
+.auth-v2 input:focus-visible,
+.auth-v2 select:focus-visible,
+.auth-v2 textarea:focus-visible {
+  border-color: rgba(245, 165, 36, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(245, 165, 36, 0.25) !important;
+  outline: none !important;
+}
+.auth-v2 label { color: #B5B5BC; }
