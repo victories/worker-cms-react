@@ -121,7 +121,7 @@ async function mergePackagesIntoPricing(
  * (no row, invalid JSON, or `enabled: false`) so callers can fall
  * through to the next route.
  */
-async function loadLandingConfig(c: {
+export async function loadLandingConfig(c: {
   env: Bindings;
 }): Promise<LandingConfig | null> {
   const result = await c.env.DB.prepare(

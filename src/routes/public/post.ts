@@ -6,6 +6,9 @@ import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { PublisherLayout } from '../../ssr/layouts/PublisherLayout';
 import { Post, type PostCommentViewModel } from '../../ssr/pages/Post';
 import { Page } from '../../ssr/pages/Page';
+import { LandingPage } from '../../ssr/pages/Landing';
+import { loadLandingConfig } from './landing';
+import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
 import { SEOHead } from '../../ssr/components/SEOHead';
 import { ThemeStyles } from '../../ssr/components/ThemeStyles';
 import {
@@ -457,6 +460,71 @@ async function renderPostPage(
   }));
 
   const isPage = p.post_type === 'page';
+
+  // Management site (workercms.com itself): render static pages with
+  // the landing v2 chrome — same nav / footer / ink+amber palette as
+  // /landing. Keeps /iletisim, /gizlilik, /sartlar visually coherent
+  // with the marketing site instead of inheriting the publisher
+  // shadcn theme used by tenants like hasangul.com.
+  if (isPage && site.is_management === 1) {
+    const landingCfg = await loadLandingConfig(c);
+    if (landingCfg) {
+      const brandName = landingCfg.brand?.name || site.name || 'Worker CMS';
+      return renderPage(
+        createElement(Shell, {
+          lang,
+          title: `${p.title} — ${brandName}`,
+          description: p.excerpt || p.seo_description || undefined,
+          themeBootScript: DEFAULT_THEME_BOOT,
+          cspNonce,
+          head: createElement(
+            Fragment,
+            null,
+            seoHead,
+            createElement('link', {
+              key: 'gf-1',
+              rel: 'preconnect',
+              href: 'https://fonts.googleapis.com',
+            }),
+            createElement('link', {
+              key: 'gf-2',
+              rel: 'preconnect',
+              href: 'https://fonts.gstatic.com',
+              crossOrigin: 'anonymous',
+            }),
+            createElement('link', {
+              key: 'gf-3',
+              rel: 'stylesheet',
+              href:
+                'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700' +
+                '&family=Instrument+Serif:ital@0;1' +
+                '&family=JetBrains+Mono:wght@400;500;600&display=swap',
+            }),
+            analyticsHeadNode,
+            pluginSlots.head
+          ),
+          bodyStart: createElement(Fragment, null, pluginSlots.bodyStart),
+          bodyEnd: createElement(
+            Fragment,
+            null,
+            pluginSlots.bodyEnd,
+            analyticsBodyNode,
+            createElement('script', {
+              nonce: cspNonce,
+              dangerouslySetInnerHTML: { __html: LANDING_CLIENT_JS },
+            })
+          ),
+          children: createElement(LandingPage, {
+            title: p.title,
+            contentHtml: renderedContent,
+            excerpt: p.excerpt,
+            config: landingCfg,
+          }),
+        })
+      );
+    }
+  }
+
   const pageBody: ReactNode = isPage
     ? createElement(Page, {
         title: p.title,

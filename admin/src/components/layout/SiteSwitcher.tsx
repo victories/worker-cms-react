@@ -10,15 +10,11 @@ export function SiteSwitcher() {
   const { sites, activeSite, setActiveSiteById } = useSiteStore();
   const lang = useAuthStore((s) => s.lang);
 
-  // Hide management site from non-super_admin users
-  const user = useAuthStore((s) => s.user);
-  // Hide management site from everyone (including super_admin) in the switcher
-  const visibleSites = sites.filter((s: any) => s.is_management !== 1);
-
-  // If active site is management and user can't see it, auto-switch to first visible
-  if (activeSite && (activeSite as any).is_management === 1 && visibleSites.length > 0) {
-    setActiveSiteById(visibleSites[0].id);
-  }
+  // The management site (workercms.com itself) is editable from the
+  // switcher so admins can publish static pages like /iletisim,
+  // /sartlar, /gizlilik. Public pages on that site render with the
+  // landing chrome (see src/routes/public/post.ts).
+  const visibleSites = sites;
 
   if (visibleSites.length === 0) return null;
 
