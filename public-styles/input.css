@@ -8,7 +8,6 @@
  * Content paths scanned for utility classes live in ./tailwind.config.ts.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "../packages/ui/tokens/design-tokens.css";
 
 @tailwind base;
@@ -117,56 +116,151 @@
   }
 }
 
-@layer utilities {
-  /* Native <details> animated open. The grid trick avoids
-     max-height-with-magic-number; content height is intrinsic. */
-  .faq-item > .faq-body {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 240ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .faq-item > .faq-body > div {
-    overflow: hidden;
-  }
-  .faq-item[open] > .faq-body {
-    grid-template-rows: 1fr;
-  }
-  .faq-marker {
-    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .faq-item[open] .faq-marker {
-    transform: rotate(45deg);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .faq-item > .faq-body { transition: none; }
-    .faq-marker { transition: none; }
-  }
+/* ============================================
+   Landing v2 design utilities. Scoped to the `.landing-v2` wrapper that
+   `src/ssr/pages/Landing.tsx` renders so these styles never leak into
+   the publisher / admin builds (they share the same Tailwind bundle).
+   Ports the `<style>` block from `Worker CMS Landing v2.html`. The font
+   stack itself comes from a `<link>` to Google Fonts injected by the
+   landing route, see src/routes/public/landing.ts.
+   ============================================ */
+.landing-v2 {
+  color-scheme: dark;
+  background: #0A0A0B;
+  color: #E2E2E5;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-@layer utilities {
-  /* Scroll reveal — only applies when JS is enabled (html.js).
-     Without JS, the `html.js` selector never matches and reveal
-     elements stay fully visible. Section components in tasks 4-11
-     emit data-reveal="" markers; landing-entry walks them and
-     applies .reveal + .is-visible via IntersectionObserver. */
-  html.js .reveal {
-    opacity: 0;
-    transform: translateY(16px);
-    transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1),
-                transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: transform, opacity;
-  }
-  html.js .reveal.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html.js .reveal,
-    html.js .reveal.is-visible {
-      opacity: 1 !important;
-      transform: none !important;
-      transition: none !important;
-    }
-  }
+.landing-v2 .font-display,
+.landing-v2 .font-serif {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  letter-spacing: -0.01em;
 }
+.landing-v2 .font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Subtle grain overlay — sits on the section as ::before. The section
+   must have `position: relative` (Tailwind `relative`) for inset:0 to
+   anchor. We rely on the v2.html's `mix-blend-mode: overlay` for the
+   speckle texture. */
+.landing-v2 .grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+/* Hero radial-glow background — two warm halos atop the ink-0 base. */
+.landing-v2 .hero-glow {
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(245, 165, 36, 0.16) 0%, rgba(245, 165, 36, 0) 55%),
+    radial-gradient(40% 30% at 50% 0%, rgba(245, 165, 36, 0.18) 0%, rgba(245, 165, 36, 0) 70%),
+    linear-gradient(180deg, #0A0A0B 0%, #0A0A0B 100%);
+}
+
+/* Faint dotted grid pattern used behind the hero + diagram cards. */
+.landing-v2 .grid-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Code-block "line numbers" — each `.code-line` puts its `data-ln` into
+   the left gutter. Unused in this port but kept for parity with the
+   v2.html source in case a future block adds a code preview. */
+.landing-v2 .code-line {
+  display: block;
+  padding-left: 3.25rem;
+  position: relative;
+}
+.landing-v2 .code-line::before {
+  content: attr(data-ln);
+  position: absolute;
+  left: 0;
+  width: 2.25rem;
+  text-align: right;
+  color: #3A3A42;
+  font-variant-numeric: tabular-nums;
+}
+.landing-v2 .tok-c { color: #5C5C66; font-style: italic; }
+.landing-v2 .tok-k { color: #F5A524; }
+.landing-v2 .tok-s { color: #B5B5BC; }
+.landing-v2 .tok-f { color: #E2E2E5; }
+.landing-v2 .tok-p { color: #8A8A93; }
+.landing-v2 .tok-n { color: #FAFAF7; }
+
+/* Looping marquee used by the value-prop strip. The track is rendered
+   twice in the markup so translate -50% keeps the loop seamless. */
+@keyframes wcms-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.landing-v2 .marquee-track {
+  animation: wcms-marquee 50s linear infinite;
+}
+
+/* Architecture diagram — dashed lines that "flow" along their path. */
+@keyframes wcms-dashflow {
+  to { stroke-dashoffset: -32; }
+}
+.landing-v2 .flow {
+  stroke-dasharray: 4 6;
+  animation: wcms-dashflow 1.6s linear infinite;
+}
+
+/* Pulsing dot ring used in the hero badge + live indicators. */
+@keyframes wcms-pulse-ring {
+  0%   { box-shadow: 0 0 0 0    rgba(245, 165, 36, 0.5); }
+  100% { box-shadow: 0 0 0 18px rgba(245, 165, 36, 0); }
+}
+.landing-v2 .pulse-ring {
+  animation: wcms-pulse-ring 2.4s ease-out infinite;
+}
+
+/* Scroll-reveal fade-up. The class is `reveal`, hydration adds `.in`
+   once the element intersects the viewport (see src/client/landing-entry.tsx). */
+.landing-v2 .reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity .6s cubic-bezier(.2, 0, .2, 1),
+    transform .6s cubic-bezier(.2, 0, .2, 1);
+}
+.landing-v2 .reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Feature card hover — darken border + bg, scale stays still. */
+.landing-v2 .feat-card {
+  transition: border-color .2s, background .2s, transform .2s;
+}
+.landing-v2 .feat-card:hover {
+  border-color: #3A3A42;
+  background: #141418;
+}
+
+/* Pricing-card "highlighted" treatment — soft amber wash + ring. */
+.landing-v2 .price-pop {
+  background:
+    linear-gradient(180deg, rgba(245, 165, 36, 0.06), rgba(245, 165, 36, 0) 80%),
+    #0F0F11;
+  box-shadow:
+    0 0 0 1px rgba(245, 165, 36, 0.35),
+    0 30px 60px -30px rgba(245, 165, 36, 0.25);
+}
+
+/* Native scroll affordance — amber selection + dark scrollbar to match
+   the dark ink-0 backdrop. Scoped so it only applies on the landing. */
+.landing-v2 ::selection {
+  background: rgba(245, 165, 36, 0.35);
+  color: #FAFAF7;
+}
+.landing-v2 ::-webkit-scrollbar         { width: 10px; height: 10px; }
+.landing-v2 ::-webkit-scrollbar-track   { background: #0A0A0B; }
+.landing-v2 ::-webkit-scrollbar-thumb   { background: #1B1B20; border-radius: 8px; }
+.landing-v2 ::-webkit-scrollbar-thumb:hover { background: #26262C; }

@@ -19,9 +19,6 @@ export default {
     './src/ssr/**/*.{ts,tsx}',
     './packages/ui/**/*.{ts,tsx}',
     './src/plugins/**/*.{ts,tsx}',
-    // Shortcodes emit raw HTML strings with utility classes; scan
-    // them so classes like `aspect-[4/3]` and `line-clamp-2` ship.
-    './src/lib/shortcodes/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
@@ -50,6 +47,11 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+          // v2 landing accent ramp (warm amber). Kept under `accent.500`/
+          // `accent.600` keys so existing shadcn `bg-accent` keeps working
+          // (the DEFAULT / foreground keys above are untouched).
+          500: '#F5A524',
+          600: '#E89312',
         },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
@@ -59,13 +61,13 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Landing page palette — used only by /landing (v2 dark design).
-        // These are direct hex tokens, intentionally outside the shadcn
-        // HSL system, because the landing is locked to a dark mode look
-        // independent of the publisher's theme.
+        // v2 Landing palette — neutral "ink" ramp + warm "amber" accent.
+        // Used only by /landing (gated through .ink-* / .amber-* utility
+        // classes). The publisher + admin still flow through the shadcn
+        // HSL var ramp above, so this addition is purely additive.
         ink: {
-          0: '#0A0A0B',
-          50: '#0F0F11',
+          0:   '#0A0A0B',
+          50:  '#0F0F11',
           100: '#141418',
           200: '#1B1B20',
           300: '#26262C',
@@ -109,6 +111,12 @@ export default {
           'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas',
           '"Liberation Mono"', '"Courier New"', 'monospace',
         ],
+        // v2 Landing display face — large serif used for hero/section
+        // titles. Available as `font-display` and `font-serif`. Falls
+        // back to Georgia + ui-serif so the page degrades to a system
+        // serif before Google Fonts loads.
+        display: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
+        serif:   ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
       },
     },
   },
