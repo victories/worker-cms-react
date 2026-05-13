@@ -87,10 +87,19 @@ function dynamicTruncate(hmacResult: Uint8Array): number {
 // --- HOTP computation using Web Crypto API ---
 
 async function computeHOTP(secret: Uint8Array, counter: number): Promise<string> {
+  // Web Crypto wants a strict BufferSource (ArrayBuffer-backed). TS 5.7
+  // narrows Uint8Array to <ArrayBufferLike>, which technically includes
+  // SharedArrayBuffer — re-wrap with the underlying buffer slice to
+  // satisfy the overload.
+  const secretBuf = secret.buffer.slice(
+    secret.byteOffset,
+    secret.byteOffset + secret.byteLength
+  ) as ArrayBuffer;
+
   // Import the secret as an HMAC-SHA1 key
   const key = await crypto.subtle.importKey(
     'raw',
-    secret,
+    secretBuf,
     { name: 'HMAC', hash: 'SHA-1' },
     false,
     ['sign']
@@ -98,7 +107,11 @@ async function computeHOTP(secret: Uint8Array, counter: number): Promise<string>
 
   // Sign the counter value
   const counterBytes = intToBytes(counter);
-  const signature = await crypto.subtle.sign('HMAC', key, counterBytes);
+  const counterBuf = counterBytes.buffer.slice(
+    counterBytes.byteOffset,
+    counterBytes.byteOffset + counterBytes.byteLength
+  ) as ArrayBuffer;
+  const signature = await crypto.subtle.sign('HMAC', key, counterBuf);
   const hmacResult = new Uint8Array(signature);
 
   // Apply dynamic truncation to get 6-digit code

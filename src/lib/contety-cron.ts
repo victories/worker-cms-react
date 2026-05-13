@@ -42,14 +42,12 @@ export async function processContetyPolling(env: Bindings): Promise<void> {
       if (detail.status === 'completed') {
         // Auto-import if enabled
         if (item.auto_import === 1) {
-          const config: Partial<ContetyConfig> = {
-            default_status: item.default_status || 'draft',
-            default_category_id: item.default_category_id,
-            default_author_id: item.default_author_id,
-          };
-
           const postId = await importContentAsPost(
-            env.DB, env.R2, item.site_id, detail, config
+            env.DB, env.R2, item.site_id, detail, {
+              default_status: item.default_status || 'draft',
+              default_category_id: item.default_category_id,
+              default_author_id: item.default_author_id,
+            }
           );
 
           await env.DB.prepare(

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings, Variables } from '../../types';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { getMailSettings, sendEmailViaResend, buildSubscriptionEmail } from '../../lib/email';
+import { verifyStripeSignature } from '../../lib/stripe-signature';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 subscriptions.use('*', authMiddleware);
@@ -455,20 +456,31 @@ subscriptions.get('/all', requireRole('super_admin'), async (c) => {
   return c.json({ success: true, data: result.results });
 });
 
-// Stripe webhook handler (no auth, verified by signature)
+// Stripe webhook handler (no auth — must be verified by HMAC signature).
+//
+// Stripe sends a `Stripe-Signature` header of the form:
+//   t=<timestamp>,v1=<hex hmac sha256 of `${timestamp}.${rawBody}`>,v1=<...>
+// We compute the HMAC with the configured webhook secret and reject the
+// request if no v1 candidate matches in constant time. Without this check,
+// anyone can POST fake events and grant themselves subscriptions.
 export async function handleStripeWebhook(c: any) {
-  const stripeKeyRow = await c.env.DB.prepare(
+  const db: D1Database = c.env.DB;
+  const stripeKeyRow = await db.prepare(
     "SELECT value FROM global_settings WHERE key = 'stripe_webhook_secret'"
   ).first<{ value: string }>();
 
-  const body = await c.req.text();
-  const sig = c.req.header('stripe-signature');
-
-  // Simple signature verification (for production, use proper Stripe SDK verification)
-  // For now, we verify the webhook secret exists and trust Cloudflare's network
   if (!stripeKeyRow?.value) {
     console.error('Stripe webhook secret not configured');
     return c.json({ error: 'Webhook secret not configured' }, 500);
+  }
+
+  const body = await c.req.text();
+  const sigHeader = c.req.header('stripe-signature') || '';
+
+  const verified = await verifyStripeSignature(body, sigHeader, stripeKeyRow.value);
+  if (!verified) {
+    console.warn('Stripe webhook signature verification failed');
+    return c.json({ error: 'Invalid signature' }, 400);
   }
 
   let event: any;
@@ -477,8 +489,6 @@ export async function handleStripeWebhook(c: any) {
   } catch {
     return c.json({ error: 'Invalid JSON' }, 400);
   }
-
-  const db = c.env.DB;
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
