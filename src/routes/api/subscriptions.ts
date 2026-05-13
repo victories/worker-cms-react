@@ -455,20 +455,30 @@ subscriptions.get('/all', requireRole('super_admin'), async (c) => {
   return c.json({ success: true, data: result.results });
 });
 
-// Stripe webhook handler (no auth, verified by signature)
+// Stripe webhook handler (no auth — must be verified by HMAC signature).
+//
+// Stripe sends a `Stripe-Signature` header of the form:
+//   t=<timestamp>,v1=<hex hmac sha256 of `${timestamp}.${rawBody}`>,v1=<...>
+// We compute the HMAC with the configured webhook secret and reject the
+// request if no v1 candidate matches in constant time. Without this check,
+// anyone can POST fake events and grant themselves subscriptions.
 export async function handleStripeWebhook(c: any) {
   const stripeKeyRow = await c.env.DB.prepare(
     "SELECT value FROM global_settings WHERE key = 'stripe_webhook_secret'"
   ).first<{ value: string }>();
 
-  const body = await c.req.text();
-  const sig = c.req.header('stripe-signature');
-
-  // Simple signature verification (for production, use proper Stripe SDK verification)
-  // For now, we verify the webhook secret exists and trust Cloudflare's network
   if (!stripeKeyRow?.value) {
     console.error('Stripe webhook secret not configured');
     return c.json({ error: 'Webhook secret not configured' }, 500);
+  }
+
+  const body = await c.req.text();
+  const sigHeader = c.req.header('stripe-signature') || '';
+
+  const verified = await verifyStripeSignature(body, sigHeader, stripeKeyRow.value);
+  if (!verified) {
+    console.warn('Stripe webhook signature verification failed');
+    return c.json({ error: 'Invalid signature' }, 400);
   }
 
   let event: any;
@@ -582,6 +592,71 @@ export async function expireSubscriptions(db: D1Database) {
       "UPDATE users SET package_id = NULL, max_sites = 1, updated_at = datetime('now') WHERE id = ?"
     ).bind(sub.user_id).run();
   }
+}
+
+// --- Stripe signature verification (Web Crypto API, Workers-compatible) ---
+
+// Parses the Stripe-Signature header `t=...,v1=...,v1=...` into its parts.
+function parseStripeSigHeader(header: string): { t: string; v1: string[] } | null {
+  const t: string[] = [];
+  const v1: string[] = [];
+  for (const part of header.split(',')) {
+    const [k, v] = part.split('=', 2);
+    if (k === 't' && v) t.push(v);
+    else if (k === 'v1' && v) v1.push(v);
+  }
+  if (t.length !== 1 || v1.length === 0) return null;
+  return { t: t[0], v1 };
+}
+
+function hexToBytes(hex: string): Uint8Array | null {
+  if (hex.length % 2 !== 0) return null;
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const byte = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(byte)) return null;
+    out[i] = byte;
+  }
+  return out;
+}
+
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+// Verify a Stripe webhook payload. Returns true iff the signature header
+// contains at least one v1 entry that matches HMAC-SHA256(secret, `${t}.${body}`)
+// AND the timestamp is within the 5-minute replay tolerance.
+async function verifyStripeSignature(rawBody: string, header: string, secret: string): Promise<boolean> {
+  if (!header || !secret) return false;
+  const parsed = parseStripeSigHeader(header);
+  if (!parsed) return false;
+
+  // Replay protection: reject events older than 5 minutes.
+  const ts = parseInt(parsed.t, 10);
+  if (!Number.isFinite(ts)) return false;
+  const skewSeconds = Math.abs(Math.floor(Date.now() / 1000) - ts);
+  if (skewSeconds > 300) return false;
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const expected = new Uint8Array(
+    await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${parsed.t}.${rawBody}`))
+  );
+
+  for (const candidate of parsed.v1) {
+    const sig = hexToBytes(candidate);
+    if (sig && timingSafeEqual(sig, expected)) return true;
+  }
+  return false;
 }
 
 export default subscriptions;
