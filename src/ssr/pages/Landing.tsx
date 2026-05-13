@@ -1631,3 +1631,52 @@ export function Landing({ config }: LandingProps) {
     </div>
   );
 }
+
+// ── LandingPage — static page wrapped in the landing chrome ────────
+//
+// Used by `src/routes/public/post.ts` to render pages published under
+// the management site (workercms.com) — pieces like /iletisim,
+// /gizlilik, /sartlar inherit the same v2 ink/amber palette, fonts and
+// nav/footer as the marketing landing, rather than the publisher
+// shadcn theme used by example.com et al.
+//
+// The page body (`contentHtml`) is the same HTML the standard `Page`
+// component renders: post.content with shortcodes + plugin filters
+// already applied. We dangerouslySet it into a `prose`-ish wrapper
+// tuned for the dark ink surface.
+
+export interface LandingPageProps {
+  title: string;
+  contentHtml: string;
+  excerpt?: string | null;
+  config: LandingConfig;
+}
+
+export function LandingPage({ title, contentHtml, excerpt, config }: LandingPageProps) {
+  const brand = config.brand ?? {};
+  const brandName = brand.name || 'Worker CMS';
+  const footer = config.footer ?? {};
+
+  return (
+    <div className="landing-v2 min-h-screen bg-ink-0 text-ink-800 [scroll-behavior:smooth]">
+      <Nav brandName={brandName} nav={config.nav} />
+      <main className="border-t border-ink-200">
+        <PageContainer className="py-16 lg:py-24 max-w-3xl">
+          <header className="mb-10 pb-8 border-b border-ink-200/60">
+            <h1 className="font-display text-4xl lg:text-5xl text-ink-900 leading-[1.1]">
+              {title}
+            </h1>
+            {excerpt ? (
+              <p className="mt-4 text-lg text-ink-700">{excerpt}</p>
+            ) : null}
+          </header>
+          <div
+            className="landing-page-prose text-ink-800 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: contentHtml }}
+          />
+        </PageContainer>
+      </main>
+      <LandingFooter footer={footer} brandName={brandName} />
+    </div>
+  );
+}
