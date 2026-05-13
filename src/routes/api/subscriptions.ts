@@ -463,7 +463,8 @@ subscriptions.get('/all', requireRole('super_admin'), async (c) => {
 // request if no v1 candidate matches in constant time. Without this check,
 // anyone can POST fake events and grant themselves subscriptions.
 export async function handleStripeWebhook(c: any) {
-  const stripeKeyRow = await c.env.DB.prepare(
+  const db: D1Database = c.env.DB;
+  const stripeKeyRow = await db.prepare(
     "SELECT value FROM global_settings WHERE key = 'stripe_webhook_secret'"
   ).first<{ value: string }>();
 
@@ -487,8 +488,6 @@ export async function handleStripeWebhook(c: any) {
   } catch {
     return c.json({ error: 'Invalid JSON' }, 400);
   }
-
-  const db = c.env.DB;
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;

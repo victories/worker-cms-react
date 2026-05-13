@@ -4,7 +4,8 @@ import type { Bindings, Variables } from '../../../types';
 import { renderAMPLayout } from '../../../components/AMPLayout';
 import { getPostBySlug, getPostTaxonomies, getAmpSettings, getSiteTheme, enrichThemeWithAdEmbed, getRichSnippetsSettings } from '../../../lib/public-db';
 import { convertToAMP, getRequiredAMPComponents, generateStructuredData } from '../../../lib/amp';
-import { processAllShortcodes, ShortcodeContext } from '../../../lib/shortcodes/index';
+import { processAllShortcodes } from '../../../lib/shortcodes/index';
+import type { ShortcodeContext } from '../../../lib/shortcodes/index';
 import { langPrefix } from '../../../lib/lang';
 
 const ampDynamic = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -59,7 +60,7 @@ async function renderAmpDynamic(c: any, lang: string, slug: string) {
     // We need to figure out the main site origin from domain lookup
     // The request is on the custom AMP domain; canonical should be the main domain
     // We can get the primary domain from the site's domains
-    const primaryDomain = await c.env.DB.prepare(
+    const primaryDomain = await (c.env.DB as D1Database).prepare(
       'SELECT domain FROM domains WHERE site_id = ? AND is_primary = 1 LIMIT 1'
     ).bind(siteId).first<{ domain: string }>();
     if (primaryDomain) {

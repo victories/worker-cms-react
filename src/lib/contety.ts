@@ -138,7 +138,7 @@ export interface ImportContentConfig {
   default_status: string;
   default_author_id: number;
   default_category_id: number | null;
-  default_language: string;
+  default_language?: string;
   post_type?: 'post' | 'page';
 }
 
@@ -466,9 +466,19 @@ export async function importContentAsPost(
   // ── Title ──
   const title = contetyContentData.title || 'Untitled';
 
+  // Resolve language: caller may omit, fall back to the site's default.
+  let language = config.default_language;
+  if (!language) {
+    const siteRow = await db
+      .prepare('SELECT default_language FROM sites WHERE id = ?')
+      .bind(siteId)
+      .first<{ default_language: string | null }>();
+    language = siteRow?.default_language || 'tr';
+  }
+
   // ── Slug: prefer title_slug from metadata, always slugify ──
   const baseSlug = createSlug(titleSlug || title);
-  const slug = await ensureUniqueSlug(db, 'posts', baseSlug, siteId, config.default_language);
+  const slug = await ensureUniqueSlug(db, 'posts', baseSlug, siteId, language);
 
   // ── SEO fields ──
   const seoDescription = metaContent?.text || null;
@@ -516,7 +526,7 @@ export async function importContentAsPost(
       status,
       postType,
       config.default_author_id,
-      config.default_language,
+      language,
       now,
       now,
       publishedAt

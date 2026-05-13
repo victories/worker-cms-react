@@ -33,6 +33,9 @@ function escapeCdata(str: string): string {
 // GET /api/backup/export - Export site data as JSON or WXR
 app.get('/export', async (c) => {
   const siteId = c.get('siteId');
+  if (siteId == null) {
+    return c.json({ success: false, error: 'X-Site-Id header required' }, 400);
+  }
   const db = c.env.DB;
 
   const url = new URL(c.req.url);

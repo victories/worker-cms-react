@@ -72,7 +72,7 @@ shortcodes.get('/', requireRole('admin', 'super_admin'), async (c) => {
 // POST /api/shortcodes - Create shortcode
 shortcodes.post('/', requireRole('admin', 'super_admin'), async (c) => {
   const siteId = c.get('siteId');
-  const user = c.get('user');
+  const user = c.get('user')!; // requireRole guarantees non-null
   const body = await c.req.json<{ name: string; content: string; is_global?: boolean }>();
 
   if (!body.name || !body.content) {
@@ -108,7 +108,7 @@ shortcodes.post('/', requireRole('admin', 'super_admin'), async (c) => {
 // PUT /api/shortcodes/:id - Update shortcode
 shortcodes.put('/:id', requireRole('admin', 'super_admin'), async (c) => {
   const siteId = c.get('siteId');
-  const user = c.get('user');
+  const user = c.get('user')!; // requireRole guarantees non-null
   const id = parseInt(c.req.param('id'));
   const body = await c.req.json<{ name?: string; content?: string; is_active?: boolean; is_global?: boolean }>();
 
@@ -171,7 +171,7 @@ shortcodes.put('/:id', requireRole('admin', 'super_admin'), async (c) => {
 // DELETE /api/shortcodes/:id - Delete shortcode
 shortcodes.delete('/:id', requireRole('admin', 'super_admin'), async (c) => {
   const siteId = c.get('siteId');
-  const user = c.get('user');
+  const user = c.get('user')!; // requireRole guarantees non-null
   const id = parseInt(c.req.param('id'));
 
   const existing = await c.env.DB.prepare(

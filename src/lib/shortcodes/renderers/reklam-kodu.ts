@@ -21,7 +21,7 @@ async function resolveAndRender(params: Record<string, string>, ctx: any): Promi
   let resolvedDomain = domain;
   if (!resolvedDomain) {
     // Fallback: use site's header_ad_domain setting
-    const setting = await ctx.db.prepare(
+    const setting = await (ctx.db as D1Database).prepare(
       "SELECT value FROM settings WHERE site_id = ? AND key = 'theme_header_ad_domain'"
     ).bind(ctx.siteId).first<{ value: string }>();
     resolvedDomain = setting?.value || '';
