@@ -9,6 +9,7 @@ import { Page } from '../../ssr/pages/Page';
 import { LandingPage } from '../../ssr/pages/Landing';
 import { loadLandingConfig } from './landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
+import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 import { SEOHead } from '../../ssr/components/SEOHead';
 import { ThemeStyles } from '../../ssr/components/ThemeStyles';
 import {
@@ -475,8 +476,10 @@ async function renderPostPage(
           lang,
           title: `${p.title} — ${brandName}`,
           description: p.excerpt || p.seo_description || undefined,
+          themeClass: 'dark',
           // themeBootScript intentionally omitted — landing v2 is dark-only
           cspNonce,
+          tailwindCss: TAILWIND_LANDING_CSS,
           head: createElement(
             Fragment,
             null,

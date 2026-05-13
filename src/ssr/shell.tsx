@@ -56,6 +56,13 @@ export interface ShellProps {
    * enforced, e.g. tests or callers that haven't migrated yet).
    */
   cspNonce?: string;
+  /**
+   * Tailwind CSS string to inline. Defaults to the full publisher
+   * bundle (with @tailwindcss/typography). Landing-chrome routes pass
+   * the slimmer landing-only bundle (TAILWIND_LANDING_CSS) so they
+   * don't ship the ~34 KB of `.prose` rules.
+   */
+  tailwindCss?: string;
   children: ReactNode;
 }
 
@@ -91,6 +98,7 @@ export function Shell({
   clientBundle,
   themeBootScript,
   cspNonce,
+  tailwindCss = TAILWIND_CSS,
   children,
 }: ShellProps) {
   return (
@@ -102,7 +110,7 @@ export function Shell({
         {description ? <meta name="description" content={description} /> : null}
 
         {/* Inline Tailwind CSS bundle — generated at build time */}
-        <style dangerouslySetInnerHTML={{ __html: TAILWIND_CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: tailwindCss }} />
 
         {/* Theme boot: apply `class="dark"` on <html> before first paint */}
         {themeBootScript ? (
