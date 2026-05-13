@@ -19,6 +19,9 @@ export default {
     './src/ssr/**/*.{ts,tsx}',
     './packages/ui/**/*.{ts,tsx}',
     './src/plugins/**/*.{ts,tsx}',
+    // Shortcodes emit raw HTML strings with utility classes; scan
+    // them so classes like `aspect-[4/3]` and `line-clamp-2` ship.
+    './src/lib/shortcodes/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
@@ -56,6 +59,27 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Landing page palette — used only by /landing (v2 dark design).
+        // These are direct hex tokens, intentionally outside the shadcn
+        // HSL system, because the landing is locked to a dark mode look
+        // independent of the publisher's theme.
+        ink: {
+          0: '#0A0A0B',
+          50: '#0F0F11',
+          100: '#141418',
+          200: '#1B1B20',
+          300: '#26262C',
+          400: '#3A3A42',
+          500: '#5C5C66',
+          600: '#8A8A93',
+          700: '#B5B5BC',
+          800: '#E2E2E5',
+          900: '#FAFAF7',
+        },
+        amber: {
+          400: '#F5A524',
+          500: '#E89312',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -63,11 +87,28 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        // var() first so theme styles can override; design-system font as
-        // first hard-coded fallback for pages that don't set --font-*.
-        heading: ['var(--font-heading, "Space Grotesk")', '"Space Grotesk"', 'system-ui', 'sans-serif'],
-        sans:    ['var(--font-sans, "DM Sans")',          '"DM Sans"',       'system-ui', 'sans-serif'],
-        mono:    ['var(--font-mono, ui-monospace)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // `--font-*` CSS vars come from ThemeStyles (server-rendered) or
+        // the design-preview bridge (live admin preview). Fallback to the
+        // system stack so a default install without a theme still reads
+        // cleanly. Tailwind's preflight uses whatever `sans` resolves to
+        // for the document body, so changing --font-sans in the admin
+        // actually repaints everywhere, not just components that opt in
+        // with `font-sans` / `font-heading` classes.
+        sans: [
+          'var(--font-sans, ui-sans-serif)',
+          'system-ui', '-apple-system', 'BlinkMacSystemFont',
+          '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+        heading: [
+          'var(--font-heading, ui-sans-serif)',
+          'system-ui', '-apple-system', 'BlinkMacSystemFont',
+          '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+        mono: [
+          'var(--font-mono, ui-monospace)',
+          'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas',
+          '"Liberation Mono"', '"Courier New"', 'monospace',
+        ],
       },
     },
   },

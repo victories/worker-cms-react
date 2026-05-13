@@ -111,6 +111,43 @@ app.use('*', async (c, next) => {
   await next();
 });
 
+// ---- ACME HTTP-01 challenge handler ----
+// Cloudflare's Custom Hostname feature performs HTTP-01 validation by
+// requesting `http://<domain>/.well-known/acme-challenge/<token>` and
+// expecting the matching response in plain text. Tokens live in
+// `domain_acme_challenges` (migration 026) and are pulled from the
+// Cloudflare API by the admin "SSL Doğrulama" flow.
+//
+// Runs before any redirect / site resolver so validators (which often
+// don't follow 301s) hit the token directly. Falls through when the
+// path doesn't match.
+app.use('*', async (c, next) => {
+  const url = new URL(c.req.url);
+  const match = url.pathname.match(/^\/\.well-known\/acme-challenge\/([A-Za-z0-9_-]+)\/?$/);
+  if (!match) {
+    await next();
+    return;
+  }
+  const token = match[1];
+  try {
+    const row = await c.env.DB.prepare(
+      'SELECT response FROM domain_acme_challenges WHERE token = ? LIMIT 1'
+    ).bind(token).first<{ response: string }>();
+    if (row?.response) {
+      return new Response(row.response, {
+        status: 200,
+        headers: {
+          'content-type': 'text/plain; charset=utf-8',
+          'cache-control': 'no-store',
+        },
+      });
+    }
+  } catch (err) {
+    console.error('[acme-challenge] db error:', err);
+  }
+  await next();
+});
+
 // ---- WWW ↔ non-WWW redirect (runs before everything else) ----
 // Admin domain: always redirect www → non-www
 // User domains: redirect based on site-level setting (www_preference: 'www' | 'non-www' | 'none')
@@ -118,6 +155,14 @@ app.use('*', async (c, next) => {
   const host = (c.req.header('host') || '').toLowerCase().replace(/:\d+$/, '');
   const adminDomain = (c.env.ADMIN_DOMAIN || '').toLowerCase().replace(/:\d+$/, '');
   const url = new URL(c.req.url);
+
+  // /.well-known/* paths must never redirect — ACME validators don't
+  // always follow 301s, and other RFC 8615 endpoints (security.txt)
+  // should reach the origin verbatim.
+  if (url.pathname.startsWith('/.well-known/')) {
+    await next();
+    return;
+  }
 
   // --- Admin domain: force www → non-www ---
   if (adminDomain && host === `www.${adminDomain}`) {

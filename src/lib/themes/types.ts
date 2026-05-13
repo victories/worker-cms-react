@@ -243,4 +243,11 @@ export interface ActiveDesign {
   updatedAt: string;
   /** True when the row was synthesised from defaults (no DB row yet). */
   isDefault: boolean;
+  /**
+   * Persisted `site_design.default_color_mode` — drives the initial
+   * `<html class="dark">` decision in the SSR shell. 'auto' is
+   * reserved for a future "follow visitor preference" mode and is
+   * currently treated like no preset mode (boot script picks).
+   */
+  colorMode: 'light' | 'dark' | 'auto';
 }
