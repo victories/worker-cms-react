@@ -49,7 +49,7 @@ async function renderLegal(
       lang,
       title: `${title} — ${brand}`,
       description,
-      themeBootScript: DEFAULT_THEME_BOOT,
+      // themeBootScript intentionally omitted — landing v2 is dark-only, no client toggle to avoid React #418 hydration mismatch
       cspNonce,
       head: createElement(
         Fragment,
