@@ -5,6 +5,7 @@ import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { Landing, type LandingConfig } from '../../ssr/pages/landing/Landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
+import { LANDING_DEFAULTS } from '../../ssr/pages/landing-defaults';
 
 /**
  * Public landing route.
@@ -116,6 +117,32 @@ async function mergePackagesIntoPricing(
  * (no row, invalid JSON, or `enabled: false`) so callers can fall
  * through to the next route.
  */
+// Deep-merge admin-supplied DB config on top of the platform LANDING_DEFAULTS
+// so the v2 Landing tree (Hero / MigrationStrip / CostCompare / MultiSite /
+// Faq / FinalCta etc.) always has the data it needs to render, even when
+// the stored JSON pre-dates a section the redesign added.
+function mergeWithDefaults<T extends Record<string, any>>(defaults: T, overrides: any): T {
+  if (overrides == null || typeof overrides !== 'object') return defaults;
+  const out: any = Array.isArray(defaults) ? [...defaults] : { ...defaults };
+  for (const [k, v] of Object.entries(overrides)) {
+    if (v == null) continue;
+    const d = (defaults as any)[k];
+    if (
+      d &&
+      typeof d === 'object' &&
+      !Array.isArray(d) &&
+      v &&
+      typeof v === 'object' &&
+      !Array.isArray(v)
+    ) {
+      out[k] = mergeWithDefaults(d, v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 async function loadLandingConfig(c: {
   env: Bindings;
 }): Promise<LandingConfig | null> {
@@ -123,14 +150,16 @@ async function loadLandingConfig(c: {
     "SELECT value FROM global_settings WHERE key = 'landing_config'"
   ).first<{ value: string }>();
 
-  let config: LandingConfig | null = null;
+  let stored: any = null;
   try {
-    config = result?.value ? (JSON.parse(result.value) as LandingConfig) : null;
+    stored = result?.value ? JSON.parse(result.value) : null;
   } catch {
-    config = null;
+    stored = null;
   }
-  if (!config || !config.enabled) return null;
+  // Explicit disable wins over defaults; missing/invalid → use defaults.
+  if (stored && stored.enabled === false) return null;
 
+  const config = mergeWithDefaults(LANDING_DEFAULTS as any, stored ?? {}) as LandingConfig;
   await mergePackagesIntoPricing(c, config);
   return config;
 }

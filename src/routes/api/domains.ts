@@ -623,4 +623,606 @@ async function deleteCustomHostname(cf: { apiKey: string; email: string; saasZon
 // Export cleanup helper for use in site deletion
 export { deleteCustomHostname, getCfCredentials };
 
+// ── ACME / SSL HTTP-01 Challenge Tokens ─────────────────────────────
+//
+// When a customer points their apex domain (e.g. hasangul.com) at
+// Cloudflare via CNAME, Cloudflare's Custom Hostname feature can't
+// always issue an SSL certificate automatically — it has to perform
+// HTTP-01 validation by hitting `http://<domain>/.well-known/acme-challenge/<token>`
+// on the user's origin and getting the matching response back.
+//
+// These endpoints let an authenticated site owner paste the token /
+// response pair Cloudflare displays in the "Pending Validation (HTTP)"
+// panel. The worker then serves the response on the right URL — see
+// the `/.well-known/acme-challenge/*` handler in src/index.ts.
+
+interface AcmeChallengeRow {
+  id: number;
+  site_id: number;
+  domain: string;
+  token: string;
+  response: string;
+  created_at: string;
+}
+
+/** Resolve site_id from a domain the user owns. Returns null if not authorised. */
+async function siteForDomain(
+  db: D1Database,
+  userId: number,
+  isSuperAdmin: boolean,
+  domain: string
+): Promise<number | null> {
+  const cleanDomain = domain.toLowerCase().trim();
+  if (isSuperAdmin) {
+    const row = await db
+      .prepare('SELECT site_id FROM site_domains WHERE domain = ? LIMIT 1')
+      .bind(cleanDomain)
+      .first<{ site_id: number }>();
+    return row?.site_id ?? null;
+  }
+  const row = await db
+    .prepare(
+      `SELECT sd.site_id FROM site_domains sd
+       JOIN user_sites us ON us.site_id = sd.site_id
+       WHERE sd.domain = ? AND us.user_id = ? LIMIT 1`
+    )
+    .bind(cleanDomain, userId)
+    .first<{ site_id: number }>();
+  return row?.site_id ?? null;
+}
+
+// GET /api/domains/acme?domain=example.com — list challenges for a domain
+domains.get('/acme', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const domain = (c.req.query('domain') || '').toLowerCase().trim();
+  if (!domain) {
+    return c.json({ success: false, error: 'domain parametresi gerekli' }, 400);
+  }
+
+  const isSuperAdmin = user.role === 'super_admin';
+  const siteId = await siteForDomain(c.env.DB, user.sub, isSuperAdmin, domain);
+  if (!siteId) {
+    return c.json({ success: false, error: 'Bu domain üzerinde yetkiniz yok' }, 403);
+  }
+
+  const rows = await c.env.DB.prepare(
+    'SELECT id, site_id, domain, token, response, created_at FROM domain_acme_challenges WHERE domain = ? ORDER BY created_at DESC'
+  ).bind(domain).all<AcmeChallengeRow>();
+
+  return c.json({ success: true, data: rows.results || [] });
+});
+
+// POST /api/domains/acme — add or replace a challenge token
+// Body: { domain: string, token: string, response: string }
+// Accepts either a bare token ("S9pGfiC2...") or the full URL or the
+// "token.response" value pasted directly from Cloudflare.
+domains.post('/acme', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const body = await c.req.json<{ domain?: string; token?: string; response?: string }>();
+  const domain = (body.domain || '').toLowerCase().trim();
+  let token = (body.token || '').trim();
+  let response = (body.response || '').trim();
+
+  // Cloudflare's UI shows the path like
+  //   "http://hasangul.com/.well-known/acme-challenge/F4IIEHYJ_GOakM1..."
+  // or just "hasangul.com/.well-known/acme-challenge/F4IIEHYJ_GOakM1...".
+  // Extract the token if a full URL was pasted.
+  const pathMatch = token.match(/\/\.well-known\/acme-challenge\/([A-Za-z0-9_-]+)/);
+  if (pathMatch) token = pathMatch[1];
+
+  // The response is usually `<token>.<keyAuth>` — accept either the full
+  // value or just the keyAuth half. We store whatever the user gave us.
+  if (!domain || !token || !response) {
+    return c.json({
+      success: false,
+      error: 'domain, token ve response alanları zorunludur',
+    }, 400);
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(token)) {
+    return c.json({ success: false, error: 'Geçersiz token formatı' }, 400);
+  }
+
+  const isSuperAdmin = user.role === 'super_admin';
+  const siteId = await siteForDomain(c.env.DB, user.sub, isSuperAdmin, domain);
+  if (!siteId) {
+    return c.json({ success: false, error: 'Bu domain üzerinde yetkiniz yok' }, 403);
+  }
+
+  // Upsert by token (the unique index lets us simply REPLACE).
+  await c.env.DB.prepare(
+    `INSERT INTO domain_acme_challenges (site_id, domain, token, response)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(token) DO UPDATE SET
+       site_id = excluded.site_id,
+       domain  = excluded.domain,
+       response = excluded.response`
+  ).bind(siteId, domain, token, response).run();
+
+  const saved = await c.env.DB.prepare(
+    'SELECT id, site_id, domain, token, response, created_at FROM domain_acme_challenges WHERE token = ?'
+  ).bind(token).first<AcmeChallengeRow>();
+
+  return c.json({ success: true, data: saved });
+});
+
+// POST /api/domains/acme/sync — pull pending validation tokens from
+// Cloudflare and upsert them into domain_acme_challenges.
+//
+// Body: { domain?: string }   if omitted, syncs every domain the user
+//                              owns that has a cf_custom_hostname_id.
+//
+// For each matching site_domain we GET
+//   /zones/{saasZoneId}/custom_hostnames/{cf_custom_hostname_id}
+// and read ssl.validation_records[]. Each record has http_url
+// (token in the last segment) + http_body (the response).
+domains.post('/acme/sync', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const isSuperAdmin = user.role === 'super_admin';
+  const body = await c.req
+    .json<{ domain?: string }>()
+    .catch(() => ({} as { domain?: string }));
+  const filterDomain = (body.domain || '').toLowerCase().trim();
+
+  const cf = await getCfCredentials(c.env.DB);
+  if (!cf.apiKey || !cf.email || !cf.saasZoneId) {
+    return c.json({
+      success: false,
+      error: 'Cloudflare API kimlik bilgileri yapılandırılmamış. Önce Global Ayarlar → Cloudflare bölümünden ekleyin.',
+    }, 400);
+  }
+
+  // Find which domains to sync. Each row carries the CF custom hostname id.
+  let rows: Array<{ id: number; site_id: number; domain: string; cf_custom_hostname_id: string | null }>;
+  if (isSuperAdmin) {
+    const q = filterDomain
+      ? c.env.DB.prepare(
+          `SELECT id, site_id, domain, cf_custom_hostname_id FROM site_domains
+           WHERE domain = ? AND cf_custom_hostname_id IS NOT NULL`
+        ).bind(filterDomain)
+      : c.env.DB.prepare(
+          `SELECT id, site_id, domain, cf_custom_hostname_id FROM site_domains
+           WHERE cf_custom_hostname_id IS NOT NULL`
+        );
+    const r = await q.all<{ id: number; site_id: number; domain: string; cf_custom_hostname_id: string | null }>();
+    rows = r.results || [];
+  } else {
+    const q = filterDomain
+      ? c.env.DB.prepare(
+          `SELECT sd.id, sd.site_id, sd.domain, sd.cf_custom_hostname_id
+             FROM site_domains sd
+             JOIN user_sites us ON us.site_id = sd.site_id
+            WHERE sd.domain = ? AND us.user_id = ?
+              AND sd.cf_custom_hostname_id IS NOT NULL`
+        ).bind(filterDomain, user.sub)
+      : c.env.DB.prepare(
+          `SELECT sd.id, sd.site_id, sd.domain, sd.cf_custom_hostname_id
+             FROM site_domains sd
+             JOIN user_sites us ON us.site_id = sd.site_id
+            WHERE us.user_id = ? AND sd.cf_custom_hostname_id IS NOT NULL`
+        ).bind(user.sub);
+    const r = await q.all<{ id: number; site_id: number; domain: string; cf_custom_hostname_id: string | null }>();
+    rows = r.results || [];
+  }
+
+  if (rows.length === 0) {
+    return c.json({
+      success: false,
+      error: filterDomain
+        ? `${filterDomain} için Cloudflare custom hostname bulunamadı`
+        : 'Senkronlanacak custom hostname bulunamadı',
+    }, 404);
+  }
+
+  type TxtRecord = { name: string; value: string; purpose: 'ssl' | 'ownership' };
+  type SyncEntry = {
+    domain: string;
+    cf_status: string;
+    ssl_status: string;
+    method: string;
+    saved: number;
+    skipped: number;
+    txt_records: TxtRecord[];
+    error?: string;
+  };
+  const summary: SyncEntry[] = [];
+  let totalSaved = 0;
+
+  for (const row of rows) {
+    if (!row.cf_custom_hostname_id) continue;
+    const entry: SyncEntry = {
+      domain: row.domain,
+      cf_status: 'unknown',
+      ssl_status: 'unknown',
+      method: 'unknown',
+      saved: 0,
+      skipped: 0,
+      txt_records: [],
+    };
+    try {
+      const chResult = await cfFetch(
+        `/zones/${cf.saasZoneId}/custom_hostnames/${row.cf_custom_hostname_id}`,
+        { apiKey: cf.apiKey, email: cf.email }
+      );
+      if (!chResult.success) {
+        entry.error = chResult.errors?.[0]?.message || 'Cloudflare API hatası';
+        summary.push(entry);
+        continue;
+      }
+      const ch = chResult.result || {};
+      entry.cf_status = ch.status || 'unknown';
+      entry.ssl_status = ch.ssl?.status || 'unknown';
+      entry.method = ch.ssl?.method || 'unknown';
+
+      type CfValidationRecord = {
+        http_url?: string;
+        http_body?: string;
+        txt_name?: string;
+        txt_value?: string;
+      };
+      const records: CfValidationRecord[] = ch.ssl?.validation_records || [];
+      for (const rec of records) {
+        // HTTP-01 token → save to DB so the worker can serve it.
+        if (rec.http_url && rec.http_body) {
+          const m = rec.http_url.match(/\/\.well-known\/acme-challenge\/([A-Za-z0-9_-]+)/);
+          if (m) {
+            const token = m[1];
+            const response = rec.http_body.trim();
+            await c.env.DB.prepare(
+              `INSERT INTO domain_acme_challenges (site_id, domain, token, response)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(token) DO UPDATE SET
+                 site_id = excluded.site_id,
+                 domain  = excluded.domain,
+                 response = excluded.response`
+            ).bind(row.site_id, row.domain, token, response).run();
+            entry.saved++;
+            totalSaved++;
+          } else {
+            entry.skipped++;
+          }
+        }
+        // DNS-01 / TXT validation — can't be served from the worker;
+        // surface to the admin so they can paste it into their DNS.
+        if (rec.txt_name && rec.txt_value) {
+          entry.txt_records.push({
+            name: rec.txt_name,
+            value: rec.txt_value,
+            purpose: 'ssl',
+          });
+        }
+      }
+      // Cloudflare also exposes a separate `ownership_verification` TXT
+      // pair to prove the customer controls the hostname (independent
+      // of the SSL validation). It only applies to Custom Hostnames
+      // whose apex couldn't CNAME — exactly the case in the screenshot.
+      const ov = ch.ownership_verification;
+      if (ov?.name && ov?.value) {
+        entry.txt_records.push({
+          name: ov.name,
+          value: ov.value,
+          purpose: 'ownership',
+        });
+      }
+    } catch (err) {
+      entry.error = err instanceof Error ? err.message : String(err);
+    }
+    summary.push(entry);
+  }
+
+  return c.json({
+    success: true,
+    data: { total_saved: totalSaved, domains: summary },
+  });
+});
+
+// GET /api/domains/acme/dns-check?domain=hasangul.com — query the public
+// DNS via Cloudflare's DNS-over-HTTPS resolver and report which TXT
+// records are currently visible. Used to debug "I added TXT but CF
+// still says pending" — this proves whether the records actually
+// propagated and whether their values match what CF expects.
+domains.get('/acme/dns-check', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const domain = (c.req.query('domain') || '').toLowerCase().trim();
+  if (!domain) {
+    return c.json({ success: false, error: 'domain parametresi gerekli' }, 400);
+  }
+
+  const isSuperAdmin = user.role === 'super_admin';
+  const siteId = await siteForDomain(c.env.DB, user.sub, isSuperAdmin, domain);
+  if (!siteId) {
+    return c.json({ success: false, error: 'Bu domain üzerinde yetkiniz yok' }, 403);
+  }
+
+  // Names CF cares about for Custom Hostname pre-validation + SSL.
+  const names = [
+    `_acme-challenge.${domain}`,
+    `_cf-custom-hostname.${domain}`,
+  ];
+  // Common typos / panel quirks: when a user pastes the full FQDN into
+  // a DNS panel that auto-appends the zone, the actual record ends up
+  // double-suffixed (e.g. _acme-challenge.example.com.example.com).
+  // We probe these too so we can surface a clear "wrong place" hint.
+  const typoNames = [
+    `_acme-challenge.${domain}.${domain}`,
+    `_cf-custom-hostname.${domain}.${domain}`,
+  ];
+
+  type Lookup = {
+    name: string;
+    type: string;
+    found: string[];
+    error?: string;
+    /** When true, this lookup represents a misconfigured (double-suffix) name. */
+    typo?: boolean;
+  };
+  const lookups: Lookup[] = [];
+
+  async function probe(name: string, recordType: string, typo: boolean) {
+    try {
+      const r = await fetch(
+        `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${recordType}`,
+        { headers: { accept: 'application/dns-json' } }
+      );
+      const json = await r.json() as { Answer?: Array<{ data: string; type: number }> };
+      const found = (json.Answer || [])
+        .map((a) => a.data.replace(/^"|"$/g, ''))
+        .filter(Boolean);
+      lookups.push({ name, type: recordType, found, typo });
+    } catch (err) {
+      lookups.push({
+        name,
+        type: recordType,
+        found: [],
+        error: err instanceof Error ? err.message : String(err),
+        typo,
+      });
+    }
+  }
+
+  // Query both TXT and CNAME for completeness — CF docs sometimes call
+  // for TXT but the API also accepts CNAME aliases of the validation
+  // hostname. Showing both saves confusion.
+  for (const name of names) {
+    for (const recordType of ['TXT', 'CNAME']) await probe(name, recordType, false);
+  }
+  // Probe common-mistake names — only TXT, since that's where users
+  // typically misplace the record.
+  for (const name of typoNames) await probe(name, 'TXT', true);
+
+  // Also resolve the apex/host directly to surface where it's currently
+  // pointing — useful when the user expects HTTP-01 to work.
+  try {
+    const r = await fetch(
+      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=A`,
+      { headers: { accept: 'application/dns-json' } }
+    );
+    const json = await r.json() as { Answer?: Array<{ data: string }> };
+    lookups.push({
+      name: domain,
+      type: 'A',
+      found: (json.Answer || []).map((a) => a.data),
+    });
+  } catch {
+    /* ignore */
+  }
+  try {
+    const r = await fetch(
+      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=CNAME`,
+      { headers: { accept: 'application/dns-json' } }
+    );
+    const json = await r.json() as { Answer?: Array<{ data: string }> };
+    const cnames = (json.Answer || []).map((a) => a.data);
+    if (cnames.length > 0) {
+      lookups.push({ name: domain, type: 'CNAME', found: cnames });
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return c.json({ success: true, data: { domain, lookups } });
+});
+
+// POST /api/domains/acme/recheck — ask Cloudflare to re-attempt
+// validation on the Custom Hostname. Useful when a TXT record was
+// added but CF cached an earlier failure: a no-op PATCH to the
+// hostname forces CF to re-evaluate.
+domains.post('/acme/recheck', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const body = await c.req
+    .json<{ domain?: string }>()
+    .catch(() => ({} as { domain?: string }));
+  const domain = (body.domain || '').toLowerCase().trim();
+  if (!domain) {
+    return c.json({ success: false, error: 'domain alanı zorunludur' }, 400);
+  }
+
+  const isSuperAdmin = user.role === 'super_admin';
+  const row = isSuperAdmin
+    ? await c.env.DB.prepare(
+        'SELECT site_id, cf_custom_hostname_id FROM site_domains WHERE domain = ? LIMIT 1'
+      ).bind(domain).first<{ site_id: number; cf_custom_hostname_id: string | null }>()
+    : await c.env.DB.prepare(
+        `SELECT sd.site_id, sd.cf_custom_hostname_id
+           FROM site_domains sd
+           JOIN user_sites us ON us.site_id = sd.site_id
+          WHERE sd.domain = ? AND us.user_id = ? LIMIT 1`
+      ).bind(domain, user.sub).first<{ site_id: number; cf_custom_hostname_id: string | null }>();
+
+  if (!row) return c.json({ success: false, error: 'Bu domain üzerinde yetkiniz yok' }, 403);
+  if (!row.cf_custom_hostname_id) {
+    return c.json({
+      success: false,
+      error: 'Bu domain Cloudflare Custom Hostname olarak yapılandırılmamış',
+    }, 400);
+  }
+
+  const cf = await getCfCredentials(c.env.DB);
+  if (!cf.apiKey || !cf.email || !cf.saasZoneId) {
+    return c.json({
+      success: false,
+      error: 'Cloudflare API kimlik bilgileri yapılandırılmamış',
+    }, 400);
+  }
+
+  // Get current method first so we can re-set the same value (a no-op
+  // PATCH is enough to trigger CF to re-poll TXT/HTTP).
+  const cur = await cfFetch(
+    `/zones/${cf.saasZoneId}/custom_hostnames/${row.cf_custom_hostname_id}`,
+    { apiKey: cf.apiKey, email: cf.email }
+  );
+  if (!cur.success) {
+    return c.json({
+      success: false,
+      error: cur.errors?.[0]?.message || 'Cloudflare durumu okunamadı',
+    }, 500);
+  }
+  const currentMethod = cur.result?.ssl?.method || 'http';
+
+  const patched = await cfFetch(
+    `/zones/${cf.saasZoneId}/custom_hostnames/${row.cf_custom_hostname_id}`,
+    {
+      method: 'PATCH',
+      apiKey: cf.apiKey,
+      email: cf.email,
+      body: { ssl: { method: currentMethod, type: 'dv' } },
+    }
+  );
+  if (!patched.success) {
+    return c.json({
+      success: false,
+      error: patched.errors?.[0]?.message || 'Yeniden doğrulama tetiklenemedi',
+    }, 500);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      domain,
+      hostname_status: patched.result?.status || 'unknown',
+      ssl_status: patched.result?.ssl?.status || 'unknown',
+      method: patched.result?.ssl?.method || currentMethod,
+      verification_errors: patched.result?.verification_errors || [],
+      ssl_validation_errors: patched.result?.ssl?.validation_errors || [],
+    },
+  });
+});
+
+// POST /api/domains/acme/method — switch SSL validation method on
+// Cloudflare for a Custom Hostname.
+//
+// Body: { domain: string, method: 'http' | 'txt' }
+//
+// HTTP validation lets our worker serve the token. TXT validation
+// requires the customer to add a DNS TXT record at their registrar
+// (we can't write it for them). Useful when the apex can't CNAME and
+// HTTP isn't reachable yet, or vice-versa.
+domains.post('/acme/method', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const body = await c.req.json<{ domain?: string; method?: string }>().catch(
+    () => ({} as { domain?: string; method?: string })
+  );
+  const domain = (body.domain || '').toLowerCase().trim();
+  const method = (body.method || '').toLowerCase().trim();
+  if (!domain || (method !== 'http' && method !== 'txt')) {
+    return c.json({
+      success: false,
+      error: 'domain ve method (http|txt) zorunlu',
+    }, 400);
+  }
+
+  const isSuperAdmin = user.role === 'super_admin';
+  // Resolve site_id and pull the cf hostname id.
+  const row = isSuperAdmin
+    ? await c.env.DB.prepare(
+        'SELECT id, site_id, cf_custom_hostname_id FROM site_domains WHERE domain = ? LIMIT 1'
+      ).bind(domain).first<{ id: number; site_id: number; cf_custom_hostname_id: string | null }>()
+    : await c.env.DB.prepare(
+        `SELECT sd.id, sd.site_id, sd.cf_custom_hostname_id
+           FROM site_domains sd
+           JOIN user_sites us ON us.site_id = sd.site_id
+          WHERE sd.domain = ? AND us.user_id = ? LIMIT 1`
+      ).bind(domain, user.sub).first<{ id: number; site_id: number; cf_custom_hostname_id: string | null }>();
+
+  if (!row) {
+    return c.json({ success: false, error: 'Bu domain üzerinde yetkiniz yok' }, 403);
+  }
+  if (!row.cf_custom_hostname_id) {
+    return c.json({
+      success: false,
+      error: 'Bu domain Cloudflare Custom Hostname olarak yapılandırılmamış',
+    }, 400);
+  }
+
+  const cf = await getCfCredentials(c.env.DB);
+  if (!cf.apiKey || !cf.email || !cf.saasZoneId) {
+    return c.json({
+      success: false,
+      error: 'Cloudflare API kimlik bilgileri yapılandırılmamış',
+    }, 400);
+  }
+
+  const result = await cfFetch(
+    `/zones/${cf.saasZoneId}/custom_hostnames/${row.cf_custom_hostname_id}`,
+    {
+      method: 'PATCH',
+      apiKey: cf.apiKey,
+      email: cf.email,
+      body: { ssl: { method, type: 'dv' } },
+    }
+  );
+
+  if (!result.success) {
+    return c.json({
+      success: false,
+      error: result.errors?.[0]?.message || 'Cloudflare yöntem değişikliği başarısız',
+    }, 500);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      domain,
+      method,
+      ssl_status: result.result?.ssl?.status || 'unknown',
+    },
+  });
+});
+
+// DELETE /api/domains/acme/:id
+domains.delete('/acme/:id', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ success: false, error: 'Yetkilendirme gerekli' }, 401);
+
+  const id = Number(c.req.param('id'));
+  if (!id) return c.json({ success: false, error: 'Geçersiz id' }, 400);
+
+  const row = await c.env.DB.prepare(
+    'SELECT site_id, domain FROM domain_acme_challenges WHERE id = ?'
+  ).bind(id).first<{ site_id: number; domain: string }>();
+  if (!row) return c.json({ success: false, error: 'Bulunamadı' }, 404);
+
+  const isSuperAdmin = user.role === 'super_admin';
+  if (!isSuperAdmin) {
+    const owns = await c.env.DB.prepare(
+      'SELECT 1 AS ok FROM user_sites WHERE site_id = ? AND user_id = ? LIMIT 1'
+    ).bind(row.site_id, user.sub).first<{ ok: number }>();
+    if (!owns) return c.json({ success: false, error: 'Bu kayıt üzerinde yetkiniz yok' }, 403);
+  }
+
+  await c.env.DB.prepare('DELETE FROM domain_acme_challenges WHERE id = ?').bind(id).run();
+  return c.json({ success: true });
+});
+
 export default domains;
