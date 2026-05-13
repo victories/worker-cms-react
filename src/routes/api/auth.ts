@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings, Variables, User } from '../../types';
-import { hashPassword, verifyPassword, createAccessToken, createRefreshToken, verifyToken } from '../../lib/auth';
+import { hashPassword, verifyPassword, needsRehash, createAccessToken, createRefreshToken, verifyToken, revokeToken } from '../../lib/auth';
 import { generateTOTPSecret, verifyTOTP, generateTOTPUri } from '../../lib/totp';
 import { authMiddleware } from '../../middleware/auth';
 import { getMailSettings, sendTemplatedEmail } from '../../lib/email';
@@ -26,6 +26,20 @@ auth.post('/login', async (c) => {
   const validPassword = await verifyPassword(body.password, user.password_hash);
   if (!validPassword) {
     return c.json({ success: false, error: 'E-posta veya şifre hatalı' }, 401);
+  }
+
+  // Lazy-upgrade legacy hashes (V1 `$pbkdf2$...` at 100k iterations, or any
+  // V2 hash below the current OWASP target). Failures here must NOT block the
+  // login — just log and move on.
+  if (needsRehash(user.password_hash)) {
+    try {
+      const upgraded = await hashPassword(body.password);
+      await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        .bind(upgraded, user.id)
+        .run();
+    } catch (e) {
+      console.error('[Auth] Password rehash upgrade failed for user', user.id, e);
+    }
   }
 
   // Check 2FA if enabled
@@ -118,8 +132,35 @@ auth.post('/refresh', async (c) => {
   });
 });
 
-// POST /api/auth/logout (client-side token removal, server-side optional blacklisting)
-auth.post('/logout', async (c) => {
+// POST /api/auth/logout — revokes the access token by writing its jti to KV.
+// Requires authMiddleware, which already validates signature/expiry and
+// checks the revocation list (so a re-played logout is a 401, not a 200).
+// When CACHE binding isn't configured we still return success: the client
+// drops its tokens, and tokens expire on their own (15min access /
+// 7d refresh) — revocation just downgrades to "best-effort".
+auth.post('/logout', authMiddleware, async (c) => {
+  const authHeader = c.req.header('Authorization')!;
+  const token = authHeader.slice(7);
+  const payload = await verifyToken(token, c.env.JWT_SECRET);
+
+  if (payload?.jti) {
+    await revokeToken(c.env.CACHE, payload.jti, payload.exp);
+  }
+
+  // Refresh tokens can be passed in the body to revoke the pair atomically.
+  let body: { refresh_token?: string } | null = null;
+  try {
+    body = await c.req.json<{ refresh_token?: string }>();
+  } catch {
+    // No body / not JSON — that's fine, refresh revocation is optional.
+  }
+  if (body?.refresh_token) {
+    const refreshPayload = await verifyToken(body.refresh_token, c.env.JWT_SECRET);
+    if (refreshPayload?.jti) {
+      await revokeToken(c.env.CACHE, refreshPayload.jti, refreshPayload.exp);
+    }
+  }
+
   return c.json({ success: true });
 });
 
