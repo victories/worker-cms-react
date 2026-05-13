@@ -3,6 +3,7 @@ import { serveStatic } from 'hono/cloudflare-workers';
 import type { Bindings, Variables } from './types';
 import { siteResolver } from './middleware/siteResolver';
 import { corsMiddleware } from './middleware/cors';
+import { cspMiddleware } from './middleware/csp';
 import { i18nMiddleware } from './middleware/i18n';
 import { rateLimit } from './middleware/rateLimit';
 import { pluginHooksMiddleware } from './middleware/pluginHooks';
@@ -63,6 +64,7 @@ import ampPageRoutes from './routes/public/amp/page';
 import ampDynamicRoutes from './routes/public/amp/dynamic';
 import gitRoutes from './routes/public/git';
 import landingPageRoutes from './routes/public/landing';
+import legalRoutes from './routes/public/legal';
 
 // Contety polling cron
 import { processContetyPolling } from './lib/contety-cron';
@@ -162,6 +164,9 @@ app.use('*', async (c, next) => {
 
 // Global middleware
 app.use('*', corsMiddleware);
+// Generates a per-request CSP nonce and attaches a Report-Only CSP
+// header to HTML responses on public routes (admin SPA + AMP skipped).
+app.use('*', cspMiddleware);
 // Strict rate limit on credential endpoints (brute-force defense).
 // Must come before the broader /api/* limiter so the tighter cap wins.
 app.use('/api/auth/login', rateLimit(10, 60));
@@ -308,6 +313,13 @@ app.post('/api/contety/callback', async (c) => {
 
 // ---- Short URL public route ----
 app.route('/git', gitRoutes);
+
+// ---- Platform-default legal pages (privacy, terms, KVKK, distance sales,
+// refunds, cookies, status, contact) ----
+// Mounted under /legal so it never collides with the CMS `/:slug` page
+// route. Site admins who want custom copy can publish their own page
+// without conflict.
+app.route('/legal', legalRoutes);
 
 // ---- Landing / Marketing page ----
 // Helper: check if host is an admin domain (primary or workers.dev fallback)

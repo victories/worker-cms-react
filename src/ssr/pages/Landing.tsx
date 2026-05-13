@@ -4,6 +4,7 @@ import { Card, CardContent } from '@ui/card';
 import { Badge } from '@ui/badge';
 import { Container } from '@ui/container';
 import { cn } from '@ui/lib/utils';
+import { legalFooterLinks } from '../../lib/legal-pages';
 
 /**
  * Landing — React SSR port of the marketing page served at `/landing`.
@@ -657,27 +658,34 @@ function CTABand({ cta }: CTAProps) {
 
 interface LandingFooterProps {
   footer: NonNullable<LandingConfig['footer']>;
+  brandName: string;
 }
 
-function LandingFooter({ footer }: LandingFooterProps) {
+function LandingFooter({ footer, brandName }: LandingFooterProps) {
+  // Fall back to the platform-default legal links when the admin hasn't
+  // configured any. The eight default pages cover privacy, terms, KVKK,
+  // distance sales, refunds, cookies, status, and contact — the minimum
+  // a credit-card-accepting site needs under Turkish consumer law.
+  const links = footer.links && footer.links.length > 0
+    ? footer.links
+    : legalFooterLinks('tr');
+  const text = footer.text || `© ${new Date().getFullYear()} ${brandName}. Tüm hakları saklıdır.`;
   return (
     <footer className="border-t border-border/40 py-8">
       <Container size="xl">
         <div className="flex flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
-          {footer.text ? <div>{footer.text}</div> : <div />}
-          {footer.links && footer.links.length > 0 ? (
-            <div className="flex flex-wrap gap-6">
-              {footer.links.map((l, i) => (
-                <a
-                  key={i}
-                  href={l.url}
-                  className="transition-colors hover:text-foreground"
-                >
-                  {l.text}
-                </a>
-              ))}
-            </div>
-          ) : null}
+          <div>{text}</div>
+          <div className="flex flex-wrap gap-6">
+            {links.map((l, i) => (
+              <a
+                key={i}
+                href={l.url}
+                className="transition-colors hover:text-foreground"
+              >
+                {l.text}
+              </a>
+            ))}
+          </div>
         </div>
       </Container>
     </footer>
@@ -710,7 +718,7 @@ export function Landing({ config }: LandingProps) {
         <Testimonials testimonials={testimonials} />
         <CTABand cta={cta} />
       </main>
-      <LandingFooter footer={footer} />
+      <LandingFooter footer={footer} brandName={brandName} />
     </div>
   );
 }
