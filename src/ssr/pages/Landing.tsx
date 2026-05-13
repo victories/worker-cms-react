@@ -484,52 +484,14 @@ function Nav({ brandName, nav }: NavProps) {
           >
             {loginText}
           </a>
-          {/* Theme toggle island — hydrated by landing-entry.tsx. The
-              SSR markup matches what the island will render so there
-              is no layout flash. Lives between the login link and the
-              CTA, same slot as in the v2 mock. */}
-          <span data-island="theme-toggle" className="contents">
-            <button
-              type="button"
-              aria-label="Toggle theme"
-              className="inline-flex size-9 items-center justify-center rounded-md border border-ink-300 bg-ink-50 text-ink-700 transition-colors hover:bg-ink-100 hover:text-ink-900"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="size-4 dark:hidden"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2" />
-                <path d="M12 20v2" />
-                <path d="m4.93 4.93 1.41 1.41" />
-                <path d="m17.66 17.66 1.41 1.41" />
-                <path d="M2 12h2" />
-                <path d="M20 12h2" />
-                <path d="m6.34 17.66-1.41 1.41" />
-                <path d="m19.07 4.93-1.41 1.41" />
-              </svg>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="hidden size-4 dark:inline"
-                aria-hidden="true"
-              >
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-              </svg>
-            </button>
-          </span>
+          {/* Landing v2 is dark-only by design, so no theme-toggle
+              button. (Previously a `data-island="theme-toggle"`
+              placeholder lived here; its SSR markup was painted in the
+              ink palette but the React island that hydrated it used
+              the shadcn `border-input` / `bg-background` classes, so
+              React saw a mismatch and threw error #418.) */}
 
-          <a
+          <
             href={ctaUrl || '#pricing'}
             className="text-sm font-semibold bg-amber-400 text-ink-0 px-4 py-1.5 rounded-md hover:bg-amber-500 transition-colors"
           >
