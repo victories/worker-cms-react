@@ -1,23 +1,29 @@
-import { Card, CardContent } from '@ui/card';
 import { Badge } from '@ui/badge';
 import { cn, formatDate } from '@ui/lib/utils';
 import type { PublicPost, PublicTaxonomy } from '../../lib/public-db';
+import { cfImage, cfImageSrcSet } from '../../lib/cf-image';
 
 /**
- * PostCard — shadcn-styled post preview. React port of
- * `src/components/PostCard.tsx`.
+ * PostCard — classic-blog list item used by the homepage, archives,
+ * search and any other route that streams posts.
+ *
+ * Layout (intentionally simple, optimised for skim-reading):
+ *
+ *   [ Title (linked, full-width)                          ]
+ *   [ Meta line: author · date · category badges          ]
+ *   [ ┌─────┐                                             ]
+ *   [ │thmb │  Excerpt — clamped to ~3 lines              ]
+ *   [ └─────┘                                             ]
+ *   ────────────────  separator (border-b on the wrapper) ─
+ *
+ * No thumbnail → the excerpt expands to fill the row. Sticky posts get
+ * a thin primary-coloured rail on the left so they still stand out.
  *
  * Feature thumbnail resolution order:
  *   1. `post.featured_image_url` (media JOIN in getPublicPosts)
  *   2. `post.og_image_r2_key`
  *   3. First `<img src="...">` in post.content
- *   4. No image — card renders without a thumbnail
- *
- * The `isLCP` prop marks the single largest above-the-fold post on a
- * page. For that one image we emit `fetchpriority="high"` and
- * `loading="eager"`; all others get `loading="lazy"`. This is the
- * simplest Lighthouse LCP optimisation and comes directly from the
- * Hono JSX original.
+ *   4. No image — body uses the full row.
  */
 
 export interface PostCardProps {
@@ -29,6 +35,8 @@ export interface PostCardProps {
   siteId: number;
   /** First visible post — hints to the browser for LCP boost */
   isLCP?: boolean;
+  /** Enables Cloudflare Image Transformations (paid feature). */
+  imageTransforms?: boolean;
   className?: string;
 }
 
@@ -57,92 +65,98 @@ export function PostCard({
   categories,
   siteId,
   isLCP,
+  imageTransforms,
   className,
 }: PostCardProps) {
   const url = `${lp}/${post.slug}`;
   const isSticky = post.is_sticky === 1;
   const imgSrc = resolveImageUrl(post, siteId);
   const hasImage = imgSrc !== '';
+  // Thumbnail: 320px @ 1x, 640px @ 2x — w-32 sm:w-40 → ~128-160 CSS px.
+  const thumbSrc = cfImage(
+    imgSrc,
+    { width: 320, format: 'auto', quality: 85, fit: 'cover' },
+    !!imageTransforms
+  );
+  const thumbSrcSet = cfImageSrcSet(
+    imgSrc,
+    [320, 480, 640],
+    { format: 'auto', quality: 85, fit: 'cover' },
+    !!imageTransforms
+  );
 
   return (
-    <Card
+    <article
       className={cn(
-        'group overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md',
-        isSticky && 'ring-2 ring-primary/40',
+        'border-b border-border/60 pb-6 last:border-0 group',
+        isSticky && 'border-l-2 border-l-primary pl-4',
         className
       )}
     >
-      {hasImage ? (
-        <a href={url} className="block overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imgSrc}
-            alt={post.title}
-            className="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            {...(isLCP
-              ? { fetchPriority: 'high', loading: 'eager' }
-              : { loading: 'lazy' })}
-          />
-        </a>
-      ) : null}
-
-      <CardContent className="flex flex-col gap-3 p-6">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/80">{post.author_name}</span>
-          {post.published_at ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <time dateTime={post.published_at}>
-                {formatDate(post.published_at, lang)}
-              </time>
-            </>
-          ) : null}
-          {categories && categories.length > 0 ? (
-            <div className="ml-1 flex flex-wrap gap-1">
-              {categories.map((cat) => (
-                <a key={cat.id} href={`${lp}/category/${cat.slug}`}>
-                  <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground">
-                    {cat.name}
-                  </Badge>
-                </a>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <h2 className="text-xl font-semibold leading-tight tracking-tight">
-          <a
-            href={url}
-            className="text-foreground transition-colors hover:text-primary"
-          >
-            {post.title}
-          </a>
-        </h2>
-
-        {post.excerpt ? (
-          <p className="line-clamp-3 text-sm text-muted-foreground">{post.excerpt}</p>
-        ) : null}
-
+      <h2 className="text-xl sm:text-2xl font-semibold tracking-tight leading-tight mb-2">
         <a
           href={url}
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+          className="text-foreground transition-colors hover:text-primary"
         >
-          {lang === 'tr' ? 'Devamını Oku' : 'Read more'}
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="size-4 transition-transform group-hover:translate-x-0.5"
-            aria-hidden="true"
-          >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
+          {post.title}
         </a>
-      </CardContent>
-    </Card>
+      </h2>
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground mb-3">
+        {post.author_name ? (
+          <span className="font-medium text-foreground/80">{post.author_name}</span>
+        ) : null}
+        {post.published_at ? (
+          <>
+            {post.author_name ? <span aria-hidden="true">·</span> : null}
+            <time dateTime={post.published_at}>
+              {formatDate(post.published_at, lang)}
+            </time>
+          </>
+        ) : null}
+        {categories && categories.length > 0 ? (
+          <div className="ml-1 flex flex-wrap gap-1">
+            {categories.map((cat) => (
+              <a key={cat.id} href={`${lp}/category/${cat.slug}`}>
+                <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground">
+                  {cat.name}
+                </Badge>
+              </a>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex gap-4 items-start">
+        {hasImage ? (
+          <a
+            href={url}
+            className="shrink-0 block w-32 sm:w-40 aspect-[4/3] overflow-hidden rounded-md bg-muted"
+            aria-hidden="true"
+            tabIndex={-1}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={thumbSrc}
+              srcSet={thumbSrcSet || undefined}
+              sizes="(min-width:640px) 160px, 128px"
+              alt={post.title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              {...(isLCP
+                ? { fetchPriority: 'high', loading: 'eager' }
+                : { loading: 'lazy' })}
+            />
+          </a>
+        ) : null}
+
+        {post.excerpt ? (
+          <p className="line-clamp-3 text-sm sm:text-base text-muted-foreground leading-relaxed flex-1 min-w-0">
+            {post.excerpt}
+          </p>
+        ) : (
+          <div className="flex-1" />
+        )}
+      </div>
+    </article>
   );
 }

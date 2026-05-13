@@ -317,6 +317,32 @@ class ApiClient {
     });
   }
 
+  async importCsvPreview(csv: string) {
+    return this.request('/import/csv/preview', {
+      method: 'POST',
+      body: csv as unknown as BodyInit,
+      contentType: 'text/csv',
+    });
+  }
+
+  async importCsv(
+    csv: string,
+    language: string = 'tr',
+    importImages: boolean = false,
+    overwrite: boolean = false,
+  ) {
+    const params = new URLSearchParams({
+      language,
+      import_images: String(importImages),
+      overwrite: String(overwrite),
+    });
+    return this.request(`/import/csv?${params}`, {
+      method: 'POST',
+      body: csv as unknown as BodyInit,
+      contentType: 'text/csv',
+    });
+  }
+
   // Backup
   async exportBackup(sections?: string) {
     const qs = sections ? `?sections=${sections}` : '';
@@ -539,6 +565,7 @@ class ApiClient {
     layoutConfig?: any;
     customCss?: string;
     presetSlug?: string | null;
+    colorMode?: 'light' | 'dark' | 'auto';
   }) {
     return this.request<{ success: boolean; data: any }>('/design', {
       method: 'PUT',

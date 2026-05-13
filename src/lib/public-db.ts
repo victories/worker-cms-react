@@ -3,7 +3,31 @@
 
 import { cached } from './cache';
 import { loadActiveTheme as loadActiveThemeV2 } from './themes/engine';
-import type { ActiveTheme, CssVars } from './themes/types';
+import type { ActiveDesign, ActiveTheme, CssVars } from './themes/types';
+
+/**
+ * Decide whether the public site renders in dark mode for this request.
+ *
+ * Priority: per-site Theme Studio design (`activeDesign.colorMode`)
+ * when the site has saved one and the value is `'dark'` or
+ * `'light'`; otherwise fall back to the legacy theme's `color_mode`.
+ *
+ * Returns the string to pass as `themeClass` to `<Shell>`. `'dark'`
+ * applies the `.dark` class on `<html>`; `undefined` leaves it off so
+ * the boot script can react to the visitor's localStorage / OS pref.
+ */
+export function resolveThemeClass(
+  theme: { color_mode?: 'light' | 'dark' } | null | undefined,
+  activeDesign?: ActiveDesign | null
+): 'dark' | undefined {
+  // Saved Theme Studio choice wins.
+  if (activeDesign && !activeDesign.isDefault) {
+    if (activeDesign.colorMode === 'dark') return 'dark';
+    if (activeDesign.colorMode === 'light') return undefined;
+    // 'auto' → fall through to theme/legacy resolution.
+  }
+  return theme?.color_mode === 'dark' ? 'dark' : undefined;
+}
 
 export interface PublicPost {
   id: number;
@@ -204,11 +228,15 @@ export async function getSiteTheme(
     const theme = baseSiteThemeFromActive(active);
 
     // --- Layer site-level settings (logo, tagline, ad code, ...) ---
+    // The logo lives under either `site_logo` (the new admin field's
+    // key) or `theme_logo_url` (the legacy key the design-studio used).
+    // We accept both — `site_logo` wins when both are set.
     const settingsRows = await db
       .prepare(
         `SELECT key, value FROM settings
            WHERE site_id = ?
              AND key IN (
+               'site_logo',
                'theme_logo_url',
                'site_tagline',
                'theme_footer_text',
@@ -226,8 +254,12 @@ export async function getSiteTheme(
     for (const row of settingsRows.results) {
       const r = row as { key: string; value: string };
       switch (r.key) {
+        case 'site_logo':
+          if (r.value) theme.site_logo = r.value;
+          break;
         case 'theme_logo_url':
-          theme.site_logo = r.value || '';
+          // Don't clobber a `site_logo` we already saw earlier in the loop.
+          if (!theme.site_logo) theme.site_logo = r.value || '';
           break;
         case 'site_tagline':
           theme.site_tagline = r.value || '';
