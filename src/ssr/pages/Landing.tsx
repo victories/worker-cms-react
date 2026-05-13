@@ -1304,9 +1304,19 @@ function PriceDisplay({
   highlightedColor?: boolean;
 }) {
   const priceStr = typeof price === 'number' ? String(price) : price ?? '';
-  const isFree = priceStr === '' || priceStr === '0' || priceStr.toLowerCase().includes('ücret');
+  // Treat 0 / 0.0 / blank / explicit "ücretsiz" as free regardless of
+  // whether a currency symbol is set — `mergePackagesIntoPricing` in
+  // src/routes/public/landing.ts unconditionally stamps a '$' onto
+  // every plan, so a Free package would otherwise read "$0 / ay".
+  const isFree =
+    price === 0 ||
+    priceStr === '' ||
+    priceStr === '0' ||
+    priceStr === '0.0' ||
+    /^0[.,]00?$/.test(priceStr) ||
+    priceStr.toLowerCase().includes('ücret');
 
-  if (isFree && !currency) {
+  if (isFree) {
     return (
       <div className="flex items-baseline gap-1.5 mb-1">
         <span
