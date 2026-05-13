@@ -21,6 +21,15 @@ INSERT OR REPLACE INTO global_settings (key, value) VALUES (
       "tagline": "Edge''de çalışan modern içerik platformu"
     },
 
+    "colors": {
+      "primary": "#F5A524",
+      "accent": "#E89312",
+      "bg_dark": "#0A0A0B",
+      "bg_light": "#FAFAF7",
+      "text_light": "#E2E2E5",
+      "text_dark": "#0A0A0B"
+    },
+
     "hero": {
       "badge": "Edge-native CMS · 300+ konum · ~30ms p50",
       "title": "WordPress''in özgürlüğü, {saniyenin onda biri} hızında.",
