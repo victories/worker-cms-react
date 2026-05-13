@@ -208,7 +208,7 @@ export async function serveLanding(c: {
       // rolled landing). The boot script still honours user preference
       // in localStorage, so a returning visitor keeps their choice.
       themeClass: 'dark',
-      themeBootScript: DEFAULT_THEME_BOOT,
+      // themeBootScript intentionally omitted — landing v2 is dark-only, no client toggle to avoid React #418 hydration mismatch
       cspNonce,
       head,
       bodyEnd: clientScript,
