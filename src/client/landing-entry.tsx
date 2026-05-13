@@ -1,40 +1,20 @@
 /**
  * Landing page hydration entry.
  *
- * The `/landing` page is mostly static SSR. We hydrate two tiny bits:
+ * The `/landing` page is mostly static SSR. Only one tiny client side
+ * effect runs: an IntersectionObserver that adds `.in` to every
+ * `.reveal` element when it scrolls into view, matching the inline
+ * script at the bottom of the v2.html mock.
  *
- *  1. **Theme toggle island** — the `<span data-island="theme-toggle">`
- *     placeholder emitted by the SSR Nav, swapped for the React
- *     `<ThemeToggle>` component the publisher also uses.
- *  2. **Scroll-reveal animations** — every `.reveal` element gets
- *     observed by `IntersectionObserver`; when it scrolls into view we
- *     add `.in`, which the CSS rule in `public-styles/input.css` uses
- *     to fade + slide it into place. This mirrors the inline script at
- *     the bottom of the v2.html mock so the visual feels identical.
+ * Previously this entry also imported `react-dom/client` to hydrate a
+ * theme-toggle island; the v2 design is dark-only so that island was
+ * removed, which lets the entry ship a tiny ~3 KB IntersectionObserver
+ * bundle instead of pulling in 40+ KB of React DOM hydration runtime.
  *
- * Keeping this entry point small means the bundle stays a few KB
- * gzipped after esbuild's minifier, so there is no reason to split or
- * defer it. The payload is bundled by `scripts/build-client.mjs` into
+ * The payload is bundled by `scripts/build-client.mjs` into
  * `src/ssr/__generated__/landing-client.ts` and the route handler
  * inlines that string via `<script>` in `<Shell bodyEnd>`.
  */
-
-import { createElement } from 'react';
-import { hydrateRoot } from 'react-dom/client';
-import { ThemeToggle } from '../ssr/islands/ThemeToggle';
-
-function hydrateLandingIslands() {
-  const targets = document.querySelectorAll<HTMLElement>(
-    '[data-island="theme-toggle"]'
-  );
-  for (const el of targets) {
-    try {
-      hydrateRoot(el, createElement(ThemeToggle));
-    } catch (err) {
-      console.error('[landing-entry] theme-toggle hydration failed:', err);
-    }
-  }
-}
 
 /**
  * Mount the IntersectionObserver-driven fade-up animation. We use a
@@ -74,13 +54,8 @@ function mountScrollReveal() {
   items.forEach((el) => io.observe(el));
 }
 
-function boot() {
-  hydrateLandingIslands();
-  mountScrollReveal();
-}
-
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot, { once: true });
+  document.addEventListener('DOMContentLoaded', mountScrollReveal, { once: true });
 } else {
-  boot();
+  mountScrollReveal();
 }

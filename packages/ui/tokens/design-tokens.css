@@ -54,23 +54,6 @@
   }
 }
 
-/* Section-scoped forced dark surface — used on hero and final CTA so
-   they stay theatrical regardless of the user's root theme choice. */
-[data-section-theme="dark"] {
-  --background: 222 47% 4%;
-  --foreground: 0 0% 96%;
-  --card: 222 47% 6%;
-  --card-foreground: 0 0% 96%;
-  --popover: 222 47% 6%;
-  --popover-foreground: 0 0% 96%;
-  --muted: 222 16% 14%;
-  --muted-foreground: 215 20% 65%;
-  --border: 220 13% 18%;
-  --input: 220 13% 18%;
-  /* primary / accent / destructive / ring inherit from root so brand
-     stays consistent across themed sections */
-}
-
 @layer base {
   * {
     @apply border-border;
