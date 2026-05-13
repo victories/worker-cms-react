@@ -85,12 +85,16 @@ function pickDescription(...candidates: (string | undefined | null)[]): string {
 function buildCommentFormBootHtml(opts: {
   lang: string;
   recaptchaSiteKey: string | '';
+  cspNonce?: string;
 }): string {
-  const { lang, recaptchaSiteKey } = opts;
+  const { lang, recaptchaSiteKey, cspNonce } = opts;
   const siteKeyJs = recaptchaSiteKey
     ? `var __rcSiteKey='${recaptchaSiteKey}';`
     : `var __rcSiteKey='';`;
-  return `<script>
+  // Nonce attribute must come before any other content; HTML attribute
+  // names are validated by the CSP parser before checking script content.
+  const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : '';
+  return `<script${nonceAttr}>
 ${siteKeyJs}
 (function(){
   var form=document.getElementById('comment-form');
@@ -147,6 +151,7 @@ async function renderPostPage(
   const site = c.get('site');
   const siteId = c.get('siteId');
   if (!site || !siteId) return c.notFound();
+  const cspNonce: string | undefined = c.get('cspNonce');
 
   // ?amp=1 passthrough to the AMP renderer when the site uses the
   // query-string AMP URL format.
@@ -417,9 +422,13 @@ async function renderPostPage(
     commentFormBootHtml = buildCommentFormBootHtml({
       lang,
       recaptchaSiteKey,
+      cspNonce,
     });
     if (recaptchaSiteKey) {
-      recaptchaScriptHtml = `<script src="https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}"></script>`;
+      // External reCAPTCHA loader — strict-dynamic propagates trust to
+      // its sub-resources once this nonced tag executes.
+      const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : '';
+      recaptchaScriptHtml = `<script${nonceAttr} src="https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}"></script>`;
     }
   }
 
@@ -476,6 +485,7 @@ async function renderPostPage(
       lang,
       themeClass: theme.color_mode === 'dark' ? 'dark' : undefined,
       themeBootScript: DEFAULT_THEME_BOOT,
+      cspNonce,
       head: createElement(
         Fragment,
         null,
@@ -492,6 +502,7 @@ async function renderPostPage(
         pluginSlots.bodyEnd,
         analyticsBodyNode,
         createElement('script', {
+          nonce: cspNonce,
           dangerouslySetInnerHTML: { __html: PUBLISHER_CLIENT_JS },
         })
       ),

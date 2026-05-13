@@ -18,7 +18,8 @@ const SECRET = 'unit-test-secret-do-not-ship';
 describe('hashPassword / verifyPassword', () => {
   it('round-trips a correct password', async () => {
     const hash = await hashPassword('hunter2');
-    expect(hash.startsWith('$pbkdf2$')).toBe(true);
+    // New hashes go out in the V2 format with the iteration count inlined.
+    expect(hash.startsWith('$pbkdf2v2$')).toBe(true);
     expect(await verifyPassword('hunter2', hash)).toBe(true);
   });
 

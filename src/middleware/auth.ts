@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables, UserRole } from '../types';
-import { verifyToken, hashApiKey } from '../lib/auth';
+import { verifyToken, hashApiKey, isRevoked } from '../lib/auth';
 
 // JWT authentication middleware
 export const authMiddleware = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
@@ -14,6 +14,13 @@ export const authMiddleware = createMiddleware<{ Bindings: Bindings; Variables: 
 
   if (!payload) {
     return c.json({ success: false, error: 'Geçersiz veya süresi dolmuş token / Invalid or expired token' }, 401);
+  }
+
+  // Revocation check — only meaningful for tokens that carry a jti. Older
+  // tokens issued before the revocation feature shipped have no jti and
+  // simply skip this lookup (they'll expire on their own within 15min/7d).
+  if (payload.jti && (await isRevoked(c.env.CACHE, payload.jti))) {
+    return c.json({ success: false, error: 'Token iptal edilmiş / Token revoked' }, 401);
   }
 
   c.set('user', payload);

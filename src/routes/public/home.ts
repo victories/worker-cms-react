@@ -84,6 +84,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
   const defaultLang = site.default_language || 'tr';
   const page = parseInt(c.req.query('page') || '1');
   const lp = langPrefix(lang, defaultLang);
+  const cspNonce: string | undefined = c.get('cspNonce');
 
   const designForLayout = c.get('activeDesign');
   const homeNeeds = extractDesignSidebarNeeds(designForLayout);
@@ -263,6 +264,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
           lang,
           themeClass: theme.color_mode === 'dark' ? 'dark' : undefined,
           themeBootScript: DEFAULT_THEME_BOOT,
+          cspNonce,
           head: createElement(
             Fragment,
             null,
@@ -278,6 +280,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
             pluginSlots.bodyEnd,
             analyticsBodyNode,
             createElement('script', {
+              nonce: cspNonce,
               dangerouslySetInnerHTML: { __html: PUBLISHER_CLIENT_JS },
             })
           ),
@@ -383,6 +386,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
       lang,
       themeClass: theme.color_mode === 'dark' ? 'dark' : undefined,
       themeBootScript: DEFAULT_THEME_BOOT,
+      cspNonce,
       head: createElement(
         Fragment,
         null,
@@ -398,6 +402,7 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
         pluginSlots.bodyEnd,
         analyticsBodyNode,
         createElement('script', {
+          nonce: cspNonce,
           dangerouslySetInnerHTML: { __html: PUBLISHER_CLIENT_JS },
         })
       ),

@@ -62,6 +62,7 @@ async function renderArchivePage(
   const defaultLang = site.default_language || 'tr';
   const lp = langPrefix(lang, defaultLang);
   const page = parseInt(c.req.query('page') || '1');
+  const cspNonce: string | undefined = c.get('cspNonce');
 
   const archiveNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
   const archiveBaseUrl = new URL(c.req.url);
@@ -214,6 +215,7 @@ async function renderArchivePage(
       lang,
       themeClass: theme.color_mode === 'dark' ? 'dark' : undefined,
       themeBootScript: DEFAULT_THEME_BOOT,
+      cspNonce,
       head: createElement(
         Fragment,
         null,
@@ -229,6 +231,7 @@ async function renderArchivePage(
         pluginSlots.bodyEnd,
         analyticsBodyNode,
         createElement('script', {
+          nonce: cspNonce,
           dangerouslySetInnerHTML: { __html: PUBLISHER_CLIENT_JS },
         })
       ),

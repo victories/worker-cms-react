@@ -1,67 +1,114 @@
 import type { JWTPayload, User } from '../types';
 
-// scrypt-based password hashing using Web Crypto API (Workers compatible)
-export async function hashPassword(password: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const encoder = new TextEncoder();
+// PBKDF2 iteration counts.
+//   - V1 (legacy `$pbkdf2$...`): 100,000 — original baseline.
+//   - V2 (`$pbkdf2v2$<iters>$...`): 600,000 — OWASP 2023 minimum for
+//     PBKDF2-HMAC-SHA256.
+// Existing DB rows in the V1 format MUST keep verifying. New hashes
+// always go out in the V2 format; callers can lazily upgrade legacy
+// rows via `needsRehash()` after a successful login.
+const PBKDF2_V1_ITERATIONS = 100000;
+export const PBKDF2_TARGET_ITERATIONS = 600000;
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const match = hex.match(/.{2}/g);
+  if (!match) return new Uint8Array(0);
+  return new Uint8Array(match.map((b) => parseInt(b, 16)));
+}
+
+async function derivePbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<string> {
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    encoder.encode(password),
+    new TextEncoder().encode(password),
     'PBKDF2',
     false,
     ['deriveBits']
   );
 
+  // Cast through `BufferSource` — the lib.dom variant of `Uint8Array` is
+  // generic over its backing buffer (ArrayBuffer vs SharedArrayBuffer) and
+  // doesn't structurally match `BufferSource` without help.
   const hash = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
+      salt: salt as BufferSource,
+      iterations,
       hash: 'SHA-256',
     },
     keyMaterial,
     256
   );
 
-  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-  const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return bytesToHex(new Uint8Array(hash));
+}
 
-  return `$pbkdf2$${saltHex}$${hashHex}`;
+// PBKDF2-SHA256 password hashing using Web Crypto API (Workers compatible).
+// Always emits the V2 format with PBKDF2_TARGET_ITERATIONS.
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hashHex = await derivePbkdf2(password, salt, PBKDF2_TARGET_ITERATIONS);
+  return `$pbkdf2v2$${PBKDF2_TARGET_ITERATIONS}$${bytesToHex(salt)}$${hashHex}`;
+}
+
+// Parse a stored hash and figure out which iteration count was used.
+// Returns null for unrecognised / malformed input.
+interface ParsedHash {
+  version: 'v1' | 'v2';
+  iterations: number;
+  salt: Uint8Array;
+  hashHex: string;
+}
+
+function parseStoredHash(stored: string): ParsedHash | null {
+  if (!stored || stored.includes('SEED_PLACEHOLDER')) return null;
+
+  const parts = stored.split('$');
+  // V1: ``, `pbkdf2`, salt, hash → 4 parts
+  if (parts.length === 4 && parts[1] === 'pbkdf2') {
+    if (!/^[0-9a-f]+$/i.test(parts[2]) || !/^[0-9a-f]+$/i.test(parts[3])) return null;
+    return {
+      version: 'v1',
+      iterations: PBKDF2_V1_ITERATIONS,
+      salt: hexToBytes(parts[2]),
+      hashHex: parts[3].toLowerCase(),
+    };
+  }
+  // V2: ``, `pbkdf2v2`, iters, salt, hash → 5 parts
+  if (parts.length === 5 && parts[1] === 'pbkdf2v2') {
+    const iters = parseInt(parts[2], 10);
+    if (!Number.isFinite(iters) || iters < 1 || iters > 10_000_000) return null;
+    if (!/^[0-9a-f]+$/i.test(parts[3]) || !/^[0-9a-f]+$/i.test(parts[4])) return null;
+    return {
+      version: 'v2',
+      iterations: iters,
+      salt: hexToBytes(parts[3]),
+      hashHex: parts[4].toLowerCase(),
+    };
+  }
+  return null;
 }
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  // Handle seed placeholder
-  if (stored.includes('SEED_PLACEHOLDER')) return false;
+  const parsed = parseStoredHash(stored);
+  if (!parsed) return false;
 
-  const parts = stored.split('$');
-  if (parts.length !== 4 || parts[1] !== 'pbkdf2') return false;
+  const computed = await derivePbkdf2(password, parsed.salt, parsed.iterations);
+  return computed === parsed.hashHex;
+}
 
-  const salt = new Uint8Array(parts[2].match(/.{2}/g)!.map(b => parseInt(b, 16)));
-  const storedHash = parts[3];
-
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits']
-  );
-
-  const hash = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    256
-  );
-
-  const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-  return hashHex === storedHash;
+// True when the stored hash is below the current target — either the
+// legacy V1 format or a V2 hash from an older era with fewer iterations.
+// Callers should re-hash with `hashPassword()` after a successful
+// `verifyPassword()` and update the DB row.
+export function needsRehash(stored: string): boolean {
+  const parsed = parseStoredHash(stored);
+  if (!parsed) return false; // unknown / placeholder — leave alone
+  if (parsed.version === 'v1') return true;
+  return parsed.iterations < PBKDF2_TARGET_ITERATIONS;
 }
 
 // Deterministic SHA-256 hash for API keys — enables a single-row lookup
@@ -104,6 +151,49 @@ export async function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>, secr
   return `${signingInput}.${encodedSignature}`;
 }
 
+// Same as createToken but stamps a `jti` (JWT id) claim so the token can be
+// individually revoked via KV. Caller is responsible for generating the jti
+// (typically crypto.randomUUID()).
+export function createTokenWithJti(
+  payload: Omit<JWTPayload, 'iat' | 'exp' | 'jti'>,
+  secret: string,
+  expiresInSeconds: number,
+  jti: string,
+): Promise<string> {
+  return createToken({ ...payload, jti }, secret, expiresInSeconds);
+}
+
+// Revoke a token by its jti. Writes `revoked:${jti}` to KV with a TTL that
+// matches the token's remaining lifetime — once the token would expire on its
+// own, the KV entry vanishes too, so the blocklist stays bounded.
+// No-op when CACHE binding isn't configured (kv undefined).
+export async function revokeToken(
+  kv: KVNamespace | undefined,
+  jti: string,
+  expiresAt: number,
+): Promise<void> {
+  if (!kv) return;
+  const now = Math.floor(Date.now() / 1000);
+  // KV requires a TTL of at least 60s. If the token is already expired or
+  // about to expire, still write a short entry so concurrent in-flight
+  // requests see the revocation.
+  const ttl = Math.max(60, expiresAt - now);
+  await kv.put(`revoked:${jti}`, '1', { expirationTtl: ttl });
+}
+
+// Returns true when the given jti has been revoked. Returns false when KV
+// isn't configured — callers must decide whether that's acceptable for their
+// deployment (we do: revocation degrades gracefully to "tokens expire on
+// their own").
+export async function isRevoked(
+  kv: KVNamespace | undefined,
+  jti: string,
+): Promise<boolean> {
+  if (!kv) return false;
+  const hit = await kv.get(`revoked:${jti}`);
+  return hit !== null;
+}
+
 export async function verifyToken(token: string, secret: string): Promise<JWTPayload | null> {
   try {
     const parts = token.split('.');
@@ -143,18 +233,20 @@ export async function verifyToken(token: string, secret: string): Promise<JWTPay
 }
 
 export function createAccessToken(user: User, secret: string): Promise<string> {
-  return createToken(
+  return createTokenWithJti(
     { sub: user.id, email: user.email, role: user.role, display_name: user.display_name },
     secret,
-    900 // 15 minutes
+    900, // 15 minutes
+    crypto.randomUUID(),
   );
 }
 
 export function createRefreshToken(user: User, secret: string): Promise<string> {
-  return createToken(
+  return createTokenWithJti(
     { sub: user.id, email: user.email, role: user.role, display_name: user.display_name },
     secret,
-    604800 // 7 days
+    604800, // 7 days
+    crypto.randomUUID(),
   );
 }
 
