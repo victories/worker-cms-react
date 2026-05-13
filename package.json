@@ -8,6 +8,8 @@
     "build:client": "node scripts/build-client.mjs",
     "build:assets": "npm run build:css && npm run build:client",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "deploy": "npm run build:assets && wrangler deploy",
     "db:create": "wrangler d1 create cms-db-v2",
     "db:migrate:local": "wrangler d1 execute cms-db-v2 --local --file=src/db/schema.sql",
@@ -40,6 +42,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitest/expect": "^4.1.6",
     "autoprefixer": "^10.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -48,6 +51,7 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.7.0",
+    "vitest": "^4.1.6",
     "wrangler": "^3.109.0"
   }
 }

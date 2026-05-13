@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings, Variables } from '../../types';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { getMailSettings, sendEmailViaResend, buildSubscriptionEmail } from '../../lib/email';
+import { verifyStripeSignature } from '../../lib/stripe-signature';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 subscriptions.use('*', authMiddleware);
@@ -591,71 +592,6 @@ export async function expireSubscriptions(db: D1Database) {
       "UPDATE users SET package_id = NULL, max_sites = 1, updated_at = datetime('now') WHERE id = ?"
     ).bind(sub.user_id).run();
   }
-}
-
-// --- Stripe signature verification (Web Crypto API, Workers-compatible) ---
-
-// Parses the Stripe-Signature header `t=...,v1=...,v1=...` into its parts.
-function parseStripeSigHeader(header: string): { t: string; v1: string[] } | null {
-  const t: string[] = [];
-  const v1: string[] = [];
-  for (const part of header.split(',')) {
-    const [k, v] = part.split('=', 2);
-    if (k === 't' && v) t.push(v);
-    else if (k === 'v1' && v) v1.push(v);
-  }
-  if (t.length !== 1 || v1.length === 0) return null;
-  return { t: t[0], v1 };
-}
-
-function hexToBytes(hex: string): Uint8Array | null {
-  if (hex.length % 2 !== 0) return null;
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    const byte = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-    if (Number.isNaN(byte)) return null;
-    out[i] = byte;
-  }
-  return out;
-}
-
-function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
-}
-
-// Verify a Stripe webhook payload. Returns true iff the signature header
-// contains at least one v1 entry that matches HMAC-SHA256(secret, `${t}.${body}`)
-// AND the timestamp is within the 5-minute replay tolerance.
-async function verifyStripeSignature(rawBody: string, header: string, secret: string): Promise<boolean> {
-  if (!header || !secret) return false;
-  const parsed = parseStripeSigHeader(header);
-  if (!parsed) return false;
-
-  // Replay protection: reject events older than 5 minutes.
-  const ts = parseInt(parsed.t, 10);
-  if (!Number.isFinite(ts)) return false;
-  const skewSeconds = Math.abs(Math.floor(Date.now() / 1000) - ts);
-  if (skewSeconds > 300) return false;
-
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const expected = new Uint8Array(
-    await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${parsed.t}.${rawBody}`))
-  );
-
-  for (const candidate of parsed.v1) {
-    const sig = hexToBytes(candidate);
-    if (sig && timingSafeEqual(sig, expected)) return true;
-  }
-  return false;
 }
 
 export default subscriptions;
