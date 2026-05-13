@@ -190,8 +190,19 @@ export function LandingSettings() {
       let obj: any = newConfig;
       for (let i = 0; i < keys.length - 1; i++) {
         const k = keys[i];
-        if (!isNaN(Number(k))) obj = obj[Number(k)];
-        else obj = obj[k];
+        const isIdx = !isNaN(Number(k));
+        const cur = isIdx ? obj[Number(k)] : obj[k];
+        // Auto-vivify missing intermediate containers so `updateConfig`
+        // works on freshly-introduced sections (e.g. `nav.items`) that
+        // weren't in the stored config yet. Look at the next path
+        // segment to decide between array and object.
+        if (cur == null) {
+          const next = keys[i + 1];
+          const filled = !isNaN(Number(next)) ? [] : {};
+          if (isIdx) obj[Number(k)] = filled;
+          else obj[k] = filled;
+        }
+        obj = isIdx ? obj[Number(k)] : obj[k];
       }
       const lastKey = keys[keys.length - 1];
       if (!isNaN(Number(lastKey))) obj[Number(lastKey)] = value;
