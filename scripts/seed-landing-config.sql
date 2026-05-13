@@ -1,121 +1,218 @@
--- Landing config seed (agency + migration narrative). Safe to re-run.
+-- Worker CMS Landing v2 — seed for global_settings.landing_config.
+--
+-- Mirrors the Turkish copy of the "Worker CMS Landing v2.html" mock at
+-- the repo root and the React port in src/ssr/pages/Landing.tsx.
+-- Pricing plans are intentionally a tiny default set; production sites
+-- override them by populating the `packages` table (the landing route
+-- merges those rows in at request time — see merge logic in
+-- src/routes/public/landing.ts).
+--
+-- Words wrapped in `{}` braces are rendered as amber italic accents by
+-- the `withAccent()` helper. Example: "{en yakın noktadan}" renders
+-- inside an <em class="text-amber-400 not-italic">.
+--
+-- Idempotent: INSERT OR REPLACE — safe to re-run.
 INSERT OR REPLACE INTO global_settings (key, value) VALUES (
   'landing_config',
   '{
     "enabled": true,
-    "brand": { "name": "WorkerCms", "tagline": "Edge-native publishing platform" },
-    "labels": {
-      "nav": { "features": "Özellikler", "pricing": "Fiyatlar", "faq": "SSS",
-               "login": "Giriş", "cta": "Sitemi Taşı" },
-      "pricing": { "popular_badge": "Popüler", "per_month_suffix": "/ay" },
-      "common": { "learn_more": "Detaylar", "get_started": "Başla" }
+    "brand": {
+      "name": "Worker CMS",
+      "tagline": "Edge''de çalışan modern içerik platformu"
     },
+
     "hero": {
-      "badge": "WP & Ghost migrasyon — 5 dakikada",
-      "title": "Ajansınızın tüm müşteri sitelerini\ntek panelden yönetin.",
-      "subtitle": "Cloudflare edge''inde çalışan multi-site CMS. WordPress XML''inizi yükleyin, biz URL''leri eşleyelim, siz yayınlayın. White-label admin, %63 düşük maliyet, 300+ kenar konumdan servis.",
-      "cta_text": "Sitemi Taşı",
-      "cta_url": "/admin/register",
-      "secondary_cta_text": "Ücretsiz Hesap Aç",
-      "secondary_cta_url": "/admin/register",
+      "badge": "Edge-native CMS · 300+ konum · ~30ms p50",
+      "title": "WordPress''in özgürlüğü, {saniyenin onda biri} hızında.",
+      "subtitle": "Worker CMS, sınırsız siteyi tek panelden yöneten bulut tabanlı içerik platformu. Yapılandırma yok, sunucu yönetimi yok, eklenti çakışması yok — sadece içerik üretin.",
+      "cta_text": "Ücretsiz başla",
+      "cta_url": "#pricing",
+      "secondary_cta_text": "Demo izle",
+      "secondary_cta_url": "#features",
       "stats": [
-        { "value": "5 dk", "label": "Migrasyon süresi" },
-        { "value": "50 ms", "label": "Ortalama TTFB" },
-        { "value": "300+", "label": "Kenar konum" },
-        { "value": "%63", "label": "Maliyet tasarrufu" }
+        { "value": "~30{ms}",  "label": "Yanıt süresi" },
+        { "value": "99.99{%}", "label": "Çalışma süresi" },
+        { "value": "∞",         "label": "Site sayısı" },
+        { "value": "300{+}",   "label": "Edge konumu" }
       ]
     },
-    "migration": {
-      "title": "WP''den 5 dakikada",
-      "subtitle": "Tek bir XML/SQL dosyası yeter. Biz redirectleri ve medyayı otomatik eşleriz.",
-      "steps": [
-        { "icon": "upload", "label": "01 — Yükle", "desc": "WP export XML ya da SQL dosyanızı sürükleyip bırakın. Tüm post''lar, sayfa''lar, medya, kategori, etiket dahil." },
-        { "icon": "linkSwap", "label": "02 — Eşle", "desc": "Eski URL''leriniz otomatik 301 redirect olarak eşlenir. SEO sıralamanız bozulmaz, Search Console farketmez." },
-        { "icon": "rocket", "label": "03 — Yayınla", "desc": "DNS''i çevirin, anlık olarak Cloudflare edge''inden servis başlar. Eski hosting''i bir hafta sonra kapatabilirsiniz." }
-      ]
-    },
-    "features": {
-      "title": "Geleneksel CMS''lerin yapamadığı",
-      "subtitle": "Cloudflare altyapısı üzerine kurulu, sıfır sunucu yöneten bir yayıncılık motoru.",
+
+    "marquee": {
       "items": [
-        { "icon": "upload", "title": "One-click WP import", "desc": "XML/SQL upload, otomatik medya eşleme, 301 redirect haritası — 5 dakikada taşıma." },
-        { "icon": "layers", "title": "Multi-site, tek panel", "desc": "Sınırsız müşteri sitesi, izole D1 + R2 alanı, tek admin login. Ajans için tasarlandı." },
-        { "icon": "zap", "title": "Edge performans", "desc": "50ms ortalama TTFB, 300+ Cloudflare PoP, sıfır soğuk başlangıç. Ölçtük." },
-        { "icon": "sparkles", "title": "AI içerik asistanı", "desc": "Başlık, özet, SEO meta, kapak görseli üretimi — block editör içinde." },
-        { "icon": "shield", "title": "Otomatik backup + 99.99% SLA", "desc": "Günlük yedek, point-in-time restore, sözleşmeli SLA. Ops ekibinize tatil." },
-        { "icon": "code", "title": "Maliyet kıyası", "desc": "WP hosting + plugin + backup + CDN ayrı ayrı $X. Bizde tek paket $Y. Aşağıda tablo." }
+        "Sınırsız çoklu site",
+        "Yerleşik AI asistanı",
+        "AMP otomatik",
+        "FTS arama dahili",
+        "Eklenti sandbox",
+        "Çift editör",
+        "SEO analizci",
+        "Çoklu dil",
+        "2FA + RBAC",
+        "WordPress''ten göç",
+        "Server-side analytics",
+        "Otomatik yedekleme"
       ]
     },
-    "costCompare": {
-      "title": "Aylık maliyet kıyası",
-      "subtitle": "5 müşteri sitesi yöneten orta ölçek bir ajans için tipik aylık operasyonel maliyet.",
-      "before_label": "Geleneksel WP yığını",
-      "after_label": "WorkerCms",
-      "rows": [
-        { "label": "Hosting (5 site)",      "before": "$95",  "after": "$0"   },
-        { "label": "Yedek + monitoring",   "before": "$45",  "after": "Dahil" },
-        { "label": "Plugin lisansları",    "before": "$60",  "after": "Dahil" },
-        { "label": "CDN + medya",          "before": "$30",  "after": "Dahil" },
-        { "label": "Yönetim saatleri (5h)","before": "$220", "after": "$0"   },
-        { "label": "Toplam",               "before": "$450", "after": "$165", "saving": "%63 tasarruf" }
-      ],
-      "footnote": "Plan paketinden bağımsız fix maliyet — Profesyonel plan üzerinden hesaplandı."
-    },
-    "multisite": {
-      "title": "Tek panel, sınırsız müşteri sitesi",
-      "subtitle": "Ajansınızın 50 müşterisini tek admin oturumundan yönetin. Beyaz etiket, müşteriye kendi domain''i ve logosu ile teslim.",
+
+    "architecture": {
+      "eyebrow": "[ 01 ] Performans",
+      "title": "Kullanıcınıza {en yakın noktadan} servis.",
+      "intro": "Sayfa, kullanıcının coğrafi olarak en yakın olduğu sunucudan üretilir. Tek sunuculu klasik CMS''lerde 800ms süren bir istek, Worker CMS''de 30 milisaniyede tamamlanır. Origin sunucusu yok, soğuk başlatma yok, ölçeklenme bekleme yok.",
       "bullets": [
-        "Ortak admin, müşteri-bazlı izolasyon (her site kendi D1 + R2 alanında)",
-        "White-label: müşteriye kendi marka logosu/domain''i ile admin paneli sunun",
-        "Rol tabanlı erişim: editör, çevirmen, sadece okuma",
-        "Toplu güncelleme: 50 sitenin tema/plugin''ini tek tıkla deploy edin"
+        { "text": "Domain başına izole edilmiş içerik ve kullanıcılar" },
+        { "text": "Yerleşik edge cache, içerik değişiminde otomatik temizlenir" },
+        { "text": "Sayfa görüntüleme kayıtları yanıtı geciktirmez (arka plan)" },
+        { "text": "Streaming HTML — ilk byte 50ms altında" }
+      ]
+    },
+
+    "features": {
+      "eyebrow": "[ 02 ] Özellikler",
+      "title": "Bir CMS''den bekleyeceğiniz her şey, {artısı}.",
+      "subtitle": "Tek hesapla sınırsız siteyi yönetin. Her birinin kendi domain''i, içeriği, ekibi ve diliyle.",
+      "items": [
+        { "icon": "grid",     "title": "Sınırsız Çoklu Site",        "desc": "Tek hesap, sınırsız bağımsız site. Her sitenin kendi domain''i, içeriği, ekibi ve diliyle. Tek panelden hepsini yönetin." },
+        { "icon": "pencil",   "title": "Çift Editör + SEO",          "desc": "Zengin metin editörü ve blok editör yan yana. Yazı bazında meta yönetimi, OpenGraph, dahili SEO analizci ve otomatik revizyon geçmişi." },
+        { "icon": "package",  "title": "Eklenti Sandbox",            "desc": "Hook tabanlı eklenti sistemi. Her eklenti izin listesiyle çalışır, izinsiz işlem otomatik engellenir. WordPress''in eklenti çakışmaları artık tarihte." },
+        { "icon": "bolt",     "title": "AMP Otomatik",               "desc": "Mobilde Google''ın hızlandırılmış sayfa formatı bir tıkla aktif. <img> → <amp-img> dönüşümü, AMP analytics, özel domain." },
+        { "icon": "search",   "title": "Yerleşik Tam Metin Arama",    "desc": "Site içi arama dahili. BM25 sıralama: başlık 10x, özet 5x, içerik 1x ağırlıklı. Algolia''ya, Elasticsearch''e ihtiyaç yok." },
+        { "icon": "activity", "title": "Akıllı Edge Cache",          "desc": "Sık ziyaret edilen sayfalar otomatik önbelleğe alınır. İçerik güncellendiğinde cache otomatik temizlenir — manuel purge''e veda." }
+      ]
+    },
+
+    "mcp": {
+      "eyebrow": "[ 03 ] AI Entegrasyonu",
+      "title": "CMS''inizi AI''ya {teslim edin}.",
+      "intro": "Worker CMS, yapay zeka asistanlarıyla yerleşik olarak konuşur. Claude, Cursor veya kendi AI aracınız doğrudan içerik üretir, yorumları moderasyona alır, analytics okur. Kopyala-yapıştır iş akışına son.",
+      "stats": [
+        { "value": "20", "text": "hazır araç: yazılar, medya, taksonomi, yorum, analytics" },
+        { "value": "∞",  "text": "tek hesap, tüm sitelerinizde geçerli" },
+        { "value": "0",  "text": "ek lisans, ek araç, ek aylık ücret" }
+      ]
+    },
+
+    "plugins": {
+      "eyebrow": "[ 04 ] Genişletme",
+      "title": "Eklentiler ve {kısa kodlar}.",
+      "intro": "Kutudan çıkan dahili eklentiler işin %80''ini halleder. Kısa kodlar her yazıya bir satırla galeri, slider, form, son yazı listesi yerleştirir.",
+      "items": [
+        { "icon": "compass", "title": "SEO Optimizer",    "status": "aktif",     "desc": "Otomatik meta açıklama, başlık uyarıları, okuma süresi rozeti, OpenGraph etiketleri." },
+        { "icon": "share",   "title": "Sosyal Paylaşım",  "status": "aktif",     "desc": "9 platforma stillenmiş paylaşım butonları. Yazı altına otomatik eklenir." },
+        { "icon": "mail",    "title": "İletişim Formu",   "status": "opsiyonel", "desc": "reCAPTCHA korumalı form. Mesajlar admin paneline düşer, e-posta bildirimi gönderilir." },
+        { "icon": "video",   "title": "Hero Slider",      "status": "opsiyonel", "desc": "Otomatik oynatma, dokunmatik kaydırma, palet uyumlu stil." }
       ],
-      "dashboard": {
-        "sites": [
-          { "name": "ajansx.com",        "visits": "184 K", "status": "live"  },
-          { "name": "musteri-blog.com",  "visits": "92 K",  "status": "live"  },
-          { "name": "ecommerce-x.com",   "visits": "47 K",  "status": "live"  },
-          { "name": "yeni-launch.com",   "visits": "—",     "status": "draft" },
-          { "name": "kampanya-x.com",    "visits": "12 K",  "status": "live"  }
-        ]
-      }
+      "shortcodes": [
+        { "code": "[slider]",          "desc": "görsel karusel" },
+        { "code": "[galeri]",          "desc": "medya ızgarası" },
+        { "code": "[son-yazilar]",     "desc": "son n yazı" },
+        { "code": "[iletisim-formu]",  "desc": "korumalı form" },
+        { "code": "[sosyal-medya]",    "desc": "9 platform" },
+        { "code": "[arama-formu]",     "desc": "site içi arama" },
+        { "code": "[menu]",            "desc": "navigasyon" },
+        { "code": "[ozel-html]",       "desc": "raw HTML" }
+      ]
     },
+
     "pricing": {
-      "title": "Fiyatlandırma",
-      "subtitle": "İhtiyacınıza uygun planı seçin. Kurumsal için bizimle konuşun."
-    },
-    "testimonials": {
-      "title": "Kullanıcı sesleri",
-      "items": [
-        { "text": "12 müşteri sitemizi WP''den taşıdık. Editörler farkı ilk gün farketti — yayın akışı 1.2 sn''den 180 ms''ye düştü.", "author": "Ayşe Yıldız", "role": "CTO, AjansX" },
-        { "text": "Beyaz etiket admin paneli sayesinde her müşterimize kendi markasıyla CMS sunabiliyoruz. Satış hikayesi değişti.", "author": "Mehmet Kaya", "role": "Kurucu, Studio K" },
-        { "text": "Kişisel blog''umu Ghost''tan taşıdım, 5 dakika sürdü. Aylık hosting + plugin maliyetim 4''te 1''e indi.", "author": "Selin Demir", "role": "Bağımsız yayıncı" }
+      "eyebrow": "[ 05 ] Fiyatlandırma",
+      "title": "Bir fiyat. {Sürpriz yok.}",
+      "subtitle": "Tüm planlarda AI asistanı, edge cache, eklenti sandbox ve sınırsız sayfa görüntüleme dahil.",
+      "plans": [
+        {
+          "name": "Starter",
+          "desc": "Kişisel projeler için",
+          "currency": "",
+          "price": "Ücretsiz",
+          "period": "",
+          "features": [
+            "1 site, 1 domain",
+            "2 ekip üyesi",
+            "5 GB medya depolama",
+            "AI asistanı (aylık 100 işlem)",
+            "Tüm dahili eklentiler"
+          ],
+          "cta_text": "Hemen başla",
+          "cta_url": "/admin/register",
+          "highlighted": false
+        },
+        {
+          "name": "Pro",
+          "desc": "Yayıncılar ve küçük ekipler",
+          "currency": "$",
+          "price": "29",
+          "period": "/ ay",
+          "features": [
+            "10 site, sınırsız domain",
+            "Sınırsız ekip üyesi",
+            "100 GB medya depolama",
+            "AI asistanı (sınırsız)",
+            "WordPress göç asistanı",
+            "Öncelikli destek"
+          ],
+          "cta_text": "Pro''ya geç",
+          "cta_url": "/admin/register",
+          "highlighted": true
+        },
+        {
+          "name": "Enterprise",
+          "desc": "Ajanslar ve kurumlar",
+          "currency": "",
+          "price": "",
+          "period": "",
+          "features": [
+            "Sınırsız site",
+            "SSO + SAML",
+            "SLA garantisi (%99.99)",
+            "Özel eklenti geliştirme",
+            "Atanmış müşteri yöneticisi"
+          ],
+          "cta_text": "Bizimle görüşün",
+          "cta_url": "/iletisim",
+          "highlighted": false,
+          "isEnterprise": true
+        }
       ]
     },
-    "faq": {
-      "title": "Sıkça sorulanlar",
-      "subtitle": "Migration yaparken takıldığınız noktaların kısa cevapları.",
-      "items": [
-        { "q": "Eski URL''lerim bozulur mu?", "a": "Hayır. Migration aracı tüm WP/Ghost slug yapısını otomatik 301 redirect olarak eşler. Search Console pozisyonlarınız bozulmaz." },
-        { "q": "WP plugin''lerim çalışır mı?", "a": "Plugin ekosistemi tek-tek port edilmiyor. Ancak en yaygın 30 plugin''in karşılığı (SEO, form, comment, share) yerleşik geliyor — listeyi pricing altında bulabilirsiniz." },
-        { "q": "Verilerim nerede tutuluyor?", "a": "Cloudflare D1 (SQLite) + R2 (object storage). KVKK için isterseniz Avrupa region''una sabitleyebiliriz; sözleşmede yazılı." },
-        { "q": "SLA garantisi nedir?", "a": "%99.99 uptime — yıllık 52 dakikadan az kesinti. Aşılırsa otomatik kredilendirme. Status sayfası her zaman canlı." },
-        { "q": "White-label nasıl çalışıyor?", "a": "Profesyonel plan ve üzeri: kendi domain''inizi (admin.musteri.com) admin''e bağlayın, kendi logonuzu yükleyin. Müşteri ''powered by'' görmez." },
-        { "q": "Çıkış kolay mı?", "a": "Evet. Tek tık ile tüm içerikleri WordPress XML, Ghost JSON ya da Markdown olarak indirin. Vendor lock-in yok." }
-      ]
-    },
+
     "cta": {
-      "title": "Bugün taşımaya başla.",
-      "subtitle": "Ücretsiz dene, yayınladığında öde. Migration sırasında destek var.",
-      "button_text": "Sitemi Taşı",
+      "title": "Birkaç dakikada yayında.",
+      "subtitle": "İlk sitenizi 60 saniyede oluşturun. Kredi kartı gerekmez.",
+      "button_text": "Ücretsiz hesap oluştur",
       "button_url": "/admin/register"
     },
+
     "footer": {
-      "text": "© 2026 WorkerCms. Tüm hakları saklıdır.",
-      "links": [
-        { "text": "Gizlilik", "url": "/gizlilik" },
-        { "text": "Şartlar", "url": "/sartlar" },
-        { "text": "Durum", "url": "https://status.example.com" }
+      "description": "Edge''de çalışan, çoklu site destekli modern içerik yönetim platformu. WordPress''in özgürlüğü, modern yazılımın hızıyla.",
+      "text": "© 2026 Worker CMS",
+      "columns": [
+        {
+          "title": "Ürün",
+          "links": [
+            { "text": "Özellikler",        "url": "#features" },
+            { "text": "Performans",        "url": "#architecture" },
+            { "text": "AI Entegrasyonu",   "url": "#mcp" },
+            { "text": "Eklentiler",        "url": "#plugins" },
+            { "text": "Fiyatlandırma",     "url": "#pricing" }
+          ]
+        },
+        {
+          "title": "Şirket",
+          "links": [
+            { "text": "Hakkımızda", "url": "/hakkimizda" },
+            { "text": "Blog",        "url": "/blog" },
+            { "text": "Kariyer",     "url": "/kariyer" },
+            { "text": "İletişim",    "url": "/iletisim" }
+          ]
+        },
+        {
+          "title": "Yasal",
+          "links": [
+            { "text": "Gizlilik",            "url": "/gizlilik" },
+            { "text": "Kullanım koşulları",  "url": "/sartlar" },
+            { "text": "KVKK",                 "url": "/kvkk" },
+            { "text": "Durum",                "url": "https://status.example.com" }
+          ]
+        }
       ]
     }
   }'
