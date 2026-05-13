@@ -24,6 +24,11 @@ export interface Variables {
   // bound to a single site (then apiKeySiteId is the only site they reach).
   apiKeyScope?: 'user' | 'site';
   apiKeySiteId?: number | null;
+  // Per-request CSP nonce (set by cspMiddleware). Inline `<script>` and
+  // `<style>` tags rendered into the response must carry this nonce so
+  // the strict CSP allows them while blocking attacker-injected inline
+  // markup. Undefined on non-HTML routes that bail out early.
+  cspNonce?: string;
 }
 
 export interface Site {
@@ -77,6 +82,11 @@ export interface JWTPayload {
   display_name: string;
   iat: number;
   exp: number;
+  // Optional unique token id used for revocation via KV. Issued for tokens
+  // produced by createAccessToken/createRefreshToken from this build forward;
+  // older tokens minted before the revocation feature shipped won't have it
+  // and skip the KV lookup in authMiddleware.
+  jti?: string;
 }
 
 export interface Post {

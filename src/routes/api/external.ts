@@ -6,6 +6,9 @@ import { hashApiKey } from '../../lib/auth';
 import { sanitizeHtml, stripHtml, truncateText } from '../../lib/sanitize';
 import { createSlug, ensureUniqueSlug } from '../../lib/slug';
 import { uploadFile } from '../../lib/storage';
+import { pluginEngine } from '../../lib/plugins/engine';
+import { deindexPost } from '../../lib/search';
+import { cachePurgeSite } from '../../lib/cache';
 
 // Public URL for an R2-hosted media file. The CMS serves /uploads/s/:siteId/...
 // from the worker's R2; we prepend the site's primary domain so external
@@ -290,6 +293,119 @@ external.post('/sites/:id/posts', async (c) => {
       url: publicUrl,
     },
   }, 201);
+});
+
+// DELETE /api/external/sites/:id/posts/bulk — bulk-delete posts by id.
+// Designed for cms-hub orphan cleanup: after `/workercms/refresh` flags
+// remote post ids that no longer exist on the WCMS side, the operator
+// can purge them in one call. Behaviour mirrors POST /api/posts/bulk
+// (hard-delete + cascade child rows + deindex from FTS + cache purge),
+// but here auth is the user-scoped API key, not a JWT.
+//
+// Body: { post_ids: number[] } — at least 1, max 200 per call.
+// Response: { deleted: number, failed: { id: number, reason: string }[] }
+external.delete('/sites/:id/posts/bulk', async (c) => {
+  const siteId = parseInt(c.req.param('id'));
+  if (!Number.isFinite(siteId) || siteId <= 0) {
+    return c.json({ success: false, error: 'Geçersiz site id' }, 400);
+  }
+  const access = await requireSiteAccess(c, siteId);
+  if (!access.ok) return access.res;
+
+  let body: { post_ids?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ success: false, error: 'Geçersiz JSON gövdesi' }, 400);
+  }
+
+  if (!body || typeof body !== 'object' || !Array.isArray((body as any).post_ids)) {
+    return c.json({ success: false, error: 'post_ids dizisi gerekli' }, 400);
+  }
+
+  const rawIds = (body as { post_ids: unknown[] }).post_ids;
+  if (rawIds.length === 0) {
+    return c.json({ success: false, error: 'post_ids boş olamaz' }, 400);
+  }
+  if (rawIds.length > 200) {
+    return c.json({ success: false, error: 'Tek seferde en fazla 200 id silinebilir' }, 400);
+  }
+
+  const failed: Array<{ id: number; reason: string }> = [];
+  const validIds: number[] = [];
+  for (const raw of rawIds) {
+    const n = typeof raw === 'number' ? raw : parseInt(String(raw));
+    if (!Number.isFinite(n) || n <= 0) {
+      failed.push({ id: typeof raw === 'number' ? raw : -1, reason: 'invalid_id' });
+      continue;
+    }
+    validIds.push(n);
+  }
+
+  if (validIds.length === 0) {
+    return c.json({ success: true, data: { deleted: 0, failed } });
+  }
+
+  // Look up which of the requested ids actually belong to this site.
+  // Anything missing (already deleted upstream, or wrong site) goes
+  // straight into `failed` — this is the orphan-cleanup happy path on
+  // the cms-hub side: it sends ids it believes are gone, we confirm.
+  const BATCH_SIZE = 30;
+  const ownedIds: number[] = [];
+  for (let i = 0; i < validIds.length; i += BATCH_SIZE) {
+    const batch = validIds.slice(i, i + BATCH_SIZE);
+    const ph = batch.map(() => '?').join(',');
+    const rows = await c.env.DB.prepare(
+      `SELECT id FROM posts WHERE id IN (${ph}) AND site_id = ?`
+    ).bind(...batch, siteId).all<{ id: number }>();
+    const found = new Set((rows.results ?? []).map((r) => r.id));
+    for (const id of batch) {
+      if (!found.has(id)) failed.push({ id, reason: 'not_found' });
+      else ownedIds.push(id);
+    }
+  }
+
+  if (ownedIds.length === 0) {
+    return c.json({ success: true, data: { deleted: 0, failed } });
+  }
+
+  // Hard-delete with cascade (matches POST /api/posts/bulk action='delete').
+  let deleted = 0;
+  for (const id of ownedIds) {
+    try {
+      await pluginEngine.executeAction('post.beforeDelete', id);
+    } catch {
+      // plugin errors must not block orphan cleanup
+    }
+  }
+  for (let i = 0; i < ownedIds.length; i += BATCH_SIZE) {
+    const batch = ownedIds.slice(i, i + BATCH_SIZE);
+    const ph = batch.map(() => '?').join(',');
+    const stmts = [
+      c.env.DB.prepare(`DELETE FROM post_taxonomies WHERE post_id IN (${ph})`).bind(...batch),
+      c.env.DB.prepare(`DELETE FROM post_meta WHERE post_id IN (${ph})`).bind(...batch),
+      c.env.DB.prepare(`DELETE FROM comments WHERE post_id IN (${ph})`).bind(...batch),
+      c.env.DB.prepare(`DELETE FROM revisions WHERE post_id IN (${ph})`).bind(...batch),
+      c.env.DB.prepare(`DELETE FROM posts WHERE id IN (${ph}) AND site_id = ?`).bind(...batch, siteId),
+    ];
+    const results = await c.env.DB.batch(stmts);
+    deleted += results[4].meta.changes || 0;
+  }
+
+  // FTS deindex + cache purge run in waitUntil so the response returns
+  // immediately. We log the cleanup so wrangler tail / log shippers can
+  // pick it up (no dedicated audit table — schema is frozen).
+  const user = c.get('user')!;
+  console.log(`[external.bulk_delete] user=${user.sub} site=${siteId} deleted=${deleted} failed=${failed.length} ids=${ownedIds.join(',')}`);
+
+  c.executionCtx.waitUntil(
+    Promise.all(ownedIds.map((id) => deindexPost(c.env.DB, id).catch(() => {})))
+  );
+  if (c.env.CACHE) {
+    c.executionCtx.waitUntil(cachePurgeSite(c.env.CACHE, siteId));
+  }
+
+  return c.json({ success: true, data: { deleted, failed } });
 });
 
 // ---- User-scoped key management (called from authenticated admin UI, NOT

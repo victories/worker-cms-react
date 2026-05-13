@@ -137,11 +137,21 @@ async function loadLandingConfig(c: {
 
 // Shared render helper — used by both the /landing route here and by
 // the admin-domain `/` handler in src/index.ts.
+//
+// Accepts either a Hono context (so we can read `cspNonce` via
+// `c.get('cspNonce')`) or a plain `{ env }` object for callers that
+// don't have a full request context yet. The latter falls back to
+// `undefined` for the nonce — the rendered inline script then ships
+// without a nonce attribute and is implicitly allowed by the CSP
+// middleware's bail-out path when no nonce was generated.
 export async function serveLanding(c: {
   env: Bindings;
+  get?: (key: 'cspNonce') => string | undefined;
 }): Promise<Response | null> {
   const config = await loadLandingConfig(c);
   if (!config) return null;
+
+  const cspNonce = c.get?.('cspNonce');
 
   const brand = config.brand ?? {};
   const title = `${brand.name || 'WorkerCms'}${brand.tagline ? ' — ' + brand.tagline : ''}`;
@@ -157,6 +167,7 @@ export async function serveLanding(c: {
 
   // Inline the pre-bundled landing hydration script via bodyEnd.
   const clientScript = createElement('script', {
+    nonce: cspNonce,
     dangerouslySetInnerHTML: { __html: LANDING_CLIENT_JS },
   });
 
@@ -170,6 +181,7 @@ export async function serveLanding(c: {
       // in localStorage, so a returning visitor keeps their choice.
       themeClass: 'dark',
       themeBootScript: DEFAULT_THEME_BOOT,
+      cspNonce,
       head,
       bodyEnd: clientScript,
       children: createElement(Landing, { config }),

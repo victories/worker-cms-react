@@ -48,6 +48,14 @@ export interface ShellProps {
    * `dangerouslySetInnerHTML` immediately after the Tailwind bundle.
    */
   themeBootScript?: string;
+  /**
+   * Per-request CSP nonce sourced from `cspMiddleware` via
+   * `c.var.cspNonce`. When provided, every inline `<script>` we emit
+   * carries `nonce={cspNonce}` so the strict CSP allows them.
+   * Undefined = no nonce attribute (inline script remains, CSP not
+   * enforced, e.g. tests or callers that haven't migrated yet).
+   */
+  cspNonce?: string;
   children: ReactNode;
 }
 
@@ -82,6 +90,7 @@ export function Shell({
   bodyEnd,
   clientBundle,
   themeBootScript,
+  cspNonce,
   children,
 }: ShellProps) {
   return (
@@ -97,7 +106,10 @@ export function Shell({
 
         {/* Theme boot: apply `class="dark"` on <html> before first paint */}
         {themeBootScript ? (
-          <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+          <script
+            nonce={cspNonce}
+            dangerouslySetInnerHTML={{ __html: themeBootScript }}
+          />
         ) : null}
 
         {head}
@@ -106,8 +118,13 @@ export function Shell({
         {bodyStart}
         {children}
         {bodyEnd}
-        {clientBundle ? <script type="module" src={clientBundle} /> : null}
-        <script dangerouslySetInnerHTML={{ __html: DESIGN_PREVIEW_BRIDGE }} />
+        {clientBundle ? (
+          <script type="module" src={clientBundle} nonce={cspNonce} />
+        ) : null}
+        <script
+          nonce={cspNonce}
+          dangerouslySetInnerHTML={{ __html: DESIGN_PREVIEW_BRIDGE }}
+        />
       </body>
     </html>
   );
