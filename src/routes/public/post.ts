@@ -475,7 +475,7 @@ async function renderPostPage(
           lang,
           title: `${p.title} — ${brandName}`,
           description: p.excerpt || p.seo_description || undefined,
-          themeBootScript: DEFAULT_THEME_BOOT,
+          // themeBootScript intentionally omitted — landing v2 is dark-only
           cspNonce,
           head: createElement(
             Fragment,
