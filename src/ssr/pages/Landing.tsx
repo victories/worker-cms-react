@@ -102,9 +102,22 @@ export interface LandingShortcode {
   desc: string;
 }
 
+export interface LandingNavItem {
+  label: string;
+  url: string;
+}
+
 export interface LandingConfig {
   enabled?: boolean;
   brand?: { name?: string; tagline?: string };
+  /** Top nav — admin-editable from /admin/settings/landing → Üst Menü. */
+  nav?: {
+    items?: LandingNavItem[];
+    login_text?: string;
+    login_url?: string;
+    cta_text?: string;
+    cta_url?: string;
+  };
   hero?: {
     badge?: string;
     title?: string;
@@ -422,9 +435,26 @@ function PageContainer({
 
 interface NavProps {
   brandName: string;
+  nav?: LandingConfig['nav'];
 }
 
-function Nav({ brandName }: NavProps) {
+// Fallback used when no `nav` block has been set in landing_config
+// — mirrors the original hand-coded markup so the SSR shell matches
+// the v2.html mock byte-for-byte.
+const DEFAULT_NAV_ITEMS: { label: string; url: string }[] = [
+  { label: 'Özellikler', url: '#features' },
+  { label: 'Performans', url: '#architecture' },
+  { label: 'AI Entegrasyonu', url: '#mcp' },
+  { label: 'Eklentiler', url: '#plugins' },
+  { label: 'Fiyatlandırma', url: '#pricing' },
+];
+
+function Nav({ brandName, nav }: NavProps) {
+  const items = nav?.items && nav.items.length > 0 ? nav.items : DEFAULT_NAV_ITEMS;
+  const loginText = nav?.login_text || 'Giriş yap';
+  const loginUrl = nav?.login_url || '/admin/login';
+  const ctaText = nav?.cta_text;
+  const ctaUrl = nav?.cta_url;
   return (
     <header className="sticky top-0 z-50 border-b border-ink-200/60 backdrop-blur-xl bg-ink-0/72">
       <PageContainer className="h-16 flex items-center justify-between">
@@ -436,29 +466,23 @@ function Nav({ brandName }: NavProps) {
         </a>
 
         <nav className="hidden md:flex items-center gap-8 text-sm text-ink-700">
-          <a href="#features" className="hover:text-ink-900 transition-colors">
-            Özellikler
-          </a>
-          <a href="#architecture" className="hover:text-ink-900 transition-colors">
-            Performans
-          </a>
-          <a href="#mcp" className="hover:text-ink-900 transition-colors">
-            AI Entegrasyonu
-          </a>
-          <a href="#plugins" className="hover:text-ink-900 transition-colors">
-            Eklentiler
-          </a>
-          <a href="#pricing" className="hover:text-ink-900 transition-colors">
-            Fiyatlandırma
-          </a>
+          {items.map((item, i) => (
+            <a
+              key={i}
+              href={item.url || '#'}
+              className="hover:text-ink-900 transition-colors"
+            >
+              {item.label}
+            </a>
+          ))}
         </nav>
 
         <div className="flex items-center gap-2">
           <a
-            href="/admin/login"
+            href={loginUrl}
             className="hidden sm:inline-flex items-center text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 transition-colors"
           >
-            Giriş yap
+            {loginText}
           </a>
           {/* Theme toggle island — hydrated by landing-entry.tsx. The
               SSR markup matches what the island will render so there
@@ -506,10 +530,10 @@ function Nav({ brandName }: NavProps) {
           </span>
 
           <a
-            href="#pricing"
+            href={ctaUrl || '#pricing'}
             className="text-sm font-semibold bg-amber-400 text-ink-0 px-4 py-1.5 rounded-md hover:bg-amber-500 transition-colors"
           >
-            Ücretsiz başla
+            {ctaText || 'Ücretsiz başla'}
           </a>
         </div>
       </PageContainer>
@@ -1583,7 +1607,7 @@ export function Landing({ config }: LandingProps) {
 
   return (
     <div className="landing-v2 min-h-screen bg-ink-0 text-ink-800 [scroll-behavior:smooth]">
-      <Nav brandName={brandName} />
+      <Nav brandName={brandName} nav={config.nav} />
       <main>
         <Hero hero={hero} />
         <Marquee items={marqueeItems} />
