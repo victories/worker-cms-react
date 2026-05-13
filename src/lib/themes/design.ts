@@ -99,6 +99,7 @@ export function buildDefaultDesign(): ActiveDesign {
     presetSlug: DEFAULT_PALETTE_SLUG,
     updatedAt: new Date().toISOString(),
     isDefault: true,
+    colorMode: 'light',
   };
 }
 
@@ -158,6 +159,9 @@ export async function loadActiveDesign(
 
     if (!row) return buildDefaultDesign();
 
+    const mode = (row as any).default_color_mode;
+    const colorMode: 'light' | 'dark' | 'auto' =
+      mode === 'dark' || mode === 'auto' ? mode : 'light';
     return {
       styleTokens: ensureStyle(safeParse<Partial<StyleTokens>>(row.style_tokens, {})),
       layoutConfig: ensureLayout(safeParse<Partial<LayoutConfig>>(row.layout_config, {})),
@@ -165,6 +169,7 @@ export async function loadActiveDesign(
       presetSlug: row.preset_slug,
       updatedAt: row.updated_at,
       isDefault: false,
+      colorMode,
     };
   } catch {
     return buildDefaultDesign();
@@ -197,6 +202,7 @@ export async function saveActiveDesign(
     presetSlug: payload.presetSlug !== undefined ? payload.presetSlug : current.presetSlug,
     updatedAt: new Date().toISOString(),
     isDefault: false,
+    colorMode: current.colorMode,
   };
 
   await db
