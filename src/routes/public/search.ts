@@ -50,6 +50,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
   const lp = langPrefix(lang, defaultLang);
   const query = c.req.query('q') || '';
   const page = parseInt(c.req.query('page') || '1');
+  const cspNonce: string | undefined = c.get('cspNonce');
 
   const searchNeeds = extractDesignSidebarNeeds(c.get('activeDesign'));
   const searchBaseUrl = new URL(c.req.url);
@@ -132,6 +133,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
         lang,
         themeClass: theme.color_mode === 'dark' ? 'dark' : undefined,
         themeBootScript: DEFAULT_THEME_BOOT,
+        cspNonce,
         head: createElement(
           Fragment,
           null,
@@ -147,6 +149,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
           pluginSlots.bodyEnd,
           analyticsBodyNode,
           createElement('script', {
+            nonce: cspNonce,
             dangerouslySetInnerHTML: { __html: PUBLISHER_CLIENT_JS },
           })
         ),
@@ -235,6 +238,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
       lang,
       themeClass: theme.color_mode === 'dark' ? 'dark' : undefined,
       themeBootScript: DEFAULT_THEME_BOOT,
+      cspNonce,
       head: createElement(
         Fragment,
         null,
@@ -250,6 +254,7 @@ async function renderSearchPage(c: any, lang: string): Promise<Response> {
         pluginSlots.bodyEnd,
         analyticsBodyNode,
         createElement('script', {
+          nonce: cspNonce,
           dangerouslySetInnerHTML: { __html: PUBLISHER_CLIENT_JS },
         })
       ),
