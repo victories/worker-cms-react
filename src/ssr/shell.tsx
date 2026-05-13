@@ -96,17 +96,6 @@ export function Shell({
   return (
     <html lang={lang} className={themeClass} suppressHydrationWarning>
       <head>
-        {/* No-js → js feature flag. Synchronously adds class="js" to
-            <html> before <body> parses, so the `html.js .reveal`
-            CSS rule (in public-styles/input.css) applies before any
-            reveal elements render. Without JS this script never runs
-            and the html.js selector never matches → all reveals stay
-            visible. Standard Modernizr-style no-js pattern. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: "document.documentElement.classList.add('js')",
-          }}
-        />
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         {title ? <title>{title}</title> : null}
