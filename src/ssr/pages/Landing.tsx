@@ -491,7 +491,7 @@ function Nav({ brandName, nav }: NavProps) {
               the shadcn `border-input` / `bg-background` classes, so
               React saw a mismatch and threw error #418.) */}
 
-          <
+          <a
             href={ctaUrl || '#pricing'}
             className="text-sm font-semibold bg-amber-400 text-ink-0 px-4 py-1.5 rounded-md hover:bg-amber-500 transition-colors"
           >
