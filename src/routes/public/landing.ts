@@ -38,6 +38,11 @@ async function mergePackagesIntoPricing(
   c: { env: Bindings },
   config: LandingConfig
 ): Promise<void> {
+  // Admin's manually-curated plans (saved via /admin/settings/landing →
+  // Fiyatlandırma) win over the auto-generated `packages` table.
+  // Without this guard the merge below clobbers every edit on the
+  // next request.
+  if (config.pricing?.plans && config.pricing.plans.length > 0) return;
   try {
     const pkgResult = await c.env.DB.prepare(
       'SELECT * FROM packages WHERE is_active = 1 ORDER BY sort_order ASC, price_monthly ASC'
