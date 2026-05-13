@@ -190,6 +190,11 @@ INSERT OR REPLACE INTO global_settings (key, value) VALUES (
       "button_url": "/admin/register"
     },
 
+    "testimonials": {
+      "title": "",
+      "items": []
+    },
+
     "footer": {
       "description": "Edge''de çalışan, çoklu site destekli modern içerik yönetim platformu. WordPress''in özgürlüğü, modern yazılımın hızıyla.",
       "text": "© 2026 Worker CMS",
