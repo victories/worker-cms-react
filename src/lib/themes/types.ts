@@ -150,6 +150,24 @@ export interface StyleTokens {
 }
 
 /**
+ * Style preset shown in the admin "Stil" picker. Pairs a palette with
+ * the type tokens (font choice + radius) that complete a one-click look.
+ */
+export interface StylePreset {
+  slug: string;
+  name: string;
+  description: string;
+  paletteSlug: string;
+  /** CSS `--radius` value, with unit (e.g. '0.5rem'). */
+  radius: string;
+  fonts: {
+    sans: string;
+    heading: string;
+    mono: string;
+  };
+}
+
+/**
  * One renderable item inside a layout column. `id` is a registry key
  * (`'logo'`, `'menu'`, `'widget:recent-posts'`, ...); `props` is an
  * opaque per-slot config bag forwarded to the slot component at SSR.
