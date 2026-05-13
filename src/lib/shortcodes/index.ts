@@ -20,7 +20,7 @@ import './renderers/video';
 import './renderers/sosyal-medya';
 import './renderers/iletisim-formu';
 
-export { ShortcodeContext } from './registry';
+export type { ShortcodeContext } from './registry';
 export { getRegisteredNames } from './registry';
 
 /**
