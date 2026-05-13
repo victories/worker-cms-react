@@ -1633,7 +1633,7 @@ export function LandingPage({ title, contentHtml, excerpt, config }: LandingPage
             ) : null}
           </header>
           <div
-            className="landing-page-prose text-ink-800 leading-relaxed"
+            className="landing-page-body text-ink-800 leading-relaxed"
             dangerouslySetInnerHTML={{ __html: contentHtml }}
           />
         </PageContainer>
