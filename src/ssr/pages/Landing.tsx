@@ -196,6 +196,229 @@ export interface LandingConfig {
   };
 }
 
+// ── UI strings (hardcoded chrome) ────────────────────────────────────
+//
+// The data-driven copy (hero/features/pricing/...) comes from the
+// landing_config; these are the strings baked into the component itself
+// (the architecture SVG labels, the AI chat demo, pricing badges, footer
+// fallbacks). They are keyed by language so the landing renders cleanly
+// in English for the global audience. The `tr` values must stay
+// byte-identical to the previous hardcoded literals so the production
+// Turkish landing is unchanged.
+
+export type LandingLang = 'tr' | 'en';
+
+interface LandingUiStrings {
+  hero: { noCard: string };
+  arch: {
+    visitor: string;
+    visitorCity: string;
+    nearestEdge: string;
+    rtt: string;
+    runtime: string;
+    runtimeSub: string;
+    mwSecurity: string;
+    mwRate: string;
+    mwSite: string;
+    mwLang: string;
+    mwPlugins: string;
+    restApi: string;
+    restSub1: string;
+    restSub2: string;
+    restSub3: string;
+    renderer: string;
+    rendererSub1: string;
+    rendererSub2: string;
+    rendererSub3: string;
+    admin: string;
+    adminSub1: string;
+    adminSub2: string;
+    adminSub3: string;
+    dbContent: string;
+    dbContentSub: string;
+    dbMedia: string;
+    dbMediaSub: string;
+    cache: string;
+    cacheSub: string;
+    footerLeft: string;
+    live: string;
+  };
+  featureSub: Array<{ icon: string; title: string; desc: string }>;
+  mcp: {
+    included: string;
+    chatTitle: string;
+    connected: string;
+    you: string;
+    userMsg: string;
+    assistant: string;
+    steps: Array<[string, string]>;
+    responseLead: string;
+    responseQuoted: string;
+    compatible: string;
+    extraProtocol: string;
+  };
+  plugins: { builtinHeading: string; shortcodeSuffix: string; extraList: string };
+  pricing: { popular: string; custom: string; free: string; contactCta: string; startCta: string };
+  footer: { tagline: string; bottomRight: string; linksFallback: string };
+}
+
+export const LANDING_UI: Record<LandingLang, LandingUiStrings> = {
+  tr: {
+    hero: { noCard: 'Kredi kartı gerekmez' },
+    arch: {
+      visitor: 'Ziyaretçi',
+      visitorCity: 'istanbul',
+      nearestEdge: 'En Yakın Edge',
+      rtt: '~12ms RTT',
+      runtime: 'Worker CMS Runtime',
+      runtimeSub: "tüm istekler edge'de işlenir · origin yok",
+      mwSecurity: 'Güvenlik',
+      mwRate: 'Hız Limiti',
+      mwSite: 'Site Çözümleme',
+      mwLang: 'Dil',
+      mwPlugins: 'Eklentiler',
+      restApi: 'REST API',
+      restSub1: 'JWT + 2FA',
+      restSub2: '4 rol RBAC',
+      restSub3: 'API anahtarları',
+      renderer: 'Render Motoru',
+      rendererSub1: 'streaming HTML',
+      rendererSub2: '+ AMP',
+      rendererSub3: '+ RSS · Sitemap',
+      admin: 'Yönetim Paneli',
+      adminSub1: 'çift editör',
+      adminSub2: 'SEO · medya',
+      adminSub3: 'analytics',
+      dbContent: 'İçerik Veritabanı',
+      dbContentSub: 'FTS arama dahili',
+      dbMedia: 'Medya Depolama',
+      dbMediaSub: 'sınırsız dosya',
+      cache: 'Edge Cache',
+      cacheSub: 'otomatik purge',
+      footerLeft: '↳ Origin yok · Tek istek · ~30ms p50',
+      live: 'canlı',
+    },
+    featureSub: [
+      { icon: 'shield', title: 'Kurumsal güvenlik', desc: '2FA, RBAC, API anahtarları' },
+      { icon: 'eye', title: 'Server-side analytics', desc: 'Bot filtreleme, ülke algılama' },
+      { icon: 'globe', title: 'Çoklu dil', desc: 'Çeviri grupları, dil rotaları' },
+      { icon: 'download', title: 'WordPress göçü', desc: 'WXR import, tek tıkla aktarım' },
+    ],
+    mcp: {
+      included: 'Tüm planlarda dahil',
+      chatTitle: 'AI Asistanı · workercms',
+      connected: 'bağlı',
+      you: 'SİZ',
+      userMsg: "Site 1'de bekleyen yorumları onayla, sonra son 5 yazıyı listele.",
+      assistant: 'ASİSTAN',
+      steps: [
+        ['Bekleyen yorumları al →', '3 sonuç'],
+        ['3 yorumu onayla →', 'başarılı'],
+        ['Son 5 yazıyı getir →', '5 sonuç'],
+      ],
+      responseLead: '3 yorum onaylandı. İşte son 5 yazı: ',
+      responseQuoted: "“Edge'de yayıncılık”, “AI ile içerik akışı”, ...",
+      compatible: 'Uyumlu',
+      extraProtocol: '+ standart protokol',
+    },
+    plugins: {
+      builtinHeading: 'Dahili eklentiler',
+      shortcodeSuffix: 'kısa kod',
+      extraList: 'video, kategori, widget, ayırıcı, boşluk, yazı',
+    },
+    pricing: {
+      popular: 'En popüler',
+      custom: 'Özel',
+      free: 'Ücretsiz',
+      contactCta: 'Bizimle görüşün',
+      startCta: 'Hemen başla',
+    },
+    footer: {
+      tagline:
+        "Edge'de çalışan, çoklu site destekli modern içerik yönetim platformu. WordPress'in özgürlüğü, modern yazılımın hızıyla.",
+      bottomRight: 'Edge-native · Sınırsız ölçek',
+      linksFallback: 'Bağlantılar',
+    },
+  },
+  en: {
+    hero: { noCard: 'No credit card required' },
+    arch: {
+      visitor: 'Visitor',
+      visitorCity: 'london',
+      nearestEdge: 'Nearest Edge',
+      rtt: '~12ms RTT',
+      runtime: 'Worker CMS Runtime',
+      runtimeSub: 'every request handled at the edge · no origin',
+      mwSecurity: 'Security',
+      mwRate: 'Rate Limit',
+      mwSite: 'Site Resolve',
+      mwLang: 'Language',
+      mwPlugins: 'Plugins',
+      restApi: 'REST API',
+      restSub1: 'JWT + 2FA',
+      restSub2: '4-role RBAC',
+      restSub3: 'API keys',
+      renderer: 'Render Engine',
+      rendererSub1: 'streaming HTML',
+      rendererSub2: '+ AMP',
+      rendererSub3: '+ RSS · Sitemap',
+      admin: 'Admin Panel',
+      adminSub1: 'dual editor',
+      adminSub2: 'SEO · media',
+      adminSub3: 'analytics',
+      dbContent: 'Content Database',
+      dbContentSub: 'FTS search built in',
+      dbMedia: 'Media Storage',
+      dbMediaSub: 'unlimited files',
+      cache: 'Edge Cache',
+      cacheSub: 'auto purge',
+      footerLeft: '↳ No origin · Single request · ~30ms p50',
+      live: 'live',
+    },
+    featureSub: [
+      { icon: 'shield', title: 'Enterprise security', desc: '2FA, RBAC, API keys' },
+      { icon: 'eye', title: 'Server-side analytics', desc: 'Bot filtering, country detection' },
+      { icon: 'globe', title: 'Multilingual', desc: 'Translation groups, language routes' },
+      { icon: 'download', title: 'WordPress migration', desc: 'WXR import, one-click transfer' },
+    ],
+    mcp: {
+      included: 'Included in all plans',
+      chatTitle: 'AI Assistant · workercms',
+      connected: 'connected',
+      you: 'YOU',
+      userMsg: 'Approve the pending comments on Site 1, then list the last 5 posts.',
+      assistant: 'ASSISTANT',
+      steps: [
+        ['Fetch pending comments →', '3 results'],
+        ['Approve 3 comments →', 'done'],
+        ['Get last 5 posts →', '5 results'],
+      ],
+      responseLead: '3 comments approved. Here are the last 5 posts: ',
+      responseQuoted: '“Publishing on the edge”, “Content flow with AI”, ...',
+      compatible: 'Compatible',
+      extraProtocol: '+ standard protocol',
+    },
+    plugins: {
+      builtinHeading: 'Built-in plugins',
+      shortcodeSuffix: 'shortcodes',
+      extraList: 'video, category, widget, divider, spacer, post',
+    },
+    pricing: {
+      popular: 'Most popular',
+      custom: 'Custom',
+      free: 'Free',
+      contactCta: 'Talk to us',
+      startCta: 'Get started',
+    },
+    footer: {
+      tagline:
+        'A modern, edge-native, multi-site content management platform. The freedom of WordPress, at the speed of modern software.',
+      bottomRight: 'Edge-native · Unlimited scale',
+      linksFallback: 'Links',
+    },
+  },
+};
+
 // ── Wordmark + brand SVG ─────────────────────────────────────────────
 
 /**
@@ -436,6 +659,10 @@ function PageContainer({
 interface NavProps {
   brandName: string;
   nav?: LandingConfig['nav'];
+  /** Active language — controls which flag is highlighted. */
+  lang?: 'tr' | 'en';
+  /** Current request path, used to build the `next` redirect for the flags. */
+  path?: string;
 }
 
 // Fallback used when no `nav` block has been set in landing_config
@@ -449,12 +676,13 @@ const DEFAULT_NAV_ITEMS: { label: string; url: string }[] = [
   { label: 'Fiyatlandırma', url: '#pricing' },
 ];
 
-function Nav({ brandName, nav }: NavProps) {
+function Nav({ brandName, nav, lang = 'tr', path = '/' }: NavProps) {
   const items = nav?.items && nav.items.length > 0 ? nav.items : DEFAULT_NAV_ITEMS;
   const loginText = nav?.login_text || 'Giriş yap';
   const loginUrl = nav?.login_url || '/admin/login';
   const ctaText = nav?.cta_text;
   const ctaUrl = nav?.cta_url;
+  const nextParam = encodeURIComponent(path || '/');
   return (
     <header className="sticky top-0 z-50 border-b border-ink-200/60 backdrop-blur-xl bg-ink-0/72">
       <PageContainer className="h-16 flex items-center justify-between">
@@ -478,6 +706,33 @@ function Nav({ brandName, nav }: NavProps) {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Language switcher — plain links to /set-lang/:lang so the
+              choice persists in the cms_lang cookie without any client
+              JS (see src/routes/public/set-lang.ts). */}
+          <div className="flex items-center gap-0.5 mr-1" role="group" aria-label="Language">
+            <a
+              href={`/set-lang/en?next=${nextParam}`}
+              aria-label="English"
+              aria-current={lang === 'en' ? 'true' : undefined}
+              className={cn(
+                'px-1.5 py-1 rounded text-base leading-none transition-opacity',
+                lang === 'en' ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+              )}
+            >
+              <span aria-hidden="true">🇬🇧</span>
+            </a>
+            <a
+              href={`/set-lang/tr?next=${nextParam}`}
+              aria-label="Türkçe"
+              aria-current={lang === 'tr' ? 'true' : undefined}
+              className={cn(
+                'px-1.5 py-1 rounded text-base leading-none transition-opacity',
+                lang === 'tr' ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+              )}
+            >
+              <span aria-hidden="true">🇹🇷</span>
+            </a>
+          </div>
           <a
             href={loginUrl}
             className="hidden sm:inline-flex items-center text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 transition-colors"
@@ -507,9 +762,11 @@ function Nav({ brandName, nav }: NavProps) {
 
 interface HeroProps {
   hero: NonNullable<LandingConfig['hero']>;
+  lang: LandingLang;
 }
 
-function Hero({ hero }: HeroProps) {
+function Hero({ hero, lang }: HeroProps) {
+  const t = LANDING_UI[lang];
   return (
     <section className="relative overflow-hidden hero-glow grain">
       <div className="absolute inset-0 grid-dots opacity-50 pointer-events-none" />
@@ -561,7 +818,7 @@ function Hero({ hero }: HeroProps) {
             </a>
           ) : null}
           <span className="text-xs text-ink-600 font-mono ml-2 hidden sm:inline">
-            Kredi kartı gerekmez
+            {t.hero.noCard}
           </span>
         </div>
 
@@ -613,10 +870,12 @@ function Marquee({ items }: MarqueeProps) {
 
 interface ArchitectureProps {
   arch: NonNullable<LandingConfig['architecture']>;
+  lang: LandingLang;
 }
 
-function Architecture({ arch }: ArchitectureProps) {
+function Architecture({ arch, lang }: ArchitectureProps) {
   const bullets = arch.bullets ?? [];
+  const t = LANDING_UI[lang].arch;
   return (
     <section id="architecture" className="relative py-28 lg:py-36">
       <PageContainer>
@@ -683,7 +942,7 @@ function Architecture({ arch }: ArchitectureProps) {
                     fontSize="11"
                     fontWeight="600"
                   >
-                    Ziyaretçi
+                    {t.visitor}
                   </text>
                   <text
                     x="80"
@@ -693,7 +952,7 @@ function Architecture({ arch }: ArchitectureProps) {
                     fontFamily="JetBrains Mono"
                     fontSize="9"
                   >
-                    istanbul
+                    {t.visitorCity}
                   </text>
                 </g>
 
@@ -726,7 +985,7 @@ function Architecture({ arch }: ArchitectureProps) {
                     fontSize="11"
                     fontWeight="600"
                   >
-                    En Yakın Edge
+                    {t.nearestEdge}
                   </text>
                   <text
                     x="246"
@@ -735,7 +994,7 @@ function Architecture({ arch }: ArchitectureProps) {
                     fontFamily="JetBrains Mono"
                     fontSize="9"
                   >
-                    ~12ms RTT
+                    {t.rtt}
                   </text>
                 </g>
 
@@ -765,7 +1024,7 @@ function Architecture({ arch }: ArchitectureProps) {
                     fontSize="12"
                     fontWeight="600"
                   >
-                    Worker CMS Runtime
+                    {t.runtime}
                   </text>
                   <text
                     x="80"
@@ -774,7 +1033,7 @@ function Architecture({ arch }: ArchitectureProps) {
                     fontFamily="JetBrains Mono"
                     fontSize="9"
                   >
-                    tüm istekler edge&apos;de işlenir · origin yok
+                    {t.runtimeSub}
                   </text>
 
                   {/* Middleware pipeline */}
@@ -793,7 +1052,7 @@ function Architecture({ arch }: ArchitectureProps) {
                       fontFamily="JetBrains Mono"
                       fontSize="10"
                     >
-                      Güvenlik
+                      {t.mwSecurity}
                     </text>
                     <text x="78" y="20" fill="#5C5C66">→</text>
                     <text
@@ -803,7 +1062,7 @@ function Architecture({ arch }: ArchitectureProps) {
                       fontFamily="JetBrains Mono"
                       fontSize="10"
                     >
-                      Hız Limiti
+                      {t.mwRate}
                     </text>
                     <text x="166" y="20" fill="#5C5C66">→</text>
                     <text
@@ -814,7 +1073,7 @@ function Architecture({ arch }: ArchitectureProps) {
                       fontSize="10"
                       fontWeight="600"
                     >
-                      Site Çözümleme
+                      {t.mwSite}
                     </text>
                     <text x="288" y="20" fill="#5C5C66">→</text>
                     <text
@@ -824,7 +1083,7 @@ function Architecture({ arch }: ArchitectureProps) {
                       fontFamily="JetBrains Mono"
                       fontSize="10"
                     >
-                      Dil
+                      {t.mwLang}
                     </text>
                     <text x="328" y="20" fill="#5C5C66">→</text>
                     <text
@@ -835,17 +1094,17 @@ function Architecture({ arch }: ArchitectureProps) {
                       fontSize="10"
                       fontWeight="600"
                     >
-                      Eklentiler
+                      {t.mwPlugins}
                     </text>
                   </g>
 
                   {/* Three runtime sub-cards: API, Renderer, Admin */}
                   <g transform="translate(80, 210)">
                     <rect width="120" height="90" rx="8" fill="#141418" stroke="#26262C" />
-                    <text x="60" y="22" textAnchor="middle" fill="#FAFAF7" fontFamily="Inter" fontSize="11" fontWeight="600">REST API</text>
-                    <text x="60" y="40" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">JWT + 2FA</text>
-                    <text x="60" y="60" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">4 rol RBAC</text>
-                    <text x="60" y="76" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">API anahtarları</text>
+                    <text x="60" y="22" textAnchor="middle" fill="#FAFAF7" fontFamily="Inter" fontSize="11" fontWeight="600">{t.restApi}</text>
+                    <text x="60" y="40" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">{t.restSub1}</text>
+                    <text x="60" y="60" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">{t.restSub2}</text>
+                    <text x="60" y="76" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">{t.restSub3}</text>
                   </g>
                   <g transform="translate(220, 210)">
                     <rect
@@ -856,17 +1115,17 @@ function Architecture({ arch }: ArchitectureProps) {
                       stroke="#F5A524"
                       strokeOpacity=".4"
                     />
-                    <text x="60" y="22" textAnchor="middle" fill="#FAFAF7" fontFamily="Inter" fontSize="11" fontWeight="600">Render Motoru</text>
-                    <text x="60" y="40" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">streaming HTML</text>
-                    <text x="60" y="60" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">+ AMP</text>
-                    <text x="60" y="76" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">+ RSS · Sitemap</text>
+                    <text x="60" y="22" textAnchor="middle" fill="#FAFAF7" fontFamily="Inter" fontSize="11" fontWeight="600">{t.renderer}</text>
+                    <text x="60" y="40" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">{t.rendererSub1}</text>
+                    <text x="60" y="60" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">{t.rendererSub2}</text>
+                    <text x="60" y="76" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">{t.rendererSub3}</text>
                   </g>
                   <g transform="translate(360, 210)">
                     <rect width="120" height="90" rx="8" fill="#141418" stroke="#26262C" />
-                    <text x="60" y="22" textAnchor="middle" fill="#FAFAF7" fontFamily="Inter" fontSize="11" fontWeight="600">Yönetim Paneli</text>
-                    <text x="60" y="40" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">çift editör</text>
-                    <text x="60" y="60" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">SEO · medya</text>
-                    <text x="60" y="76" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">analytics</text>
+                    <text x="60" y="22" textAnchor="middle" fill="#FAFAF7" fontFamily="Inter" fontSize="11" fontWeight="600">{t.admin}</text>
+                    <text x="60" y="40" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">{t.adminSub1}</text>
+                    <text x="60" y="60" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">{t.adminSub2}</text>
+                    <text x="60" y="76" textAnchor="middle" fill="#5C5C66" fontFamily="JetBrains Mono" fontSize="9">{t.adminSub3}</text>
                   </g>
                 </g>
 
@@ -878,26 +1137,26 @@ function Architecture({ arch }: ArchitectureProps) {
                 {/* Data layer */}
                 <g>
                   <rect x="120" y="360" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42" />
-                  <text x="180" y="382" textAnchor="middle" fill="#E2E2E5" fontFamily="Inter" fontSize="11" fontWeight="600">İçerik Veritabanı</text>
-                  <text x="180" y="396" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">FTS arama dahili</text>
+                  <text x="180" y="382" textAnchor="middle" fill="#E2E2E5" fontFamily="Inter" fontSize="11" fontWeight="600">{t.dbContent}</text>
+                  <text x="180" y="396" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">{t.dbContentSub}</text>
                 </g>
                 <g>
                   <rect x="220" y="360" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42" />
-                  <text x="280" y="382" textAnchor="middle" fill="#E2E2E5" fontFamily="Inter" fontSize="11" fontWeight="600">Medya Depolama</text>
-                  <text x="280" y="396" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">sınırsız dosya</text>
+                  <text x="280" y="382" textAnchor="middle" fill="#E2E2E5" fontFamily="Inter" fontSize="11" fontWeight="600">{t.dbMedia}</text>
+                  <text x="280" y="396" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">{t.dbMediaSub}</text>
                 </g>
                 <g>
                   <rect x="320" y="360" width="120" height="48" rx="8" fill="#141418" stroke="#3A3A42" />
-                  <text x="380" y="382" textAnchor="middle" fill="#E2E2E5" fontFamily="Inter" fontSize="11" fontWeight="600">Edge Cache</text>
-                  <text x="380" y="396" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">otomatik purge</text>
+                  <text x="380" y="382" textAnchor="middle" fill="#E2E2E5" fontFamily="Inter" fontSize="11" fontWeight="600">{t.cache}</text>
+                  <text x="380" y="396" textAnchor="middle" fill="#8A8A93" fontFamily="JetBrains Mono" fontSize="9">{t.cacheSub}</text>
                 </g>
               </svg>
 
               <div className="mt-6 flex items-center justify-between text-[10px] font-mono text-ink-600 uppercase tracking-wider">
-                <span>↳ Origin yok · Tek istek · ~30ms p50</span>
+                <span>{t.footerLeft}</span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                  canlı
+                  {t.live}
                 </span>
               </div>
             </div>
@@ -912,24 +1171,16 @@ function Architecture({ arch }: ArchitectureProps) {
 
 interface FeaturesProps {
   features: NonNullable<LandingConfig['features']>;
+  lang: LandingLang;
 }
 
-/**
- * Sub-feature mini-grid that sits below the main 6-card grid. Items are
- * hardcoded to match v2.html lines 450-466 because they describe ground-
- * truth platform capabilities (RBAC, server-side analytics, i18n, WP
- * import) that aren't user-tunable from the admin. If we ever need to
- * pull these from config, expose a `features.miniItems` field.
- */
-const FEATURE_SUB_ITEMS: Array<{ icon: string; title: string; desc: string }> = [
-  { icon: 'shield', title: 'Kurumsal güvenlik', desc: '2FA, RBAC, API anahtarları' },
-  { icon: 'eye', title: 'Server-side analytics', desc: 'Bot filtreleme, ülke algılama' },
-  { icon: 'globe', title: 'Çoklu dil', desc: 'Çeviri grupları, dil rotaları' },
-  { icon: 'download', title: 'WordPress göçü', desc: 'WXR import, tek tıkla aktarım' },
-];
-
-function Features({ features }: FeaturesProps) {
+function Features({ features, lang }: FeaturesProps) {
   const items = features.items ?? [];
+  // Sub-feature mini-grid below the main 6-card grid. These describe
+  // ground-truth platform capabilities (RBAC, server-side analytics,
+  // i18n, WP import) that aren't user-tunable from the admin, so they
+  // live in the per-language UI strings rather than the config.
+  const subItems = LANDING_UI[lang].featureSub;
   return (
     <section id="features" className="relative py-24 lg:py-32 border-t border-ink-200">
       <PageContainer>
@@ -975,7 +1226,7 @@ function Features({ features }: FeaturesProps) {
         ) : null}
 
         <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {FEATURE_SUB_ITEMS.map((sub, i) => (
+          {subItems.map((sub, i) => (
             <div
               key={i}
               className="reveal flex items-start gap-3 p-4 rounded-lg border border-ink-200 hover:border-ink-300 transition-colors"
@@ -1002,10 +1253,12 @@ function Features({ features }: FeaturesProps) {
 
 interface McpProps {
   mcp: NonNullable<LandingConfig['mcp']>;
+  lang: LandingLang;
 }
 
-function Mcp({ mcp }: McpProps) {
+function Mcp({ mcp, lang }: McpProps) {
   const stats = mcp.stats ?? [];
+  const t = LANDING_UI[lang].mcp;
   return (
     <section
       id="mcp"
@@ -1045,7 +1298,7 @@ function Mcp({ mcp }: McpProps) {
 
             <div className="mt-8 inline-flex items-center gap-2 text-xs text-ink-600 font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Tüm planlarda dahil
+              {t.included}
             </div>
           </div>
 
@@ -1057,35 +1310,31 @@ function Mcp({ mcp }: McpProps) {
               <div className="px-4 py-3 border-b border-ink-200 bg-ink-50 flex items-center gap-2">
                 <Icon name="msg" size={14} stroke="#F5A524" strokeWidth={2} />
                 <span className="font-mono text-[11px] text-ink-600">
-                  AI Asistanı · workercms
+                  {t.chatTitle}
                 </span>
                 <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  bağlı
+                  {t.connected}
                 </span>
               </div>
 
               <div className="p-5 space-y-4 text-sm">
                 <div>
                   <div className="text-[10px] font-mono text-ink-600 uppercase mb-1.5">
-                    SİZ
+                    {t.you}
                   </div>
                   <div className="text-ink-800 bg-ink-200/40 border border-ink-300 rounded-lg px-4 py-3">
-                    Site 1&apos;de bekleyen yorumları onayla, sonra son 5 yazıyı listele.
+                    {t.userMsg}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-[10px] font-mono text-amber-400 uppercase mb-1.5 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    ASİSTAN
+                    {t.assistant}
                   </div>
                   <div className="space-y-2">
-                    {[
-                      ['Bekleyen yorumları al →', '3 sonuç'],
-                      ['3 yorumu onayla →', 'başarılı'],
-                      ['Son 5 yazıyı getir →', '5 sonuç'],
-                    ].map(([label, result], i) => (
+                    {t.steps.map(([label, result], i) => (
                       <div
                         key={i}
                         className="flex items-center gap-2 text-xs font-mono text-ink-700 bg-ink-200/40 border border-ink-300 rounded px-3 py-1.5"
@@ -1100,10 +1349,8 @@ function Mcp({ mcp }: McpProps) {
                       </div>
                     ))}
                     <div className="text-ink-800 pt-2 leading-relaxed">
-                      3 yorum onaylandı. İşte son 5 yazı:{' '}
-                      <span className="text-ink-600">
-                        &ldquo;Edge&apos;de yayıncılık&rdquo;, &ldquo;AI ile içerik akışı&rdquo;, ...
-                      </span>
+                      {t.responseLead}
+                      <span className="text-ink-600">{t.responseQuoted}</span>
                     </div>
                   </div>
                 </div>
@@ -1112,7 +1359,7 @@ function Mcp({ mcp }: McpProps) {
 
             <div className="rounded-xl border border-ink-200 bg-ink-100 px-5 py-4 flex items-center justify-between">
               <div className="text-xs text-ink-600 font-mono uppercase tracking-wider">
-                Uyumlu
+                {t.compatible}
               </div>
               <div className="flex items-center gap-5 text-sm text-ink-800">
                 {['Claude', 'Cursor', 'ChatGPT'].map((name) => (
@@ -1122,8 +1369,8 @@ function Mcp({ mcp }: McpProps) {
                   </span>
                 ))}
                 <span className="flex items-center gap-2 text-ink-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ink-400" />+ standart
-                  protokol
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink-400" />
+                  {t.extraProtocol}
                 </span>
               </div>
             </div>
@@ -1138,11 +1385,14 @@ function Mcp({ mcp }: McpProps) {
 
 interface PluginsProps {
   plugins: NonNullable<LandingConfig['plugins']>;
+  lang: LandingLang;
 }
 
-function Plugins({ plugins }: PluginsProps) {
+function Plugins({ plugins, lang }: PluginsProps) {
   const items = plugins.items ?? [];
   const shortcodes = plugins.shortcodes ?? [];
+  const t = LANDING_UI[lang].plugins;
+  const activeLabel = lang === 'en' ? 'active' : 'aktif';
   return (
     <section id="plugins" className="relative py-28 lg:py-36 border-t border-ink-200">
       <PageContainer>
@@ -1168,11 +1418,12 @@ function Plugins({ plugins }: PluginsProps) {
           {/* Built-in plugins */}
           <div className="lg:col-span-7 bg-ink-50 p-8 lg:p-10 reveal">
             <div className="font-mono text-xs text-ink-600 mb-6">
-              Dahili eklentiler
+              {t.builtinHeading}
             </div>
             <div className="space-y-4">
               {items.map((p, i) => {
-                const isActive = (p.status ?? 'aktif') === 'aktif';
+                const status = p.status ?? activeLabel;
+                const isActive = status === 'aktif' || status === 'active';
                 return (
                   <div
                     key={i}
@@ -1194,7 +1445,7 @@ function Plugins({ plugins }: PluginsProps) {
                               : 'text-ink-600 bg-ink-100'
                           )}
                         >
-                          {p.status ?? 'aktif'}
+                          {status}
                         </span>
                       </div>
                       <p className="text-xs text-ink-600 leading-relaxed">
@@ -1210,7 +1461,7 @@ function Plugins({ plugins }: PluginsProps) {
           {/* Shortcodes list */}
           <div className="lg:col-span-5 bg-ink-50 p-8 lg:p-10 reveal">
             <div className="font-mono text-xs text-ink-600 mb-5">
-              {shortcodes.length}+ kısa kod
+              {shortcodes.length}+ {t.shortcodeSuffix}
             </div>
             <div className="space-y-1.5">
               {shortcodes.map((sc, i) => (
@@ -1230,9 +1481,7 @@ function Plugins({ plugins }: PluginsProps) {
             </div>
             <div className="mt-6 pt-4 border-t border-ink-300/60 text-xs text-ink-600">
               +{' '}
-              <span className="text-ink-800 font-medium">
-                video, kategori, widget, ayırıcı, boşluk, yazı
-              </span>
+              <span className="text-ink-800 font-medium">{t.extraList}</span>
             </div>
           </div>
         </div>
@@ -1246,6 +1495,7 @@ function Plugins({ plugins }: PluginsProps) {
 interface PricingProps {
   pricing: NonNullable<LandingConfig['pricing']>;
   cta: NonNullable<LandingConfig['cta']>;
+  lang: LandingLang;
 }
 
 /**
@@ -1259,11 +1509,13 @@ function PriceDisplay({
   price,
   period,
   highlightedColor,
+  freeLabel,
 }: {
   currency?: string;
   price?: string | number;
   period?: string;
   highlightedColor?: boolean;
+  freeLabel: string;
 }) {
   const priceStr = typeof price === 'number' ? String(price) : price ?? '';
   // Treat 0 / 0.0 / blank / explicit "ücretsiz" as free regardless of
@@ -1276,7 +1528,8 @@ function PriceDisplay({
     priceStr === '0' ||
     priceStr === '0.0' ||
     /^0[.,]00?$/.test(priceStr) ||
-    priceStr.toLowerCase().includes('ücret');
+    priceStr.toLowerCase().includes('ücret') ||
+    priceStr.toLowerCase() === 'free';
 
   if (isFree) {
     return (
@@ -1287,7 +1540,7 @@ function PriceDisplay({
             highlightedColor ? 'text-ink-900' : 'text-ink-900'
           )}
         >
-          Ücretsiz
+          {freeLabel}
         </span>
       </div>
     );
@@ -1304,8 +1557,9 @@ function PriceDisplay({
   );
 }
 
-function Pricing({ pricing, cta }: PricingProps) {
+function Pricing({ pricing, cta, lang }: PricingProps) {
   const plans = pricing.plans ?? [];
+  const t = LANDING_UI[lang].pricing;
   return (
     <section
       id="pricing"
@@ -1364,7 +1618,7 @@ function Pricing({ pricing, cta }: PricingProps) {
                 >
                   {isHighlighted ? (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-ink-0 text-[10px] font-bold px-3 py-1 rounded-full font-mono uppercase tracking-wider">
-                      En popüler
+                      {t.popular}
                     </div>
                   ) : null}
 
@@ -1380,7 +1634,7 @@ function Pricing({ pricing, cta }: PricingProps) {
                   {isEnterprise ? (
                     <div className="flex items-baseline gap-1.5 mb-1">
                       <span className="font-display text-5xl text-ink-900">
-                        Özel
+                        {t.custom}
                       </span>
                     </div>
                   ) : (
@@ -1389,6 +1643,7 @@ function Pricing({ pricing, cta }: PricingProps) {
                       price={plan.price}
                       period={plan.period}
                       highlightedColor={isHighlighted}
+                      freeLabel={t.free}
                     />
                   )}
 
@@ -1419,7 +1674,7 @@ function Pricing({ pricing, cta }: PricingProps) {
                         : 'border border-ink-300 hover:border-ink-400 text-ink-800 font-medium'
                     )}
                   >
-                    {plan.cta_text || (isEnterprise ? 'Bizimle görüşün' : 'Hemen başla')}
+                    {plan.cta_text || (isEnterprise ? t.contactCta : t.startCta)}
                   </a>
                 </div>
               );
@@ -1459,29 +1714,30 @@ function Pricing({ pricing, cta }: PricingProps) {
 interface LandingFooterProps {
   footer: NonNullable<LandingConfig['footer']>;
   brandName: string;
+  lang: LandingLang;
 }
 
 /**
  * Build the footer's link columns. v2 expects three columns ("Ürün",
  * "Şirket", "Yasal"). If the config provides `columns` we honour them
  * verbatim; otherwise we fall back to the legacy single `links` array
- * stuffed into a single "Yasal" column so older configs still render.
+ * stuffed into a single column so older configs still render.
  */
 function resolveFooterColumns(
-  footer: NonNullable<LandingConfig['footer']>
+  footer: NonNullable<LandingConfig['footer']>,
+  linksFallback: string
 ): Array<{ title: string; links: LandingFooterLink[] }> {
   if (footer.columns && footer.columns.length > 0) return footer.columns;
   if (footer.links && footer.links.length > 0) {
-    return [{ title: 'Bağlantılar', links: footer.links }];
+    return [{ title: linksFallback, links: footer.links }];
   }
   return [];
 }
 
-function LandingFooter({ footer, brandName }: LandingFooterProps) {
-  const columns = resolveFooterColumns(footer);
-  const tagline =
-    footer.description ||
-    "Edge'de çalışan, çoklu site destekli modern içerik yönetim platformu. WordPress'in özgürlüğü, modern yazılımın hızıyla.";
+function LandingFooter({ footer, brandName, lang }: LandingFooterProps) {
+  const t = LANDING_UI[lang].footer;
+  const columns = resolveFooterColumns(footer, t.linksFallback);
+  const tagline = footer.description || t.tagline;
   const bottom =
     footer.text || `© ${new Date().getFullYear()} ${brandName}`;
   return (
@@ -1527,7 +1783,7 @@ function LandingFooter({ footer, brandName }: LandingFooterProps) {
       <div className="border-t border-ink-200">
         <PageContainer className="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-ink-600">
           <div>{bottom}</div>
-          <div className="font-mono">Edge-native · Sınırsız ölçek</div>
+          <div className="font-mono">{t.bottomRight}</div>
         </PageContainer>
       </div>
     </footer>
@@ -1558,9 +1814,13 @@ const DEFAULT_MARQUEE_ITEMS: string[] = [
 
 export interface LandingProps {
   config: LandingConfig;
+  /** Active language for the nav flag switcher. */
+  lang?: 'tr' | 'en';
+  /** Current request path, used to build the language-switch redirect. */
+  path?: string;
 }
 
-export function Landing({ config }: LandingProps) {
+export function Landing({ config, lang = 'tr', path = '/landing' }: LandingProps) {
   const brand = config.brand ?? {};
   const brandName = brand.name || 'Worker CMS';
   const hero = config.hero ?? {};
@@ -1579,17 +1839,17 @@ export function Landing({ config }: LandingProps) {
 
   return (
     <div className="landing-v2 min-h-screen bg-ink-0 text-ink-800 [scroll-behavior:smooth]">
-      <Nav brandName={brandName} nav={config.nav} />
+      <Nav brandName={brandName} nav={config.nav} lang={lang} path={path} />
       <main>
-        <Hero hero={hero} />
+        <Hero hero={hero} lang={lang} />
         <Marquee items={marqueeItems} />
-        <Architecture arch={arch} />
-        <Features features={features} />
-        <Mcp mcp={mcp} />
-        <Plugins plugins={plugins} />
-        <Pricing pricing={pricing} cta={cta} />
+        <Architecture arch={arch} lang={lang} />
+        <Features features={features} lang={lang} />
+        <Mcp mcp={mcp} lang={lang} />
+        <Plugins plugins={plugins} lang={lang} />
+        <Pricing pricing={pricing} cta={cta} lang={lang} />
       </main>
-      <LandingFooter footer={footer} brandName={brandName} />
+      <LandingFooter footer={footer} brandName={brandName} lang={lang} />
     </div>
   );
 }
@@ -1612,16 +1872,20 @@ export interface LandingPageProps {
   contentHtml: string;
   excerpt?: string | null;
   config: LandingConfig;
+  /** Active language for the nav flag switcher. */
+  lang?: 'tr' | 'en';
+  /** Current request path, used to build the language-switch redirect. */
+  path?: string;
 }
 
-export function LandingPage({ title, contentHtml, excerpt, config }: LandingPageProps) {
+export function LandingPage({ title, contentHtml, excerpt, config, lang = 'tr', path = '/' }: LandingPageProps) {
   const brand = config.brand ?? {};
   const brandName = brand.name || 'Worker CMS';
   const footer = config.footer ?? {};
 
   return (
     <div className="landing-v2 min-h-screen bg-ink-0 text-ink-800 [scroll-behavior:smooth]">
-      <Nav brandName={brandName} nav={config.nav} />
+      <Nav brandName={brandName} nav={config.nav} lang={lang} path={path} />
       <main className="border-t border-ink-200">
         <PageContainer className="py-16 lg:py-24 max-w-3xl">
           <header className="mb-10 pb-8 border-b border-ink-200/60">
@@ -1638,7 +1902,7 @@ export function LandingPage({ title, contentHtml, excerpt, config }: LandingPage
           />
         </PageContainer>
       </main>
-      <LandingFooter footer={footer} brandName={brandName} />
+      <LandingFooter footer={footer} brandName={brandName} lang={lang} />
     </div>
   );
 }
