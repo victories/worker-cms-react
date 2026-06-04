@@ -7,6 +7,7 @@ import { PublisherLayout } from '../../ssr/layouts/PublisherLayout';
 import { Post, type PostCommentViewModel } from '../../ssr/pages/Post';
 import { Page } from '../../ssr/pages/Page';
 import { LandingPage } from '../../ssr/pages/Landing';
+import { LANDING_EN } from '../../ssr/pages/landing-en';
 import { loadLandingConfig } from './landing';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
 import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
@@ -470,7 +471,10 @@ async function renderPostPage(
   if (isPage && site.is_management === 1) {
     const landingCfg = await loadLandingConfig(c);
     if (landingCfg) {
-      const brandName = landingCfg.brand?.name || site.name || 'Worker CMS';
+      // English visitors get the static English landing chrome (nav +
+      // footer); Turkish visitors keep the DB-driven config.
+      const chromeCfg = lang === 'en' ? LANDING_EN : landingCfg;
+      const brandName = chromeCfg.brand?.name || site.name || 'Worker CMS';
       return renderPage(
         createElement(Shell, {
           lang,
@@ -521,7 +525,9 @@ async function renderPostPage(
             title: p.title,
             contentHtml: renderedContent,
             excerpt: p.excerpt,
-            config: landingCfg,
+            config: chromeCfg,
+            lang: lang === 'en' ? 'en' : 'tr',
+            path: c.req.path,
           }),
         })
       );

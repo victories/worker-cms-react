@@ -6,6 +6,7 @@ import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { LandingPage } from '../../ssr/pages/Landing';
 import { LEGAL_PAGES, findLegalPage, renderLegalContent } from '../../lib/legal-pages';
 import { loadLandingConfig } from './landing';
+import { LANDING_EN } from '../../ssr/pages/landing-en';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
 import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 
@@ -37,13 +38,19 @@ async function renderLegal(
   lang: 'tr' | 'en'
 ) {
   const cspNonce = c.get('cspNonce');
+  const path = c.req.path;
   // Reuse the landing config so the nav/footer match the marketing
-  // site. When landing is disabled or absent we still render — the
+  // site. English pages use the static English landing config so the
+  // nav/footer chrome is in English; Turkish pages use the DB config.
+  // When landing is disabled or absent we still render — the
   // LandingPage component degrades gracefully with empty config bits.
-  const cfg = (await loadLandingConfig(c)) ?? {
-    enabled: true,
-    brand: { name: brand },
-  };
+  const cfg =
+    lang === 'en'
+      ? LANDING_EN
+      : (await loadLandingConfig(c)) ?? {
+          enabled: true,
+          brand: { name: brand },
+        };
 
   return renderPage(
     createElement(Shell, {
@@ -86,6 +93,8 @@ async function renderLegal(
         contentHtml,
         excerpt: description,
         config: cfg,
+        lang,
+        path,
       }),
     })
   );

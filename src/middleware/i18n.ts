@@ -2,7 +2,12 @@ import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types';
 
 const SUPPORTED_LANGUAGES = ['tr', 'en'];
-const DEFAULT_LANGUAGE = 'tr';
+// Global product default. Turkish visitors are detected via Accept-Language
+// (priority 4) before this fallback applies; tenant sites override it with
+// their own `site.default_language` (priority 5). For the management site
+// (workercms.com), which sells globally, English is the safe default when a
+// client advertises no recognisable language preference.
+const DEFAULT_LANGUAGE = 'en';
 
 export const i18nMiddleware = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
   // Priority: URL path > query param > cookie > Accept-Language header > site default > global default

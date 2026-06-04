@@ -65,6 +65,7 @@ import ampDynamicRoutes from './routes/public/amp/dynamic';
 import gitRoutes from './routes/public/git';
 import landingPageRoutes from './routes/public/landing';
 import legalRoutes from './routes/public/legal';
+import setLangRoutes from './routes/public/set-lang';
 
 // Contety polling cron
 import { processContetyPolling } from './lib/contety-cron';
@@ -365,6 +366,12 @@ app.route('/git', gitRoutes);
 // route. Site admins who want custom copy can publish their own page
 // without conflict.
 app.route('/legal', legalRoutes);
+
+// ---- Language switcher ----
+// GET /set-lang/:lang?next=<path> sets the cms_lang cookie and bounces
+// back. The i18n middleware reads that cookie above Accept-Language, so a
+// manual flag click persists across the whole site.
+app.route('/set-lang', setLangRoutes);
 
 // ---- Landing / Marketing page ----
 // Helper: check if host is an admin domain (primary or workers.dev fallback)

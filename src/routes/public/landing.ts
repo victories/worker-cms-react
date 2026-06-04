@@ -4,6 +4,7 @@ import type { Bindings, Variables } from '../../types';
 import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
 import { Landing, type LandingConfig } from '../../ssr/pages/Landing';
+import { LANDING_EN } from '../../ssr/pages/landing-en';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
 import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 
@@ -152,10 +153,19 @@ export async function loadLandingConfig(c: {
 // middleware's bail-out path when no nonce was generated.
 export async function serveLanding(c: {
   env: Bindings;
-  get?: (key: 'cspNonce') => string | undefined;
+  get?: (key: string) => any;
+  req?: { path?: string };
 }): Promise<Response | null> {
-  const config = await loadLandingConfig(c);
-  if (!config) return null;
+  // Gate on the Turkish config — a missing/disabled landing_config row
+  // means the landing feature is off for both languages.
+  const trConfig = await loadLandingConfig(c);
+  if (!trConfig) return null;
+
+  // The global (English) audience gets the static English config; the
+  // Turkish audience keeps the DB-driven, admin-editable content.
+  const lang: 'tr' | 'en' = c.get?.('lang') === 'en' ? 'en' : 'tr';
+  const config = lang === 'en' ? LANDING_EN : trConfig;
+  const path = c.req?.path || '/';
 
   const cspNonce = c.get?.('cspNonce');
 
@@ -202,7 +212,7 @@ export async function serveLanding(c: {
 
   return renderPage(
     createElement(Shell, {
-      lang: 'tr',
+      lang,
       title,
       description,
       // Start in dark mode by default (legacy behaviour of the hand-
@@ -214,7 +224,7 @@ export async function serveLanding(c: {
       tailwindCss: TAILWIND_LANDING_CSS,
       head,
       bodyEnd: clientScript,
-      children: createElement(Landing, { config }),
+      children: createElement(Landing, { config, lang, path }),
     })
   );
 }
