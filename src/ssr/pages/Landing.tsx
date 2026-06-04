@@ -663,6 +663,23 @@ interface NavProps {
   lang?: 'tr' | 'en';
   /** Current request path, used to build the `next` redirect for the flags. */
   path?: string;
+  /**
+   * Prefix for in-page anchor links (`#features`, …). Empty on the
+   * landing page itself (so the browser scrolls in-page); `/` on
+   * sub-pages like legal pages, where a bare `#features` would resolve
+   * against the current URL (e.g. `/legal/x#features`) and go nowhere.
+   */
+  anchorBase?: string;
+}
+
+/**
+ * Resolve a nav/footer link. In-page anchors (`#x`) get prefixed with
+ * `anchorBase` when rendered off the landing page; absolute URLs are
+ * returned unchanged.
+ */
+function resolveAnchor(url: string, anchorBase: string): string {
+  if (anchorBase && url.startsWith('#')) return anchorBase + url;
+  return url;
 }
 
 // Fallback used when no `nav` block has been set in landing_config
@@ -676,17 +693,20 @@ const DEFAULT_NAV_ITEMS: { label: string; url: string }[] = [
   { label: 'Fiyatlandırma', url: '#pricing' },
 ];
 
-function Nav({ brandName, nav, lang = 'tr', path = '/' }: NavProps) {
+function Nav({ brandName, nav, lang = 'tr', path = '/', anchorBase = '' }: NavProps) {
   const items = nav?.items && nav.items.length > 0 ? nav.items : DEFAULT_NAV_ITEMS;
   const loginText = nav?.login_text || 'Giriş yap';
   const loginUrl = nav?.login_url || '/admin/login';
   const ctaText = nav?.cta_text;
   const ctaUrl = nav?.cta_url;
   const nextParam = encodeURIComponent(path || '/');
+  // The logo always links to the site root (the landing page on the
+  // management site), not "#".
+  const homeHref = anchorBase || '/';
   return (
     <header className="sticky top-0 z-50 border-b border-ink-200/60 backdrop-blur-xl bg-ink-0/72">
       <PageContainer className="h-16 flex items-center justify-between">
-        <a href="#" className="flex items-center gap-2.5 group">
+        <a href={homeHref} className="flex items-center gap-2.5 group">
           <Wordmark />
           <span className="font-semibold tracking-tight text-ink-900">
             {brandName}
@@ -697,7 +717,7 @@ function Nav({ brandName, nav, lang = 'tr', path = '/' }: NavProps) {
           {items.map((item, i) => (
             <a
               key={i}
-              href={item.url || '#'}
+              href={resolveAnchor(item.url || '#', anchorBase)}
               className="hover:text-ink-900 transition-colors"
             >
               {item.label}
@@ -747,7 +767,7 @@ function Nav({ brandName, nav, lang = 'tr', path = '/' }: NavProps) {
               React saw a mismatch and threw error #418.) */}
 
           <a
-            href={ctaUrl || '#pricing'}
+            href={resolveAnchor(ctaUrl || '#pricing', anchorBase)}
             className="text-sm font-semibold bg-amber-400 text-ink-0 px-4 py-1.5 rounded-md hover:bg-amber-500 transition-colors"
           >
             {ctaText || 'Ücretsiz başla'}
@@ -1715,6 +1735,8 @@ interface LandingFooterProps {
   footer: NonNullable<LandingConfig['footer']>;
   brandName: string;
   lang: LandingLang;
+  /** Prefix for in-page anchor links — see NavProps.anchorBase. */
+  anchorBase?: string;
 }
 
 /**
@@ -1734,7 +1756,7 @@ function resolveFooterColumns(
   return [];
 }
 
-function LandingFooter({ footer, brandName, lang }: LandingFooterProps) {
+function LandingFooter({ footer, brandName, lang, anchorBase = '' }: LandingFooterProps) {
   const t = LANDING_UI[lang].footer;
   const columns = resolveFooterColumns(footer, t.linksFallback);
   const tagline = footer.description || t.tagline;
@@ -1766,7 +1788,7 @@ function LandingFooter({ footer, brandName, lang }: LandingFooterProps) {
                   {col.links.map((l, j) => (
                     <li key={j}>
                       <a
-                        href={l.url}
+                        href={resolveAnchor(l.url, anchorBase)}
                         className="hover:text-ink-900 transition-colors"
                       >
                         {l.text}
@@ -1885,7 +1907,7 @@ export function LandingPage({ title, contentHtml, excerpt, config, lang = 'tr', 
 
   return (
     <div className="landing-v2 min-h-screen bg-ink-0 text-ink-800 [scroll-behavior:smooth]">
-      <Nav brandName={brandName} nav={config.nav} lang={lang} path={path} />
+      <Nav brandName={brandName} nav={config.nav} lang={lang} path={path} anchorBase="/" />
       <main className="border-t border-ink-200">
         <PageContainer className="py-16 lg:py-24 max-w-3xl">
           <header className="mb-10 pb-8 border-b border-ink-200/60">
@@ -1902,7 +1924,7 @@ export function LandingPage({ title, contentHtml, excerpt, config, lang = 'tr', 
           />
         </PageContainer>
       </main>
-      <LandingFooter footer={footer} brandName={brandName} lang={lang} />
+      <LandingFooter footer={footer} brandName={brandName} lang={lang} anchorBase="/" />
     </div>
   );
 }
