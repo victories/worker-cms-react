@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 import { cn } from '@ui/lib/utils';
+import {
+  STATUS_COMPONENTS,
+  type StatusSnapshot,
+  type StatusLevel,
+} from '../../lib/status';
 
 /**
  * Landing — React SSR port of the "Worker CMS Landing v2" marketing
@@ -1922,6 +1927,278 @@ export function LandingPage({ title, contentHtml, excerpt, config, lang = 'tr', 
             className="landing-page-body text-ink-800 leading-relaxed"
             dangerouslySetInnerHTML={{ __html: contentHtml }}
           />
+        </PageContainer>
+      </main>
+      <LandingFooter footer={footer} brandName={brandName} lang={lang} anchorBase="/" />
+    </div>
+  );
+}
+
+// ── Status page (/legal/durum) ───────────────────────────────────────
+//
+// Kept in this file so its Tailwind classes are picked up by the landing
+// content scan (public-styles/tailwind.landing.config.ts only scans
+// Landing.tsx) and so it can reuse the private Nav + LandingFooter. The
+// component is SSR-only (no hydration), so computing relative time from a
+// passed `nowMs` is safe.
+
+// Full literal class strings per level so Tailwind's scanner generates
+// them (no dynamic class construction).
+const STATUS_LEVEL_STYLES: Record<
+  StatusLevel,
+  { dot: string; text: string; chip: string; banner: string }
+> = {
+  operational: {
+    dot: 'bg-emerald-400',
+    text: 'text-emerald-400',
+    chip: 'text-emerald-400 bg-emerald-400/10',
+    banner: 'border-emerald-400/30',
+  },
+  degraded: {
+    dot: 'bg-amber-400',
+    text: 'text-amber-400',
+    chip: 'text-amber-400 bg-amber-400/10',
+    banner: 'border-amber-400/30',
+  },
+  partial: {
+    dot: 'bg-orange-400',
+    text: 'text-orange-400',
+    chip: 'text-orange-400 bg-orange-400/10',
+    banner: 'border-orange-400/30',
+  },
+  outage: {
+    dot: 'bg-red-400',
+    text: 'text-red-400',
+    chip: 'text-red-400 bg-red-400/10',
+    banner: 'border-red-400/30',
+  },
+};
+
+interface StatusStrings {
+  headline: Record<StatusLevel, string>;
+  sub: Record<StatusLevel, string>;
+  badge: Record<StatusLevel, string>;
+  componentsHeading: string;
+  incidentsHeading: string;
+  incidentsEmpty: string;
+  autoUpdated: string;
+  lastChecked: string;
+  source: string;
+  staleHint: string;
+  justNow: string;
+  minAgo: (n: number) => string;
+  hAgo: (n: number) => string;
+  dayAgo: (n: number) => string;
+}
+
+const STATUS_STRINGS: Record<LandingLang, StatusStrings> = {
+  tr: {
+    headline: {
+      operational: 'Tüm sistemler çalışıyor',
+      degraded: 'Bazı sistemlerde yavaşlama',
+      partial: 'Kısmi kesinti',
+      outage: 'Sistem kesintisi',
+    },
+    sub: {
+      operational: 'Tüm bileşenler normal çalışıyor.',
+      degraded: 'Bazı bileşenlerde performans düşüklüğü var.',
+      partial: 'Bazı bileşenlerde kesinti yaşanıyor.',
+      outage: 'Bir veya daha fazla bileşende büyük kesinti var.',
+    },
+    badge: {
+      operational: 'Operasyonel',
+      degraded: 'Yavaşlama',
+      partial: 'Kısmi kesinti',
+      outage: 'Kesinti',
+    },
+    componentsHeading: 'Bileşenler',
+    incidentsHeading: 'Olay geçmişi',
+    incidentsEmpty: 'Son 30 günde olay bildirilmedi.',
+    autoUpdated: 'Otomatik güncellenir',
+    lastChecked: 'Son kontrol',
+    source: 'Kaynak',
+    staleHint: 'veri eski olabilir',
+    justNow: 'az önce',
+    minAgo: (n) => `${n} dk önce`,
+    hAgo: (n) => `${n} sa önce`,
+    dayAgo: (n) => `${n} gün önce`,
+  },
+  en: {
+    headline: {
+      operational: 'All systems operational',
+      degraded: 'Some systems degraded',
+      partial: 'Partial outage',
+      outage: 'Major outage',
+    },
+    sub: {
+      operational: 'All components are operating normally.',
+      degraded: 'Some components are experiencing reduced performance.',
+      partial: 'Some components are experiencing an outage.',
+      outage: 'One or more components have a major outage.',
+    },
+    badge: {
+      operational: 'Operational',
+      degraded: 'Degraded',
+      partial: 'Partial outage',
+      outage: 'Outage',
+    },
+    componentsHeading: 'Components',
+    incidentsHeading: 'Incident history',
+    incidentsEmpty: 'No incidents reported in the last 30 days.',
+    autoUpdated: 'Auto-updated',
+    lastChecked: 'Last checked',
+    source: 'Source',
+    staleHint: 'data may be stale',
+    justNow: 'just now',
+    minAgo: (n) => `${n} min ago`,
+    hAgo: (n) => `${n} h ago`,
+    dayAgo: (n) => `${n} d ago`,
+  },
+};
+
+function relativeTime(checkedAt: string, nowMs: number, s: StatusStrings): string {
+  const t = Date.parse(checkedAt);
+  if (Number.isNaN(t)) return '—';
+  const diff = Math.max(0, nowMs - t);
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return s.justNow;
+  if (min < 60) return s.minAgo(min);
+  const h = Math.floor(min / 60);
+  if (h < 24) return s.hAgo(h);
+  return s.dayAgo(Math.floor(h / 24));
+}
+
+export interface StatusPageProps {
+  title: string;
+  snapshot: StatusSnapshot;
+  config: LandingConfig;
+  lang?: LandingLang;
+  path?: string;
+  /** Render-time clock (server) for the "last checked" relative label. */
+  nowMs: number;
+}
+
+export function StatusPageView({
+  title,
+  snapshot,
+  config,
+  lang = 'tr',
+  path = '/legal/durum',
+  nowMs,
+}: StatusPageProps) {
+  const brand = config.brand ?? {};
+  const brandName = brand.name || 'Worker CMS';
+  const footer = config.footer ?? {};
+  const s = STATUS_STRINGS[lang];
+  const overall = snapshot.overall;
+  const overallStyle = STATUS_LEVEL_STYLES[overall];
+  const statusByKey = new Map(snapshot.components.map((c) => [c.key, c.status]));
+  const stale = nowMs - Date.parse(snapshot.checked_at) > 30 * 60 * 1000;
+
+  const absTime = (() => {
+    const t = Date.parse(snapshot.checked_at);
+    if (Number.isNaN(t)) return '';
+    return new Date(t).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  })();
+
+  return (
+    <div className="landing-v2 min-h-screen bg-ink-0 text-ink-800 [scroll-behavior:smooth]">
+      <Nav brandName={brandName} nav={config.nav} lang={lang} path={path} anchorBase="/" />
+      <main className="border-t border-ink-200">
+        <PageContainer className="py-16 lg:py-24 max-w-3xl">
+          <header className="mb-10">
+            <h1 className="font-display text-4xl lg:text-5xl text-ink-900 leading-[1.1]">
+              {title}
+            </h1>
+          </header>
+
+          {/* Overall status banner */}
+          <div
+            className={cn(
+              'rounded-2xl border bg-ink-50 p-6 lg:p-8 flex items-center gap-4',
+              overallStyle.banner
+            )}
+          >
+            <span className="relative flex h-3.5 w-3.5 flex-shrink-0">
+              {overall === 'operational' ? (
+                <span
+                  className={cn(
+                    'absolute inline-flex h-full w-full rounded-full opacity-60 pulse-ring',
+                    overallStyle.dot
+                  )}
+                />
+              ) : null}
+              <span
+                className={cn('relative inline-flex h-3.5 w-3.5 rounded-full', overallStyle.dot)}
+              />
+            </span>
+            <div>
+              <div className={cn('font-display text-2xl lg:text-3xl', overallStyle.text)}>
+                {s.headline[overall]}
+              </div>
+              <div className="text-sm text-ink-600 mt-1">{s.sub[overall]}</div>
+            </div>
+          </div>
+
+          {/* Component list */}
+          <div className="mt-10">
+            <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-4">
+              {s.componentsHeading}
+            </div>
+            <div className="rounded-2xl border border-ink-200 overflow-hidden divide-y divide-ink-200">
+              {STATUS_COMPONENTS.map((def) => {
+                const level = (statusByKey.get(def.key) ?? 'operational') as StatusLevel;
+                const st = STATUS_LEVEL_STYLES[level];
+                return (
+                  <div
+                    key={def.key}
+                    className="flex items-center justify-between gap-4 bg-ink-50 px-5 py-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn('inline-flex h-2 w-2 rounded-full', st.dot)} />
+                      <span className="text-sm text-ink-900">
+                        {lang === 'en' ? def.name_en : def.name_tr}
+                      </span>
+                    </div>
+                    <span
+                      className={cn(
+                        'text-[11px] font-mono px-2 py-0.5 rounded uppercase tracking-wider',
+                        st.chip
+                      )}
+                    >
+                      {s.badge[level]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Incident history (empty state) */}
+          <div className="mt-10">
+            <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-ink-600 mb-4">
+              {s.incidentsHeading}
+            </div>
+            <div className="rounded-2xl border border-ink-200 bg-ink-50 px-5 py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-sm text-ink-600">
+                <Icon name="check" size={16} stroke="#34d399" strokeWidth={2} />
+                {s.incidentsEmpty}
+              </div>
+            </div>
+          </div>
+
+          {/* Meta line */}
+          <div className="mt-8 text-xs text-ink-600 font-mono flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{s.autoUpdated}</span>
+            <span className="text-ink-400">·</span>
+            <span>
+              {s.lastChecked}: {relativeTime(snapshot.checked_at, nowMs, s)}
+              {absTime ? ` (${absTime})` : ''}
+            </span>
+            <span className="text-ink-400">·</span>
+            <span>{s.source}: Cloudflare Status</span>
+            {stale ? <span className="text-amber-400">· {s.staleHint}</span> : null}
+          </div>
         </PageContainer>
       </main>
       <LandingFooter footer={footer} brandName={brandName} lang={lang} anchorBase="/" />

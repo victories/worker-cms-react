@@ -3,10 +3,16 @@ import { createElement, Fragment } from 'react';
 import type { Bindings, Variables } from '../../types';
 import { renderPage } from '../../lib/ssr';
 import { Shell, DEFAULT_THEME_BOOT } from '../../ssr/shell';
-import { LandingPage } from '../../ssr/pages/Landing';
+import { LandingPage, StatusPageView } from '../../ssr/pages/Landing';
 import { LEGAL_PAGES, findLegalPage, renderLegalContent } from '../../lib/legal-pages';
 import { loadLandingConfig } from './landing';
 import { LANDING_EN } from '../../ssr/pages/landing-en';
+import {
+  getStatusSnapshot,
+  refreshStatusSnapshot,
+  defaultSnapshot,
+  isStale,
+} from '../../lib/status';
 import { LANDING_CLIENT_JS } from '../../ssr/__generated__/landing-client';
 import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 
@@ -29,29 +35,26 @@ import { TAILWIND_LANDING_CSS } from '../../ssr/__generated__/tailwind-landing';
 
 const legalRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-async function renderLegal(
+// Resolve the landing config used for the nav/footer chrome. English
+// pages use the static English config; Turkish pages use the DB config
+// (falling back to a minimal brand-only config when absent).
+async function resolveChromeConfig(c: any, brand: string, lang: 'tr' | 'en') {
+  return lang === 'en'
+    ? LANDING_EN
+    : (await loadLandingConfig(c)) ?? { enabled: true, brand: { name: brand } };
+}
+
+// Build the shared landing-chrome Shell (fonts + landing CSS + reveal
+// script) around an arbitrary page body.
+function renderChrome(
   c: any,
   title: string,
   description: string,
-  contentHtml: string,
   brand: string,
-  lang: 'tr' | 'en'
+  lang: 'tr' | 'en',
+  children: any
 ) {
   const cspNonce = c.get('cspNonce');
-  const path = c.req.path;
-  // Reuse the landing config so the nav/footer match the marketing
-  // site. English pages use the static English landing config so the
-  // nav/footer chrome is in English; Turkish pages use the DB config.
-  // When landing is disabled or absent we still render — the
-  // LandingPage component degrades gracefully with empty config bits.
-  const cfg =
-    lang === 'en'
-      ? LANDING_EN
-      : (await loadLandingConfig(c)) ?? {
-          enabled: true,
-          brand: { name: brand },
-        };
-
   return renderPage(
     createElement(Shell, {
       lang,
@@ -88,17 +91,77 @@ async function renderLegal(
         nonce: cspNonce,
         dangerouslySetInnerHTML: { __html: LANDING_CLIENT_JS },
       }),
-      children: createElement(LandingPage, {
-        title,
-        contentHtml,
-        excerpt: description,
-        config: cfg,
-        lang,
-        path,
-      }),
+      children,
     })
   );
 }
+
+async function renderLegal(
+  c: any,
+  title: string,
+  description: string,
+  contentHtml: string,
+  brand: string,
+  lang: 'tr' | 'en'
+) {
+  const cfg = await resolveChromeConfig(c, brand, lang);
+  return renderChrome(
+    c,
+    title,
+    description,
+    brand,
+    lang,
+    createElement(LandingPage, {
+      title,
+      contentHtml,
+      excerpt: description,
+      config: cfg,
+      lang,
+      path: c.req.path,
+    })
+  );
+}
+
+// System status page — pulls component health from Cloudflare's status
+// feed (cached in D1) and renders the polished StatusPageView. Registered
+// before `/:slug` so it wins over the generic legal handler.
+legalRoute.get('/durum', async (c) => {
+  const lang = (c.get('lang') as string) === 'en' ? 'en' : 'tr';
+  const site = c.get('site') as { name?: string } | null;
+  const brand = (site?.name && site.name.trim()) || 'WorkerCMS';
+  const page = findLegalPage('durum')!;
+  const title = lang === 'en' ? page.title_en : page.title_tr;
+  const description = renderLegalContent(
+    lang === 'en' ? page.description_en : page.description_tr,
+    brand
+  );
+
+  // Refresh in the background when the stored snapshot is missing or
+  // stale, so the page itself stays fast. Render whatever we have now
+  // (a fresh self-reported default on the very first visit).
+  const stored = await getStatusSnapshot(c.env);
+  if (!stored || isStale(stored)) {
+    c.executionCtx?.waitUntil?.(refreshStatusSnapshot(c.env));
+  }
+  const snapshot = stored ?? defaultSnapshot(new Date().toISOString());
+
+  const cfg = await resolveChromeConfig(c, brand, lang);
+  return renderChrome(
+    c,
+    title,
+    description,
+    brand,
+    lang,
+    createElement(StatusPageView, {
+      title,
+      snapshot,
+      config: cfg,
+      lang,
+      path: c.req.path,
+      nowMs: Date.now(),
+    })
+  );
+});
 
 legalRoute.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
