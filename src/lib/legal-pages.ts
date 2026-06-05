@@ -310,6 +310,9 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
 `.trim(),
   },
   {
+    // The /legal/durum route renders the live StatusPageView component
+    // (see src/routes/public/legal.ts), so this body is not used — the
+    // entry stays only for its title/description/footer label.
     slug: 'durum',
     title_tr: 'Sistem Durumu',
     title_en: 'System Status',
@@ -317,54 +320,8 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
     description_en: 'Live status of {{brand}} infrastructure.',
     footer_label_tr: 'Durum',
     footer_label_en: 'Status',
-    content_tr: `
-<p>Bu sayfa hizmetlerimizin anlık durumunu gösterir.</p>
-
-<h2>Bileşenler</h2>
-<ul>
-  <li>✅ <strong>Web (Cloudflare Workers)</strong> — Operasyonel</li>
-  <li>✅ <strong>Veritabanı (D1)</strong> — Operasyonel</li>
-  <li>✅ <strong>Medya (R2)</strong> — Operasyonel</li>
-  <li>✅ <strong>Admin Paneli</strong> — Operasyonel</li>
-  <li>✅ <strong>E-posta gönderimi</strong> — Operasyonel</li>
-  <li>✅ <strong>Ödeme (Stripe)</strong> — Operasyonel</li>
-</ul>
-
-<h2>Bakım Pencereleri</h2>
-<p>Planlı bakım yok.</p>
-
-<h2>Geçmiş Olaylar</h2>
-<p>Son 30 günde raporlanmış bir olay bulunmuyor.</p>
-
-<h2>Bildirim ve Sorun Bildirme</h2>
-<p>Hizmet sorunu fark ettiyseniz <a href="/legal/iletisim">iletişim sayfası</a>ndan bize ulaşabilirsiniz. Önemli kesintiler için kayıtlı e-postanıza bilgi verilir.</p>
-
-<p><em>Not: Bu sayfa şu an statik olarak güncellenmektedir. Otomatik canlı izleme sayfası yakında devreye girecektir.</em></p>
-`.trim(),
-    content_en: `
-<p>Live status of our services.</p>
-
-<h2>Components</h2>
-<ul>
-  <li>✅ <strong>Web (Cloudflare Workers)</strong> — Operational</li>
-  <li>✅ <strong>Database (D1)</strong> — Operational</li>
-  <li>✅ <strong>Media (R2)</strong> — Operational</li>
-  <li>✅ <strong>Admin Panel</strong> — Operational</li>
-  <li>✅ <strong>Email delivery</strong> — Operational</li>
-  <li>✅ <strong>Payments (Stripe)</strong> — Operational</li>
-</ul>
-
-<h2>Maintenance</h2>
-<p>No scheduled maintenance.</p>
-
-<h2>Recent Incidents</h2>
-<p>No incidents reported in the last 30 days.</p>
-
-<h2>Reporting Issues</h2>
-<p>If you notice a problem, please <a href="/legal/iletisim">contact us</a>. Major outages are also notified at your registered email.</p>
-
-<p><em>Note: this page is currently maintained manually; an automated live status page is coming soon.</em></p>
-`.trim(),
+    content_tr: '<p>Canlı sistem durumu sayfası.</p>',
+    content_en: '<p>Live system status page.</p>',
   },
   {
     slug: 'mesafeli-satis-sozlesmesi',
