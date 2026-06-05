@@ -71,6 +71,8 @@ import setLangRoutes from './routes/public/set-lang';
 import { processContetyPolling } from './lib/contety-cron';
 // Domain NS verification cron
 import { checkPendingDomains } from './routes/api/domains';
+// System-status snapshot refresh
+import { getStatusSnapshot, refreshStatusSnapshot, isStale } from './lib/status';
 
 // Error pages
 import { renderErrorPage } from './components/ErrorPage';
@@ -554,6 +556,13 @@ export default {
     // Cleanup old plugin execution logs (30 days retention)
     ctx.waitUntil(
       env.DB.prepare("DELETE FROM plugin_execution_logs WHERE created_at < datetime('now', '-30 days')").run()
+    );
+    // Refresh the system-status snapshot when it is older than its TTL
+    // (cron fires every minute; the snapshot only re-fetches every ~5 min).
+    ctx.waitUntil(
+      getStatusSnapshot(env).then((snap) =>
+        isStale(snap) ? refreshStatusSnapshot(env) : null
+      )
     );
   },
 };
