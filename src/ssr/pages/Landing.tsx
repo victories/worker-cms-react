@@ -1983,7 +1983,6 @@ interface StatusStrings {
   incidentsEmpty: string;
   autoUpdated: string;
   lastChecked: string;
-  source: string;
   staleHint: string;
   justNow: string;
   minAgo: (n: number) => string;
@@ -2016,7 +2015,6 @@ const STATUS_STRINGS: Record<LandingLang, StatusStrings> = {
     incidentsEmpty: 'Son 30 günde olay bildirilmedi.',
     autoUpdated: 'Otomatik güncellenir',
     lastChecked: 'Son kontrol',
-    source: 'Kaynak',
     staleHint: 'veri eski olabilir',
     justNow: 'az önce',
     minAgo: (n) => `${n} dk önce`,
@@ -2047,7 +2045,6 @@ const STATUS_STRINGS: Record<LandingLang, StatusStrings> = {
     incidentsEmpty: 'No incidents reported in the last 30 days.',
     autoUpdated: 'Auto-updated',
     lastChecked: 'Last checked',
-    source: 'Source',
     staleHint: 'data may be stale',
     justNow: 'just now',
     minAgo: (n) => `${n} min ago`,
@@ -2195,8 +2192,6 @@ export function StatusPageView({
               {s.lastChecked}: {relativeTime(snapshot.checked_at, nowMs, s)}
               {absTime ? ` (${absTime})` : ''}
             </span>
-            <span className="text-ink-400">·</span>
-            <span>{s.source}: Cloudflare Status</span>
             {stale ? <span className="text-amber-400">· {s.staleHint}</span> : null}
           </div>
         </PageContainer>
