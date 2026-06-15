@@ -577,7 +577,7 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
 
 <h2>E-posta</h2>
 <ul>
-  <li><strong>Genel destek:</strong> <a href="mailto:support@example.com">support@example.com</a></li>
+  <li><strong>Genel destek:</strong> <a href="mailto:info@example.com">info@example.com</a></li>
   <li><strong>Faturalandırma:</strong> <a href="mailto:billing@workercms.com">billing@workercms.com</a></li>
   <li><strong>Veri koruma (UK GDPR / KVKK):</strong> <a href="mailto:privacy@workercms.com">privacy@workercms.com</a></li>
   <li><strong>Güvenlik açıkları:</strong> <a href="mailto:security@workercms.com">security@workercms.com</a> (responsible disclosure)</li>
@@ -599,7 +599,7 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
 
 <h2>Email</h2>
 <ul>
-  <li><strong>General support:</strong> <a href="mailto:support@example.com">support@example.com</a></li>
+  <li><strong>General support:</strong> <a href="mailto:info@example.com">info@example.com</a></li>
   <li><strong>Billing:</strong> <a href="mailto:billing@workercms.com">billing@workercms.com</a></li>
   <li><strong>Data protection (UK GDPR / KVKK):</strong> <a href="mailto:privacy@workercms.com">privacy@workercms.com</a></li>
   <li><strong>Security vulnerabilities:</strong> <a href="mailto:security@workercms.com">security@workercms.com</a> (responsible disclosure)</li>
