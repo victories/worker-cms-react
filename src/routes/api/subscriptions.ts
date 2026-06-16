@@ -126,10 +126,32 @@ subscriptions.post('/addon/:id/units', async (c) => {
   const cfg = await getCreemConfig(c.env.DB);
   if (!cfg.apiKey) return c.json({ success: false, error: 'Creem yapılandırılmamış' }, 500);
 
+  // Creem updates units via the subscription's line items, not a top-level
+  // field. Fetch the subscription to find the item id (an add-on subscription
+  // has a single recurring item), then update that item's units with
+  // immediate proration.
+  const subRes = await fetch(`${cfg.baseUrl}/v1/subscriptions/${row.creem_subscription_id}`, {
+    method: 'GET',
+    headers: { 'x-api-key': cfg.apiKey },
+  });
+  if (!subRes.ok) {
+    const d = (await subRes.json().catch(() => ({}))) as any;
+    return c.json({ success: false, error: d?.message || 'Creem aboneliği bulunamadı' }, 400);
+  }
+  const sub = (await subRes.json().catch(() => ({}))) as any;
+  const items: any[] = Array.isArray(sub?.items) ? sub.items : [];
+  const item = items.find((it) => it?.id) || items[0];
+  if (!item?.id) {
+    return c.json({ success: false, error: 'Abonelik kalemi bulunamadı' }, 400);
+  }
+
   const res = await fetch(`${cfg.baseUrl}/v1/subscriptions/${row.creem_subscription_id}`, {
     method: 'POST',
     headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ units }),
+    body: JSON.stringify({
+      items: [{ id: item.id, units }],
+      update_behavior: 'proration-charge-immediately',
+    }),
   });
   if (!res.ok) {
     const d = (await res.json().catch(() => ({}))) as any;

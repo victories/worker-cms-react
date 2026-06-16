@@ -322,6 +322,7 @@ export function Profile() {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="text-destructive border-destructive/50 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                         disabled={cancelingId === `package:${overview.package.id}`}
                         onClick={() =>
                           setCancelTarget({ kind: 'package', id: overview.package!.id, name: overview.package!.package_name })
@@ -404,6 +405,7 @@ export function Profile() {
                             <Button
                               variant="outline"
                               size="sm"
+                              className="text-destructive border-destructive/50 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                               disabled={cancelingId === rowKey}
                               onClick={() => setCancelTarget({ kind: 'addon', id: addon.id, name: addon.addon_name })}
                             >
