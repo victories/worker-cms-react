@@ -63,6 +63,8 @@ packages.post('/admin', requireRole('super_admin'), async (c) => {
   const body = await c.req.json<{
     name: string;
     description?: string;
+    name_en?: string;
+    description_en?: string;
     price_monthly?: number;
     price_yearly?: number;
     max_sites?: number;
@@ -84,10 +86,12 @@ packages.post('/admin', requireRole('super_admin'), async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO packages (name, description, price_monthly, price_yearly, max_sites, max_storage_mb, max_posts_per_site, features, is_active, sort_order, stripe_price_monthly_id, stripe_price_yearly_id, creem_product_monthly_id, creem_product_yearly_id, crypto_enabled, white_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+    `INSERT INTO packages (name, description, name_en, description_en, price_monthly, price_yearly, max_sites, max_storage_mb, max_posts_per_site, features, is_active, sort_order, stripe_price_monthly_id, stripe_price_yearly_id, creem_product_monthly_id, creem_product_yearly_id, crypto_enabled, white_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
   ).bind(
     body.name,
     body.description || null,
+    body.name_en || null,
+    body.description_en || null,
     body.price_monthly || 0,
     body.price_yearly || 0,
     body.max_sites ?? 1,
@@ -137,10 +141,12 @@ packages.put('/admin/:id', requireRole('super_admin'), async (c) => {
   if (!existing) return c.json({ success: false, error: 'Paket bulunamadı' }, 404);
 
   const result = await c.env.DB.prepare(
-    `UPDATE packages SET name = ?, description = ?, price_monthly = ?, price_yearly = ?, max_sites = ?, max_storage_mb = ?, max_posts_per_site = ?, features = ?, is_active = ?, sort_order = ?, stripe_price_monthly_id = ?, stripe_price_yearly_id = ?, creem_product_monthly_id = ?, creem_product_yearly_id = ?, crypto_enabled = ?, white_label = ?, updated_at = datetime('now') WHERE id = ? RETURNING *`
+    `UPDATE packages SET name = ?, description = ?, name_en = ?, description_en = ?, price_monthly = ?, price_yearly = ?, max_sites = ?, max_storage_mb = ?, max_posts_per_site = ?, features = ?, is_active = ?, sort_order = ?, stripe_price_monthly_id = ?, stripe_price_yearly_id = ?, creem_product_monthly_id = ?, creem_product_yearly_id = ?, crypto_enabled = ?, white_label = ?, updated_at = datetime('now') WHERE id = ? RETURNING *`
   ).bind(
     body.name ?? existing.name,
     body.description !== undefined ? body.description : existing.description,
+    body.name_en !== undefined ? body.name_en : (existing as any).name_en,
+    body.description_en !== undefined ? body.description_en : (existing as any).description_en,
     body.price_monthly ?? existing.price_monthly,
     body.price_yearly ?? existing.price_yearly,
     body.max_sites ?? existing.max_sites,

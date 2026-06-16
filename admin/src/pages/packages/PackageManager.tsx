@@ -14,6 +14,8 @@ interface PackageData {
   id: number;
   name: string;
   description: string | null;
+  name_en: string | null;
+  description_en: string | null;
   price_monthly: number;
   price_yearly: number;
   max_sites: number;
@@ -34,6 +36,8 @@ interface PackageData {
 const emptyPackage = {
   name: '',
   description: '',
+  name_en: '',
+  description_en: '',
   price_monthly: 0,
   price_yearly: 0,
   max_sites: 1,
@@ -99,6 +103,8 @@ export function PackageManager() {
     setForm({
       name: pkg.name,
       description: pkg.description || '',
+      name_en: pkg.name_en || '',
+      description_en: pkg.description_en || '',
       price_monthly: pkg.price_monthly,
       price_yearly: pkg.price_yearly,
       max_sites: pkg.max_sites,
@@ -329,12 +335,20 @@ export function PackageManager() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>{tr ? 'Paket Ad\u0131' : 'Package Name'} *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Starter" />
+                <Label>{tr ? 'Paket Ad\u0131 (TR)' : 'Package Name (TR)'} *</Label>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ba\u015flang\u0131\u00e7" />
               </div>
               <div className="col-span-2">
-                <Label>{tr ? 'A\u00e7\u0131klama' : 'Description'}</Label>
+                <Label>{tr ? 'Paket Ad\u0131 (EN)' : 'Package Name (EN)'}</Label>
+                <Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} placeholder="Starter" />
+              </div>
+              <div className="col-span-2">
+                <Label>{tr ? 'A\u00e7\u0131klama (TR)' : 'Description (TR)'}</Label>
                 <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <Label>{tr ? 'A\u00e7\u0131klama (EN)' : 'Description (EN)'}</Label>
+                <Input value={form.description_en} onChange={(e) => setForm({ ...form, description_en: e.target.value })} />
               </div>
               <div>
                 <Label>{tr ? 'Ayl\u0131k Fiyat ($)' : 'Monthly Price ($)'}</Label>

@@ -9,6 +9,7 @@ import { useToast } from '@ui/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
 import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info, X, Globe } from 'lucide-react';
 import { addonName, addonDescription } from '@/lib/addon-i18n';
+import { pkgName, pkgDescription } from '@/lib/pkg-i18n';
 
 interface Addon {
   id: number;
@@ -323,8 +324,8 @@ export function UpgradePage() {
           return (
             <div key={pkg.id} className={`rounded-2xl border-2 p-6 space-y-4 transition-all ${isCurrent ? 'border-primary/40 bg-primary/5 opacity-60' : isDowngrade ? 'border-border opacity-60' : 'border-border hover:border-primary/50'}`} style={{ flex: '0 1 calc(33.333% - 18px)', minWidth: 280 }}>
               <div>
-                <h3 className="text-xl font-bold">{pkg.name}</h3>
-                {pkg.description && <p className="text-sm text-muted-foreground mt-1">{pkg.description}</p>}
+                <h3 className="text-xl font-bold">{pkgName(pkg, tr)}</h3>
+                {pkgDescription(pkg, tr) && <p className="text-sm text-muted-foreground mt-1">{pkgDescription(pkg, tr)}</p>}
               </div>
 
               <div className="flex items-baseline gap-1">

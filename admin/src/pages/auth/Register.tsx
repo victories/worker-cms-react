@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { Check, Zap, Crown, Building2, ArrowRight, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import { Wordmark } from '@/components/Wordmark';
+import { pkgName } from '@/lib/pkg-i18n';
 
 /**
  * Register — landing v2 themed (see Login.tsx for design rationale).
@@ -27,6 +28,8 @@ interface PackageData {
   id: number;
   name: string;
   description: string | null;
+  name_en: string | null;
+  description_en: string | null;
   price_monthly: number;
   max_sites: number;
   features: string | null;
@@ -110,8 +113,8 @@ export function Register() {
     window.location.href = '/legal/iletisim';
   };
 
-  const selectedName =
-    packages.find((p) => planSlug(p) === selectedPlan)?.name || selectedPlan;
+  const selectedPkg = packages.find((p) => planSlug(p) === selectedPlan);
+  const selectedName = selectedPkg ? pkgName(selectedPkg, tr) : selectedPlan;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +215,7 @@ export function Register() {
                         <Icon className="w-6 h-6" />
                       </div>
 
-                      <h3 className="font-serif text-2xl text-[#FAFAF7] mb-1">{pkg.name}</h3>
+                      <h3 className="font-serif text-2xl text-[#FAFAF7] mb-1">{pkgName(pkg, tr)}</h3>
 
                       <div className="flex items-baseline gap-1 mb-5">
                         {isFree ? (
