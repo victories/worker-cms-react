@@ -26,9 +26,9 @@ export const LANDING_EN: LandingConfig = {
       { label: 'Pricing', url: '#pricing' },
     ],
     login_text: 'Log in',
-    login_url: '/admin/login',
+    login_url: '/admin/login?lang=en',
     cta_text: 'Start free',
-    cta_url: '/admin/register',
+    cta_url: '/admin/register?lang=en',
   },
   hero: {
     badge: 'Edge-native CMS · 300+ locations · ~30ms p50',
@@ -183,7 +183,7 @@ export const LANDING_EN: LandingConfig = {
           'All built-in plugins',
         ],
         cta_text: 'Get started',
-        cta_url: '/admin/register',
+        cta_url: '/admin/register?lang=en&plan=starter',
         highlighted: false,
       },
       {
@@ -201,7 +201,7 @@ export const LANDING_EN: LandingConfig = {
           'Priority support',
         ],
         cta_text: 'Go Pro',
-        cta_url: '/admin/register',
+        cta_url: '/admin/register?lang=en&plan=pro',
         highlighted: true,
       },
       {
@@ -226,7 +226,7 @@ export const LANDING_EN: LandingConfig = {
     title: 'Live in minutes.',
     subtitle: 'Create your first site in 60 seconds. No credit card required.',
     button_text: 'Create a free account',
-    button_url: '/admin/register',
+    button_url: '/admin/register?lang=en',
   },
   footer: {
     description:

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { Bindings, Variables, User } from '../../types';
-import { hashPassword, verifyPassword, needsRehash, createAccessToken, createRefreshToken, verifyToken, revokeToken } from '../../lib/auth';
+import { hashPassword, verifyPassword, needsRehash, createAccessToken, createRefreshToken, verifyToken, revokeToken, isRevoked, hashApiKey } from '../../lib/auth';
 import { generateTOTPSecret, verifyTOTP, generateTOTPUri } from '../../lib/totp';
 import { authMiddleware } from '../../middleware/auth';
 import { getMailSettings, sendTemplatedEmail } from '../../lib/email';
@@ -109,6 +110,12 @@ auth.post('/refresh', async (c) => {
 
   const payload = await verifyToken(body.refresh_token, c.env.JWT_SECRET);
   if (!payload) {
+    return c.json({ success: false, error: 'Geçersiz veya süresi dolmuş token' }, 401);
+  }
+
+  // Logout writes the refresh token's jti to the KV blocklist — a revoked
+  // refresh token must not mint new access tokens.
+  if (payload.jti && (await isRevoked(c.env.CACHE, payload.jti))) {
     return c.json({ success: false, error: 'Geçersiz veya süresi dolmuş token' }, 401);
   }
 
@@ -414,6 +421,34 @@ async function findOrCreateOAuthUser(
   return user!;
 }
 
+// OAuth CSRF defense: a random `state` value is set as an HttpOnly cookie
+// before redirecting to the provider and must round-trip unchanged through
+// the provider's callback. Without it an attacker can complete the flow on
+// a victim's browser with the attacker's authorization code (login CSRF).
+const OAUTH_STATE_COOKIE = 'oauth_state';
+
+function generateOAuthState(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function setOAuthStateCookie(c: any, state: string, secure: boolean): void {
+  setCookie(c, OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure,
+    sameSite: 'Lax',
+    path: '/api/auth',
+    maxAge: 600,
+  });
+}
+
+function consumeOAuthState(c: any): { ok: boolean } {
+  const fromQuery = c.req.query('state') || '';
+  const fromCookie = getCookie(c, OAUTH_STATE_COOKIE) || '';
+  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/api/auth' });
+  return { ok: !!fromQuery && !!fromCookie && fromQuery === fromCookie };
+}
+
 // Helper: get OAuth credentials from DB (global_settings) or fall back to env vars
 async function getOAuthCreds(env: Bindings, provider: 'google' | 'github') {
   const idKey = `${provider}_client_id`;
@@ -444,6 +479,9 @@ auth.get('/google', async (c) => {
   const protocol = adminDomain.includes('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${adminDomain}/api/auth/google/callback`;
 
+  const state = generateOAuthState();
+  setOAuthStateCookie(c, state, protocol === 'https');
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -451,6 +489,7 @@ auth.get('/google', async (c) => {
     scope: 'openid email profile',
     access_type: 'offline',
     prompt: 'select_account',
+    state,
   });
 
   return c.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
@@ -458,6 +497,9 @@ auth.get('/google', async (c) => {
 
 // GET /api/auth/google/callback
 auth.get('/google/callback', async (c) => {
+  if (!consumeOAuthState(c).ok) {
+    return c.json({ success: false, error: 'Geçersiz OAuth state — lütfen girişi yeniden başlatın' }, 400);
+  }
   const code = c.req.query('code');
   if (!code) return c.json({ success: false, error: 'Authorization code eksik' }, 400);
 
@@ -501,8 +543,9 @@ auth.get('/google/callback', async (c) => {
   const accessToken = await createAccessToken(user, c.env.JWT_SECRET);
   const refreshToken = await createRefreshToken(user, c.env.JWT_SECRET);
 
-  // Redirect to SPA with tokens in hash
-  return c.redirect(`${protocol}://${adminDomain}/admin/oauth-callback?access_token=${accessToken}&refresh_token=${refreshToken}`);
+  // Redirect to SPA with tokens in the hash fragment — fragments never reach
+  // the server, so tokens stay out of access logs and Referer headers.
+  return c.redirect(`${protocol}://${adminDomain}/admin/oauth-callback#access_token=${accessToken}&refresh_token=${refreshToken}`);
 });
 
 // ---- GitHub OAuth ----
@@ -516,10 +559,14 @@ auth.get('/github', async (c) => {
   const protocol = adminDomain.includes('localhost') ? 'http' : 'https';
   const redirectUri = `${protocol}://${adminDomain}/api/auth/github/callback`;
 
+  const state = generateOAuthState();
+  setOAuthStateCookie(c, state, protocol === 'https');
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: 'user:email',
+    state,
   });
 
   return c.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
@@ -527,6 +574,9 @@ auth.get('/github', async (c) => {
 
 // GET /api/auth/github/callback
 auth.get('/github/callback', async (c) => {
+  if (!consumeOAuthState(c).ok) {
+    return c.json({ success: false, error: 'Geçersiz OAuth state — lütfen girişi yeniden başlatın' }, 400);
+  }
   const code = c.req.query('code');
   if (!code) return c.json({ success: false, error: 'Authorization code eksik' }, 400);
 
@@ -578,7 +628,7 @@ auth.get('/github/callback', async (c) => {
   const accessToken = await createAccessToken(user, c.env.JWT_SECRET);
   const refreshToken = await createRefreshToken(user, c.env.JWT_SECRET);
 
-  return c.redirect(`${protocol}://${adminDomain}/admin/oauth-callback?access_token=${accessToken}&refresh_token=${refreshToken}`);
+  return c.redirect(`${protocol}://${adminDomain}/admin/oauth-callback#access_token=${accessToken}&refresh_token=${refreshToken}`);
 });
 
 // ---- 2FA Endpoints ----
@@ -671,11 +721,13 @@ auth.post('/forgot-password', async (c) => {
   crypto.getRandomValues(tokenBytes);
   const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-  // Store token with 1-hour expiry
+  // Store token with 1-hour expiry. Only the SHA-256 of the token hits the
+  // DB — a leaked database row can't be turned into a working reset link.
+  const tokenHash = await hashApiKey(token);
   const expiresAt = new Date(Date.now() + 3600000).toISOString();
   await c.env.DB.prepare(
     `INSERT INTO global_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?`
-  ).bind(`pwd_reset_${token}`, JSON.stringify({ userId: user.id, expiresAt }), JSON.stringify({ userId: user.id, expiresAt })).run();
+  ).bind(`pwd_reset_${tokenHash}`, JSON.stringify({ userId: user.id, expiresAt }), JSON.stringify({ userId: user.id, expiresAt })).run();
 
   // Send email
   try {
@@ -702,9 +754,10 @@ auth.post('/reset-password', async (c) => {
   if (!body.token || !body.password) return c.json({ success: false, error: 'Token ve yeni şifre gerekli' }, 400);
   if (body.password.length < 8) return c.json({ success: false, error: 'Şifre en az 8 karakter olmalı' }, 400);
 
-  // Look up token
+  // Look up token by its SHA-256 — see forgot-password above.
+  const tokenHash = await hashApiKey(body.token);
   const row = await c.env.DB.prepare('SELECT value FROM global_settings WHERE key = ?')
-    .bind(`pwd_reset_${body.token}`).first<{ value: string }>();
+    .bind(`pwd_reset_${tokenHash}`).first<{ value: string }>();
 
   if (!row) return c.json({ success: false, error: 'Geçersiz veya süresi dolmuş bağlantı' }, 400);
 
@@ -717,7 +770,7 @@ auth.post('/reset-password', async (c) => {
 
   if (new Date(data.expiresAt) < new Date()) {
     // Clean up expired token
-    await c.env.DB.prepare('DELETE FROM global_settings WHERE key = ?').bind(`pwd_reset_${body.token}`).run();
+    await c.env.DB.prepare('DELETE FROM global_settings WHERE key = ?').bind(`pwd_reset_${tokenHash}`).run();
     return c.json({ success: false, error: 'Bu bağlantının süresi dolmuş' }, 400);
   }
 
@@ -727,7 +780,7 @@ auth.post('/reset-password', async (c) => {
     .bind(passwordHash, data.userId).run();
 
   // Delete used token
-  await c.env.DB.prepare('DELETE FROM global_settings WHERE key = ?').bind(`pwd_reset_${body.token}`).run();
+  await c.env.DB.prepare('DELETE FROM global_settings WHERE key = ?').bind(`pwd_reset_${tokenHash}`).run();
 
   return c.json({ success: true, message: 'Şifreniz başarıyla değiştirildi' });
 });

@@ -48,6 +48,35 @@ function getInitialAuthState(): { user: User | null; isAuthenticated: boolean; i
   return { user: null, isAuthenticated: false, isImpersonating: false, originalUser: null };
 }
 
+// Resolve the initial admin UI language. The public site (landing,
+// legal pages) persists the visitor's choice in the `cms_lang` cookie
+// via /set-lang, and the English landing's sign-up CTAs carry an
+// explicit `?lang=en`. Without honouring those here the admin SPA
+// always booted in Turkish (localStorage default), so an English
+// visitor clicking "Get started" / "Go Pro" landed on a Turkish
+// register page. Priority: explicit ?lang= → cms_lang cookie →
+// stored preference → Turkish.
+function getInitialLang(): string {
+  const SUPPORTED = ['tr', 'en'];
+  try {
+    const param = new URLSearchParams(window.location.search).get('lang');
+    if (param && SUPPORTED.includes(param)) {
+      localStorage.setItem('lang', param);
+      return param;
+    }
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)cms_lang=([^;]+)/);
+    if (cookieMatch && SUPPORTED.includes(cookieMatch[1])) {
+      localStorage.setItem('lang', cookieMatch[1]);
+      return cookieMatch[1];
+    }
+    const stored = localStorage.getItem('lang');
+    if (stored && SUPPORTED.includes(stored)) return stored;
+  } catch {
+    // ignore — SSR/edge cases, fall through to default
+  }
+  return 'tr';
+}
+
 const initialAuth = getInitialAuthState();
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -55,7 +84,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: initialAuth.isAuthenticated,
   isImpersonating: initialAuth.isImpersonating,
   originalUser: initialAuth.originalUser,
-  lang: localStorage.getItem('lang') || 'tr',
+  lang: getInitialLang(),
 
   login: async (email, password, totpCode?) => {
     try {

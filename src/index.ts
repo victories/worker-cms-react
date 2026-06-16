@@ -215,6 +215,21 @@ app.use('*', corsMiddleware);
 // Generates a per-request CSP nonce and attaches a Report-Only CSP
 // header to HTML responses on public routes (admin SPA + AMP skipped).
 app.use('*', cspMiddleware);
+// Baseline security headers on every response. The /uploads handler builds
+// its own Response and sets these itself.
+app.use('*', async (c, next) => {
+  await next();
+  if (!c.res.headers.has('X-Content-Type-Options')) {
+    c.res.headers.set('X-Content-Type-Options', 'nosniff');
+  }
+  c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Admin SPA must never be frameable (clickjacking). Public pages are left
+  // alone — embedding decisions there belong to the (report-only) CSP.
+  const path = new URL(c.req.url).pathname;
+  if (path === '/admin' || path.startsWith('/admin/')) {
+    c.res.headers.set('X-Frame-Options', 'DENY');
+  }
+});
 // Strict rate limit on credential endpoints (brute-force defense).
 // Must come before the broader /api/* limiter so the tighter cap wins.
 app.use('/api/auth/login', rateLimit(10, 60));
@@ -420,10 +435,20 @@ app.get('/uploads/*', async (c) => {
   const object = await c.env.R2.get(key);
   if (!object) return c.notFound();
 
+  const contentType = object.httpMetadata?.contentType || 'application/octet-stream';
+
   const headers = new Headers();
-  headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+  headers.set('Content-Type', contentType);
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   headers.set('ETag', object.etag);
+  headers.set('X-Content-Type-Options', 'nosniff');
+
+  // SVG/HTML/XML can carry executable script. They still render fine from
+  // <img> tags, but when opened directly this CSP keeps any embedded script
+  // from running in the site's origin (stored-XSS via upload).
+  if (/svg|html|xml/i.test(contentType)) {
+    headers.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+  }
 
   return new Response(object.body, { headers });
 });

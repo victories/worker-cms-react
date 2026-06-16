@@ -13,7 +13,15 @@ export function parsePagination(url: URL): PaginationParams {
   return { page, per_page };
 }
 
+// `table` and `where` are interpolated into SQL, so they must NEVER carry
+// user input — the allowlist below turns an accidental misuse into a loud
+// error instead of an injection. User-supplied values go in `params`.
+const COUNTABLE_TABLES = new Set(['posts', 'media', 'comments c']);
+
 export async function countRows(db: D1Database, table: string, where: string, params: unknown[]): Promise<number> {
+  if (!COUNTABLE_TABLES.has(table)) {
+    throw new Error(`countRows: table "${table}" is not in the allowlist`);
+  }
   const result = await db.prepare(`SELECT COUNT(*) as count FROM ${table} WHERE ${where}`).bind(...params).first<{ count: number }>();
   return result?.count ?? 0;
 }

@@ -92,12 +92,23 @@ function parseStoredHash(stored: string): ParsedHash | null {
   return null;
 }
 
+// Constant-time string comparison — `===` short-circuits on the first
+// differing byte, which leaks match-prefix length through response timing.
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const parsed = parseStoredHash(stored);
   if (!parsed) return false;
 
   const computed = await derivePbkdf2(password, parsed.salt, parsed.iterations);
-  return computed === parsed.hashHex;
+  return timingSafeEqualHex(computed, parsed.hashHex);
 }
 
 // True when the stored hash is below the current target — either the

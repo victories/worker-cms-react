@@ -618,6 +618,56 @@ function Icon({
   );
 }
 
+// ── Flag glyphs ──────────────────────────────────────────────────────
+//
+// The language switcher used emoji flags (🇬🇧 / 🇹🇷). Those render as
+// real flags on iOS/Android but degrade to the bare region letters
+// ("GB" / "TR") on Windows desktop, which has no flag-emoji glyphs.
+// Inline SVGs render identically on every platform.
+
+function FlagTR({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 16"
+      width="22"
+      height="15"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="24" height="16" rx="2" fill="#E30A17" />
+      <circle cx="8.6" cy="8" r="4" fill="#fff" />
+      <circle cx="9.9" cy="8" r="3.1" fill="#E30A17" />
+      <polygon
+        points="15.5,8 14.07,7.44 13.98,5.91 13.01,7.10 11.52,6.71 12.35,8 11.52,9.29 13.01,8.90 13.98,10.09 14.07,8.56"
+        fill="#fff"
+      />
+    </svg>
+  );
+}
+
+function FlagGB({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 60 30"
+      width="22"
+      height="15"
+      className={className}
+      aria-hidden="true"
+    >
+      <clipPath id="flag-gb-clip">
+        <rect width="60" height="30" rx="3" />
+      </clipPath>
+      <g clipPath="url(#flag-gb-clip)">
+        <rect width="60" height="30" fill="#012169" />
+        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="4" />
+        <path d="M30,0 V30 M0,15 H60" stroke="#fff" strokeWidth="10" />
+        <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6" />
+      </g>
+    </svg>
+  );
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────
 
 /**
@@ -740,22 +790,22 @@ function Nav({ brandName, nav, lang = 'tr', path = '/', anchorBase = '' }: NavPr
               aria-label="English"
               aria-current={lang === 'en' ? 'true' : undefined}
               className={cn(
-                'px-1.5 py-1 rounded text-base leading-none transition-opacity',
+                'px-1.5 py-1 rounded leading-none transition-opacity',
                 lang === 'en' ? 'opacity-100' : 'opacity-40 hover:opacity-100'
               )}
             >
-              <span aria-hidden="true">🇬🇧</span>
+              <FlagGB className="rounded-[2px]" />
             </a>
             <a
               href={`/set-lang/tr?next=${nextParam}`}
               aria-label="Türkçe"
               aria-current={lang === 'tr' ? 'true' : undefined}
               className={cn(
-                'px-1.5 py-1 rounded text-base leading-none transition-opacity',
+                'px-1.5 py-1 rounded leading-none transition-opacity',
                 lang === 'tr' ? 'opacity-100' : 'opacity-40 hover:opacity-100'
               )}
             >
-              <span aria-hidden="true">🇹🇷</span>
+              <FlagTR className="rounded-[2px]" />
             </a>
           </div>
           <a

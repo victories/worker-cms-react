@@ -10,7 +10,9 @@ export function OAuthCallback() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    // Tokens arrive in the hash fragment (never sent to the server); the
+    // query-string form is kept as a fallback for older in-flight redirects.
+    const params = new URLSearchParams(location.hash.replace(/^#/, '') || location.search);
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
 
