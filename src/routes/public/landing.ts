@@ -182,6 +182,12 @@ export async function serveLanding(c: {
     Fragment,
     null,
     createElement('link', {
+      key: 'favicon',
+      rel: 'icon',
+      type: 'image/svg+xml',
+      href: '/favicon.svg',
+    }),
+    createElement('link', {
       key: 'gf-preconnect-1',
       rel: 'preconnect',
       href: 'https://fonts.googleapis.com',

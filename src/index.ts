@@ -499,6 +499,17 @@ app.use('*', pageViewTracker);
 
 // ---- Public Site (SSR) ----
 
+// Brand favicon — the hex-prism wordmark (identical to the landing/admin
+// logo). Served here so the management site can link to it; registered
+// before the SSR catch-all routes so `/:slug` doesn't swallow it.
+const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="8" fill="#0F0F11" stroke="#26262C"/><path d="M8 11 L16 7 L24 11 L24 21 L16 25 L8 21 Z" fill="none" stroke="#F5A524" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 11 L16 15 L24 11 M16 15 L16 25" fill="none" stroke="#F5A524" stroke-width="1.25" stroke-linejoin="round" opacity=".6"/><circle cx="16" cy="15" r="1.6" fill="#F5A524"/></svg>';
+app.get('/favicon.svg', (c) =>
+  c.body(FAVICON_SVG, 200, {
+    'content-type': 'image/svg+xml; charset=utf-8',
+    'cache-control': 'public, max-age=86400',
+  })
+);
+
 // RSS feed & Sitemap (before other routes to avoid conflicts)
 app.route('/', feedRoutes);
 app.route('/', sitemapRoutes);
