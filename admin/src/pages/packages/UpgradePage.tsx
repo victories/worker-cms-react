@@ -7,7 +7,22 @@ import { Input } from '@ui/input';
 import { Badge } from '@ui/badge';
 import { useToast } from '@ui/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
-import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle } from 'lucide-react';
+import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info } from 'lucide-react';
+
+interface Addon {
+  id: number;
+  key: string;
+  name: string;
+  description?: string | null;
+  type: 'unit' | 'feature';
+  unit_label?: string | null;
+  feature_key?: string | null;
+  price_monthly: number;
+  price_yearly: number;
+  creem_product_monthly_id?: string | null;
+  creem_product_yearly_id?: string | null;
+  max_units?: number | null;
+}
 
 const CHAINS = [
   { id: 'ethereum', name: 'Ethereum (ERC-20)', icon: 'ETH' },
@@ -31,6 +46,12 @@ export function UpgradePage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
+
+  // Add-ons
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [addonUnits, setAddonUnits] = useState<Record<number, number>>({});
+  const [addonFeatures, setAddonFeatures] = useState<Record<number, boolean>>({});
+  const [addonCheckoutLoading, setAddonCheckoutLoading] = useState<number | null>(null);
 
   // Crypto modal
   const [cryptoModal, setCryptoModal] = useState(false);
@@ -70,6 +91,12 @@ export function UpgradePage() {
       }
       if (walletRes.success) setWalletAddresses(walletRes.data || { usdt: {}, usdc: {} });
 
+      // Add-ons are public (no auth header needed).
+      try {
+        const addonRes = await fetch('/api/addons').then((r) => r.json()) as any;
+        if (addonRes.success) setAddons(addonRes.data || []);
+      } catch {}
+
       // Fetch proration data for each package if user has active subscription
       if (subRes.success && subRes.data) {
         const pkgs = pkgRes.success ? pkgRes.data : [];
@@ -108,6 +135,55 @@ export function UpgradePage() {
       toast(err.message || 'Error', 'error');
     }
     setCheckoutLoading(null);
+  };
+
+  // Per-period unit price for an add-on.
+  const addonUnitPrice = (a: Addon) => (billingPeriod === 'yearly' ? a.price_yearly : a.price_monthly);
+
+  // Creem product id for the currently-selected billing period (null → not purchasable yet).
+  const addonProductId = (a: Addon) =>
+    billingPeriod === 'yearly' ? a.creem_product_yearly_id : a.creem_product_monthly_id;
+
+  // Only render add-ons that have a Creem product for the selected period.
+  const purchasableAddons = addons.filter((a) => !!addonProductId(a));
+
+  // How many units / whether a feature is selected for this add-on.
+  const addonQty = (a: Addon) => addonUnits[a.id] ?? 0;
+  const addonOn = (a: Addon) => !!addonFeatures[a.id];
+
+  // Subtotal contribution of a single add-on (0 when not selected).
+  const addonSubtotal = (a: Addon) =>
+    a.type === 'unit' ? addonQty(a) * addonUnitPrice(a) : addonOn(a) ? addonUnitPrice(a) : 0;
+
+  const selectedAddons = purchasableAddons.filter((a) => addonSubtotal(a) > 0);
+  const addonsTotal = selectedAddons.reduce((sum, a) => sum + addonSubtotal(a), 0);
+
+  const setUnits = (a: Addon, next: number) => {
+    const cap = a.max_units ?? 99;
+    const clamped = Math.max(0, Math.min(cap, next));
+    setAddonUnits((prev) => ({ ...prev, [a.id]: clamped }));
+  };
+
+  const handleAddonCheckout = async (a: Addon) => {
+    setAddonCheckoutLoading(a.id);
+    try {
+      const res = await api.request('/subscriptions/addon-checkout', {
+        method: 'POST',
+        body: {
+          addon_id: a.id,
+          units: a.type === 'unit' ? addonQty(a) : 1,
+          billing_period: billingPeriod,
+        },
+      }) as any;
+      if (res.success && res.data?.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      } else {
+        toast(res.error || 'Error', 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || 'Error', 'error');
+    }
+    setAddonCheckoutLoading(null);
   };
 
   const openCryptoModal = (pkg: any) => {
@@ -385,6 +461,155 @@ export function UpgradePage() {
           </Button>
         </div>
       </div>
+
+      {/* Add-ons configurator */}
+      {purchasableAddons.length > 0 && (
+        <div className="space-y-4 pt-2">
+          <div className="text-center space-y-1">
+            <h2 className="text-2xl font-bold flex items-center justify-center gap-2">
+              <Puzzle className="h-6 w-6 text-primary" />
+              {tr ? 'Eklentiler' : 'Add-ons'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {tr
+                ? 'Paketinizi ihtiyacınıza göre genişletin'
+                : 'Extend your plan to fit your needs'}
+            </p>
+          </div>
+
+          {/* Gate hint: add-ons attach to an active plan */}
+          <div className="max-w-3xl mx-auto flex items-start gap-2 p-3 rounded-lg bg-muted/60 border border-border text-xs text-muted-foreground">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              {currentSub && !currentSub.is_free
+                ? (tr
+                    ? 'Eklentiler aktif paketinize eklenir ve ayrı birer Creem aboneliği olarak faturalanır.'
+                    : 'Add-ons attach to your active plan and are billed as separate Creem subscriptions.')
+                : (tr
+                    ? 'Eklentiler aktif bir pakete eklenir. Önce yukarıdan bir paket seçmenizi öneririz. Her eklenti ayrı bir Creem aboneliği olarak, teker teker eklenir.'
+                    : 'Add-ons attach to an active plan — we recommend picking a plan above first. Each add-on is added one at a time as a separate Creem subscription.')}
+            </span>
+          </div>
+
+          <div className="grid gap-3 max-w-3xl mx-auto">
+            {purchasableAddons.map((a) => {
+              const unitPrice = addonUnitPrice(a);
+              const perLabel = billingPeriod === 'yearly' ? (tr ? 'yıl' : 'yr') : (tr ? 'ay' : 'mo');
+              const unitLabel = a.unit_label || (tr ? 'birim' : 'unit');
+              const qty = addonQty(a);
+              const on = addonOn(a);
+              const selected = addonSubtotal(a) > 0;
+              const subtotal = addonSubtotal(a);
+              return (
+                <div
+                  key={a.id}
+                  className={`rounded-xl border-2 p-4 flex flex-col sm:flex-row sm:items-center gap-4 transition-all ${selected ? 'border-primary/50 bg-primary/5' : 'border-border'}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold">{a.name}</div>
+                    {a.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {a.type === 'unit'
+                        ? `$${unitPrice.toFixed(2)} / ${unitLabel} / ${perLabel}`
+                        : `$${unitPrice.toFixed(2)} / ${perLabel}`}
+                    </div>
+                  </div>
+
+                  {/* Configurator: stepper (unit) or toggle (feature) */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {a.type === 'unit' ? (
+                      <>
+                        <div className="inline-flex items-center rounded-lg border border-border">
+                          <button
+                            type="button"
+                            className="px-2.5 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+                            onClick={() => setUnits(a, qty - 1)}
+                            disabled={qty <= 0}
+                            aria-label={tr ? 'Azalt' : 'Decrease'}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="w-10 text-center text-sm font-medium tabular-nums">{qty}</span>
+                          <button
+                            type="button"
+                            className="px-2.5 py-2 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+                            onClick={() => setUnits(a, qty + 1)}
+                            disabled={qty >= (a.max_units ?? 99)}
+                            aria-label={tr ? 'Artır' : 'Increase'}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="w-16 text-right text-sm font-semibold tabular-nums">
+                          ${subtotal.toFixed(2)}
+                        </div>
+                      </>
+                    ) : (
+                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-border accent-primary"
+                          checked={on}
+                          onChange={(e) =>
+                            setAddonFeatures((prev) => ({ ...prev, [a.id]: e.target.checked }))
+                          }
+                        />
+                        <span className="text-sm">{tr ? 'Ekle' : 'Enable'}</span>
+                      </label>
+                    )}
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddonCheckout(a)}
+                      disabled={!selected || addonCheckoutLoading === a.id}
+                    >
+                      {addonCheckoutLoading === a.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      {tr ? 'Ekle' : 'Add'}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Cart summary (informational) */}
+          {selectedAddons.length > 0 && (
+            <div className="max-w-3xl mx-auto rounded-xl border-2 border-border p-4 space-y-2">
+              <div className="font-semibold text-sm">{tr ? 'Sepet Özeti' : 'Cart Summary'}</div>
+              <div className="space-y-1.5 text-sm">
+                {selectedAddons.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground truncate">
+                      {a.name}
+                      {a.type === 'unit' && (
+                        <span className="ml-1 text-xs">
+                          × {addonQty(a)} {a.unit_label || (tr ? 'birim' : 'unit')}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium tabular-nums shrink-0">${addonSubtotal(a).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-2 text-sm font-semibold">
+                <span>{tr ? 'Toplam' : 'Total'} / {billingPeriod === 'yearly' ? (tr ? 'yıl' : 'yr') : (tr ? 'ay' : 'mo')}</span>
+                <span className="tabular-nums">${addonsTotal.toFixed(2)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {tr
+                  ? 'Bilgi amaçlıdır. Creem tek ödemede birden fazla ürünü birleştiremediği için eklentiler ayrı birer abonelik olarak, teker teker eklenir.'
+                  : 'For reference only. Creem cannot combine multiple products in one payment, so add-ons are billed as separate subscriptions and added one at a time.'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Crypto Payment Modal */}
       <Dialog open={cryptoModal} onOpenChange={setCryptoModal}>
