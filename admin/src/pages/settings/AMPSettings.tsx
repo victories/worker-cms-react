@@ -137,18 +137,21 @@ export function AMPSettings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [hasWhiteLabel, setHasWhiteLabel] = useState(false);
+  // Whether the account may use a custom AMP domain — granted by the
+  // Custom AMP Domain add-on or a White Label package/add-on.
+  const [canCustomAmpDomain, setCanCustomAmpDomain] = useState(false);
 
   useEffect(() => {
     if (!activeSite) return;
     loadSettings();
     if (user?.role === 'super_admin') {
-      setHasWhiteLabel(true);
+      setCanCustomAmpDomain(true);
     } else {
-      api.request('/api/subscriptions/my').then((res: any) => {
-        if (res?.success && res.data) {
-          setHasWhiteLabel(res.data.white_label === 1);
-        }
+      api.request('/subscriptions/features').then((res: any) => {
+        const features: string[] = res?.data?.features || [];
+        setCanCustomAmpDomain(
+          features.includes('custom_amp_domain') || features.includes('white_label')
+        );
       }).catch(() => {});
     }
   }, [activeSite]);
@@ -356,7 +359,7 @@ export function AMPSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {hasWhiteLabel ? (
+          {canCustomAmpDomain ? (
             <>
               <div>
                 <Label htmlFor="amp_custom_domain">
@@ -397,11 +400,11 @@ export function AMPSettings() {
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm text-amber-800">
                 {lang === 'tr'
-                  ? 'Özel AMP domain kullanmak için paketinizi White Label destekleyen bir pakete yükseltmeniz gerekmektedir.'
-                  : 'To use a custom AMP domain, please upgrade to a plan that supports White Label.'}
+                  ? 'Özel AMP domain kullanmak için "Custom AMP Domain" eklentisini satın almanız gerekmektedir. Hesabınıza eklendiğinde tüm sitelerinizde etkin olur.'
+                  : 'To use a custom AMP domain, purchase the "Custom AMP Domain" add-on. Once added to your account it is active on all your sites.'}
               </p>
               <a href="/admin/upgrade" className="text-sm font-medium text-amber-900 underline mt-1 inline-block">
-                {lang === 'tr' ? 'Paketinizi yükseltin →' : 'Upgrade your plan →'}
+                {lang === 'tr' ? 'Eklentiyi satın al →' : 'Get the add-on →'}
               </a>
             </div>
           )}

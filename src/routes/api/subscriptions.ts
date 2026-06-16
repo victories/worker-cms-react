@@ -5,7 +5,7 @@ import { getMailSettings, sendEmailViaResend, buildSubscriptionEmail } from '../
 import { verifyStripeSignature } from '../../lib/stripe-signature';
 import { verifyCreemSignature } from '../../lib/creem-signature';
 import { getCreemConfig } from '../../lib/creem';
-import { recomputeUserEntitlements } from '../../lib/entitlements';
+import { recomputeUserEntitlements, getUserFeatures } from '../../lib/entitlements';
 import { sitesToPauseRequired } from '../../lib/site-quota';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -24,6 +24,15 @@ subscriptions.get('/my', async (c) => {
   ).bind(user.sub).first();
 
   return c.json({ success: true, data: sub || null });
+});
+
+// GET /api/subscriptions/features - the current user's effective feature
+// entitlements (e.g. white_label, custom_amp_domain), granted by their
+// package and/or active feature add-ons. Drives UI feature gates.
+subscriptions.get('/features', async (c) => {
+  const user = c.get('user')!;
+  const features = await getUserFeatures(c.env.DB, user.sub);
+  return c.json({ success: true, data: { features } });
 });
 
 // GET /api/subscriptions/overview - the current user's effective plan,
