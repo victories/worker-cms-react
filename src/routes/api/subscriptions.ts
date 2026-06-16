@@ -25,6 +25,80 @@ subscriptions.get('/my', async (c) => {
   return c.json({ success: true, data: sub || null });
 });
 
+// GET /api/subscriptions/overview - the current user's effective plan,
+// add-ons, and quota (for the profile + dashboard). max_sites is the cached
+// effective value (package base + active extra-site units).
+subscriptions.get('/overview', async (c) => {
+  const user = c.get('user')!;
+  const userRow = await c.env.DB.prepare('SELECT max_sites FROM users WHERE id = ?')
+    .bind(user.sub).first<{ max_sites: number }>();
+  const pkg = await c.env.DB.prepare(
+    `SELECT s.id, s.status, s.billing_period, s.payment_method, s.current_period_end,
+            s.cancel_at_period_end, s.creem_subscription_id,
+            p.name AS package_name, p.max_sites, p.price_monthly, p.price_yearly
+     FROM subscriptions s JOIN packages p ON p.id = s.package_id
+     WHERE s.user_id = ? AND s.status = 'active'
+     ORDER BY s.created_at DESC LIMIT 1`
+  ).bind(user.sub).first();
+  const addons = await c.env.DB.prepare(
+    `SELECT ua.id, ua.units, ua.billing_period, ua.status, ua.current_period_end,
+            ua.cancel_at_period_end, ua.creem_subscription_id,
+            a.name AS addon_name, a.type, a.unit_label, a.feature_key,
+            a.price_monthly, a.price_yearly
+     FROM user_addons ua JOIN addons a ON a.id = ua.addon_id
+     WHERE ua.user_id = ? AND ua.status = 'active'
+     ORDER BY ua.created_at DESC`
+  ).bind(user.sub).all();
+  const sites = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM user_sites WHERE user_id = ?')
+    .bind(user.sub).first<{ n: number }>();
+  return c.json({
+    success: true,
+    data: {
+      max_sites: userRow?.max_sites ?? 1,
+      sites_used: sites?.n ?? 0,
+      package: pkg || null,
+      addons: addons.results || [],
+    },
+  });
+});
+
+// POST /api/subscriptions/cancel - schedule a Creem subscription (package or
+// add-on) to cancel at period end. The row stays active until the
+// subscription.canceled/expired webhook fires, which flips status and
+// recomputes entitlements. `cancel_at_period_end` drives the UI meanwhile.
+subscriptions.post('/cancel', async (c) => {
+  const user = c.get('user')!;
+  const body = await c.req.json<{ kind: 'package' | 'addon'; id: number }>();
+  const table = body.kind === 'addon' ? 'user_addons' : 'subscriptions';
+
+  const row = await c.env.DB.prepare(
+    `SELECT id, creem_subscription_id, current_period_end FROM ${table} WHERE id = ? AND user_id = ? AND status = 'active'`
+  ).bind(body.id, user.sub).first<any>();
+  if (!row) return c.json({ success: false, error: 'Abonelik bulunamadı' }, 404);
+  if (!row.creem_subscription_id) {
+    return c.json({ success: false, error: 'Bu abonelik buradan iptal edilemez' }, 400);
+  }
+
+  const cfg = await getCreemConfig(c.env.DB);
+  if (!cfg.apiKey) return c.json({ success: false, error: 'Creem yapılandırılmamış' }, 500);
+
+  const res = await fetch(`${cfg.baseUrl}/v1/subscriptions/${row.creem_subscription_id}/cancel`, {
+    method: 'POST',
+    headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'scheduled' }),
+  });
+  if (!res.ok) {
+    const d = (await res.json().catch(() => ({}))) as any;
+    return c.json({ success: false, error: d?.message || 'Creem iptal hatası' }, 400);
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE ${table} SET cancel_at_period_end = 1, updated_at = datetime('now') WHERE id = ?`
+  ).bind(body.id).run();
+
+  return c.json({ success: true, data: { period_end: row.current_period_end } });
+});
+
 // GET /api/subscriptions/prorate - Calculate proration credit for upgrade
 subscriptions.get('/prorate', async (c) => {
   const user = c.get('user')!;
@@ -833,12 +907,18 @@ export async function handleCreemWebhook(c: any) {
   }
 
   if ((type === 'subscription.canceled' || type === 'subscription.expired') && creemSubId) {
+    const sub = await db
+      .prepare("SELECT user_id FROM subscriptions WHERE creem_subscription_id = ? AND status = 'active'")
+      .bind(creemSubId)
+      .first<{ user_id: number }>();
     await db
       .prepare(
         "UPDATE subscriptions SET status = 'cancelled', updated_at = datetime('now') WHERE creem_subscription_id = ?"
       )
       .bind(creemSubId)
       .run();
+    // Recompute so max_sites drops to the (now lower) effective value.
+    if (sub) await recomputeUserEntitlements(db, sub.user_id);
   }
 
   // Add-on cancel/expire — runs in addition to the base-plan cancel branch
