@@ -5,6 +5,7 @@ import { createSlug } from '../../lib/slug';
 import { deleteAllSiteFiles } from '../../lib/storage';
 import { deleteCustomHostname, getCfCredentials } from './domains';
 import { createDefaultContent } from '../../lib/default-content';
+import { canReactivate } from '../../lib/site-quota';
 
 const sites = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -238,6 +239,45 @@ sites.put('/:id', async (c) => {
   ).first();
 
   return c.json({ success: true, data: result });
+});
+
+// POST /api/sites/:id/activate - bring a paused site back online, only
+// if the user still has quota headroom (active sites < max_sites).
+sites.post('/:id/activate', async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const user = c.get('user')!;
+
+  const site = await c.env.DB.prepare("SELECT id, status FROM sites WHERE id = ?")
+    .bind(id).first<{ id: number; status: string }>();
+  if (!site) return c.json({ success: false, error: 'Site bulunamadı' }, 404);
+  if (site.status !== 'paused') {
+    return c.json({ success: false, error: 'Site zaten aktif' }, 400);
+  }
+
+  if (user.role !== 'super_admin') {
+    const owns = await c.env.DB.prepare(
+      'SELECT 1 FROM user_sites WHERE user_id = ? AND site_id = ?'
+    ).bind(user.sub, id).first();
+    if (!owns) return c.json({ success: false, error: 'Yetkiniz yok' }, 403);
+
+    const userRow = await c.env.DB.prepare('SELECT max_sites FROM users WHERE id = ?')
+      .bind(user.sub).first<{ max_sites: number }>();
+    const activeRow = await c.env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM user_sites us JOIN sites s ON s.id = us.site_id
+       WHERE us.user_id = ? AND s.status = 'active'`
+    ).bind(user.sub).first<{ n: number }>();
+    if (!canReactivate(activeRow?.n ?? 0, userRow?.max_sites ?? 0)) {
+      return c.json({
+        success: false,
+        error: 'Kota dolu. Önce ek site alın veya başka bir siteyi duraklatın.',
+      }, 403);
+    }
+  }
+
+  await c.env.DB.prepare(
+    "UPDATE sites SET status = 'active', updated_at = datetime('now') WHERE id = ?"
+  ).bind(id).run();
+  return c.json({ success: true });
 });
 
 // DELETE /api/sites/:id (super_admin only)
