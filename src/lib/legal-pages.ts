@@ -87,7 +87,7 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
 <p>Verileriniz Birleşik Krallık veya AB dışına aktarıldığında, UK GDPR'ın gerektirdiği güvenceleri (yeterlilik kararları, Standart Sözleşme Maddeleri / Uluslararası Veri Aktarım Anlaşması — IDTA) uygularız.</p>
 
 <h2>6. Veri Güvenliği ve Saklama</h2>
-<p>Şifreler PBKDF2-SHA256 (600.000 iterasyon) ile hash'lenir. İletişim TLS 1.3 ile şifrelenir. Yedekler şifreli saklanır. Verileri yalnızca bu politikada belirtilen amaçlar için gerekli olduğu sürece tutarız.</p>
+<p>Şifreler PBKDF2-SHA256 (100.000 iterasyon) ile hash'lenir. İletişim TLS 1.3 ile şifrelenir. Yedekler şifreli saklanır. Verileri yalnızca bu politikada belirtilen amaçlar için gerekli olduğu sürece tutarız.</p>
 
 <h2>7. Haklarınız</h2>
 <p>UK GDPR kapsamında: verilerinize erişim, düzeltme, silme, işlemeyi kısıtlama, taşınabilirlik ve itiraz haklarına sahipsiniz. Taleplerinizi <a href="/legal/iletisim">iletişim sayfası</a>ndan iletebilirsiniz. Ayrıca veri işleme uygulamalarımızdan memnun değilseniz Birleşik Krallık denetim makamı olan Bilgi Komiserliği Ofisi'ne (ICO — <a href="https://ico.org.uk" rel="nofollow noopener" target="_blank">ico.org.uk</a>) şikâyette bulunma hakkınız vardır.</p>
@@ -133,7 +133,7 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
 <p>Where data is transferred outside the UK or EU, we apply the safeguards required by the UK GDPR (adequacy decisions, Standard Contractual Clauses / the International Data Transfer Agreement).</p>
 
 <h2>6. Security and Retention</h2>
-<p>Passwords are hashed with PBKDF2-SHA256 (600,000 iterations). Traffic is encrypted with TLS 1.3. Backups are stored encrypted. We keep data only for as long as necessary for the purposes set out in this policy.</p>
+<p>Passwords are hashed with PBKDF2-SHA256 (100,000 iterations). Traffic is encrypted with TLS 1.3. Backups are stored encrypted. We keep data only for as long as necessary for the purposes set out in this policy.</p>
 
 <h2>7. Your Rights</h2>
 <p>Under the UK GDPR you have the rights of access, rectification, erasure, restriction, portability, and objection. Contact us via the <a href="/legal/iletisim">contact page</a> to exercise these rights. You also have the right to lodge a complaint with the UK supervisory authority, the Information Commissioner's Office (ICO — <a href="https://ico.org.uk" rel="nofollow noopener" target="_blank">ico.org.uk</a>), if you are unhappy with how we handle your data.</p>

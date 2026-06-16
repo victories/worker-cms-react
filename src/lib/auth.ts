@@ -2,13 +2,19 @@ import type { JWTPayload, User } from '../types';
 
 // PBKDF2 iteration counts.
 //   - V1 (legacy `$pbkdf2$...`): 100,000 — original baseline.
-//   - V2 (`$pbkdf2v2$<iters>$...`): 600,000 — OWASP 2023 minimum for
-//     PBKDF2-HMAC-SHA256.
-// Existing DB rows in the V1 format MUST keep verifying. New hashes
-// always go out in the V2 format; callers can lazily upgrade legacy
-// rows via `needsRehash()` after a successful login.
+//   - V2 (`$pbkdf2v2$<iters>$...`): self-describing iteration count.
+// The Cloudflare Workers runtime caps PBKDF2 at 100,000 iterations —
+// `crypto.subtle.deriveBits` throws "iteration counts above 100000 are
+// not supported" for anything higher (OWASP 2023's 600,000 is not
+// reachable here). So the target stays at the runtime ceiling; the V2
+// format is kept for forward-compatibility (self-describing iters) and
+// so the count can be raised if the runtime ever lifts the cap.
+// Existing DB rows in the V1 format MUST keep verifying. New hashes go
+// out in the V2 format; callers lazily upgrade legacy rows via
+// `needsRehash()` after a successful login.
 const PBKDF2_V1_ITERATIONS = 100000;
-export const PBKDF2_TARGET_ITERATIONS = 600000;
+// Workers hard limit — do not raise above 100,000 (deriveBits throws).
+export const PBKDF2_TARGET_ITERATIONS = 100000;
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
