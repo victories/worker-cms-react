@@ -2,19 +2,32 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { useUIStore } from '@/stores/uiStore';
 import { t } from '@/lib/i18n';
+import { api } from '@/lib/api';
 import { Button } from '@ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Languages, Menu as MenuIcon, PanelLeftClose, PanelLeft, ExternalLink, UserCog, ArrowLeftCircle, Crown, Settings2, Check, Globe, Package, Rocket } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { User, LogOut, Languages, Menu as MenuIcon, PanelLeftClose, PanelLeft, ExternalLink, UserCog, ArrowLeftCircle, Crown, Settings2, Check, Globe, Package, Rocket, Plus } from 'lucide-react';
 
 export function Header() {
   const { user, lang, setLang, logout, isImpersonating, originalUser, stopImpersonation } = useAuthStore();
   const { activeSite } = useSiteStore();
   const { toggleSidebar, sidebarCollapsed, toggleCollapsed } = useUIStore();
   const navigate = useNavigate();
+
+  // Whether a non-super_admin still has site quota headroom — drives the
+  // "Add Site" button next to Upgrade.
+  const [canAddSite, setCanAddSite] = useState(false);
+  useEffect(() => {
+    if (user?.role === 'super_admin') return;
+    api.request('/subscriptions/overview').then((res: any) => {
+      const d = res?.data;
+      if (d) setCanAddSite((d.sites_used ?? 0) < (d.max_sites ?? 0));
+    }).catch(() => {});
+  }, [user?.role, activeSite]);
 
   const handleLogout = () => {
     logout();
@@ -86,6 +99,19 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-1">
+        {/* Add Site button — only when the user has quota headroom */}
+        {user?.role !== 'super_admin' && canAddSite && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 text-xs border-[#F5A524]/50 text-[#F5A524] hover:bg-[#F5A524]/10 hidden sm:flex"
+            onClick={() => navigate('/setup-domain')}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {lang === 'tr' ? 'Site Ekle' : 'Add Site'}
+          </Button>
+        )}
+
         {/* Upgrade button for non-super_admin users */}
         {user?.role !== 'super_admin' && (
           <Button
