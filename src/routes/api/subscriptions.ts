@@ -4,28 +4,10 @@ import { authMiddleware, requireRole } from '../../middleware/auth';
 import { getMailSettings, sendEmailViaResend, buildSubscriptionEmail } from '../../lib/email';
 import { verifyStripeSignature } from '../../lib/stripe-signature';
 import { verifyCreemSignature } from '../../lib/creem-signature';
+import { getCreemConfig } from '../../lib/creem';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 subscriptions.use('*', authMiddleware);
-
-// Creem.io config (api key, webhook secret, test mode) lives in
-// global_settings. Test mode hits the sandbox API; live hits production.
-async function getCreemConfig(db: D1Database) {
-  const rows = await db
-    .prepare(
-      "SELECT key, value FROM global_settings WHERE key IN ('creem_api_key','creem_webhook_secret','creem_test_mode')"
-    )
-    .all<{ key: string; value: string }>();
-  const map: Record<string, string> = {};
-  for (const r of rows.results || []) map[r.key] = r.value;
-  const testMode = map.creem_test_mode === '1' || map.creem_test_mode === 'true';
-  return {
-    apiKey: map.creem_api_key || '',
-    webhookSecret: map.creem_webhook_secret || '',
-    testMode,
-    baseUrl: testMode ? 'https://test-api.creem.io' : 'https://api.creem.io',
-  };
-}
 
 // GET /api/subscriptions/my - Get current user's active subscription
 subscriptions.get('/my', async (c) => {

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings, Variables } from '../../types';
 import { authMiddleware, requireRole } from '../../middleware/auth';
+import { syncCreemProducts } from '../../lib/creem';
 
 const packages = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -103,7 +104,28 @@ packages.post('/admin', requireRole('super_admin'), async (c) => {
     body.white_label ? 1 : 0
   ).first();
 
-  return c.json({ success: true, data: result }, 201);
+  // Auto-provision Creem products for the new package's prices. Non-fatal:
+  // the save succeeds even if Creem isn't configured or the API errors.
+  const sync = await syncCreemProducts(c.env.DB, {
+    name: body.name,
+    priceMonthly: body.price_monthly || 0,
+    priceYearly: body.price_yearly || 0,
+    monthlyId: (result as any)?.creem_product_monthly_id,
+    yearlyId: (result as any)?.creem_product_yearly_id,
+  });
+  if (
+    result &&
+    (sync.monthlyId !== (result as any).creem_product_monthly_id ||
+      sync.yearlyId !== (result as any).creem_product_yearly_id)
+  ) {
+    await c.env.DB.prepare(
+      'UPDATE packages SET creem_product_monthly_id = ?, creem_product_yearly_id = ? WHERE id = ?'
+    ).bind(sync.monthlyId, sync.yearlyId, (result as any).id).run();
+    (result as any).creem_product_monthly_id = sync.monthlyId;
+    (result as any).creem_product_yearly_id = sync.yearlyId;
+  }
+
+  return c.json({ success: true, data: result, warning: sync.warning }, 201);
 });
 
 // PUT /api/packages/admin/:id - Update package (super_admin)
@@ -136,7 +158,31 @@ packages.put('/admin/:id', requireRole('super_admin'), async (c) => {
     id
   ).first();
 
-  return c.json({ success: true, data: result });
+  // Re-provision Creem products only when the price actually changed (or an
+  // id is missing). Pass the previous prices and existing ids so unchanged
+  // prices keep their immutable product. Non-fatal — never breaks the save.
+  const sync = await syncCreemProducts(c.env.DB, {
+    name: (result as any)?.name ?? body.name ?? (existing as any).name,
+    priceMonthly: (result as any)?.price_monthly ?? 0,
+    priceYearly: (result as any)?.price_yearly ?? 0,
+    prevPriceMonthly: (existing as any).price_monthly,
+    prevPriceYearly: (existing as any).price_yearly,
+    monthlyId: (result as any)?.creem_product_monthly_id,
+    yearlyId: (result as any)?.creem_product_yearly_id,
+  });
+  if (
+    result &&
+    (sync.monthlyId !== (result as any).creem_product_monthly_id ||
+      sync.yearlyId !== (result as any).creem_product_yearly_id)
+  ) {
+    await c.env.DB.prepare(
+      'UPDATE packages SET creem_product_monthly_id = ?, creem_product_yearly_id = ? WHERE id = ?'
+    ).bind(sync.monthlyId, sync.yearlyId, id).run();
+    (result as any).creem_product_monthly_id = sync.monthlyId;
+    (result as any).creem_product_yearly_id = sync.yearlyId;
+  }
+
+  return c.json({ success: true, data: result, warning: sync.warning });
 });
 
 // DELETE /api/packages/admin/:id (super_admin)
