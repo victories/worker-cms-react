@@ -600,6 +600,46 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_packages_active ON packages(is_active, sort_order);
 
+-- General add-on catalog + per-user add-on subscriptions. See
+-- docs/plans/2026-06-16-addons-cart-design.md.
+CREATE TABLE IF NOT EXISTS addons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  key TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT,
+  type TEXT NOT NULL DEFAULT 'feature',        -- 'unit' | 'feature'
+  unit_label TEXT,                              -- for 'unit' (e.g. 'site')
+  feature_key TEXT,                             -- entitlement granted (e.g. 'white_label', 'extra_site')
+  price_monthly REAL DEFAULT 0,
+  price_yearly REAL DEFAULT 0,
+  creem_product_monthly_id TEXT,
+  creem_product_yearly_id TEXT,
+  max_units INTEGER,                            -- optional cap for 'unit'
+  is_active INTEGER DEFAULT 1,
+  sort_order INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS user_addons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  addon_id INTEGER NOT NULL,
+  units INTEGER DEFAULT 1,
+  billing_period TEXT DEFAULT 'monthly',
+  status TEXT DEFAULT 'active',                 -- 'active' | 'cancelled' | 'expired'
+  creem_checkout_id TEXT,
+  creem_subscription_id TEXT,
+  creem_customer_id TEXT,
+  current_period_start TEXT,
+  current_period_end TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (addon_id) REFERENCES addons(id)
+);
+CREATE INDEX IF NOT EXISTS idx_user_addons_user ON user_addons(user_id, status);
+
 -- Contety İçerik Botu
 CREATE TABLE IF NOT EXISTS contety_configs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
