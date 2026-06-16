@@ -5,6 +5,7 @@ import { getMailSettings, sendEmailViaResend, buildSubscriptionEmail } from '../
 import { verifyStripeSignature } from '../../lib/stripe-signature';
 import { verifyCreemSignature } from '../../lib/creem-signature';
 import { getCreemConfig } from '../../lib/creem';
+import { recomputeUserEntitlements } from '../../lib/entitlements';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 subscriptions.use('*', authMiddleware);
@@ -216,6 +217,39 @@ subscriptions.post('/creem-checkout', async (c) => {
   }
 
   return c.json({ success: true, data: { checkout_url: data.checkout_url, checkout_id: data.id } });
+});
+
+// POST /api/subscriptions/addon-checkout - Create a Creem.io checkout for an
+// add-on. Mirrors /creem-checkout; activation happens in handleCreemWebhook on
+// `checkout.completed` when metadata.kind === 'addon'.
+subscriptions.post('/addon-checkout', async (c) => {
+  const user = c.get('user')!;
+  const body = await c.req.json<{ addon_id: number; units?: number; billing_period: 'monthly' | 'yearly' }>();
+  const addon = await c.env.DB.prepare('SELECT * FROM addons WHERE id = ? AND is_active = 1').bind(body.addon_id).first<any>();
+  if (!addon) return c.json({ success: false, error: 'Eklenti bulunamadı' }, 404);
+
+  const cfg = await getCreemConfig(c.env.DB);
+  if (!cfg.apiKey) return c.json({ success: false, error: 'Creem yapılandırılmamış' }, 500);
+  const productId = body.billing_period === 'yearly' ? addon.creem_product_yearly_id : addon.creem_product_monthly_id;
+  if (!productId) return c.json({ success: false, error: 'Bu eklenti için Creem ürünü tanımlanmamış' }, 400);
+
+  const units = addon.type === 'unit' ? Math.max(1, Math.min(addon.max_units || 9999, body.units || 1)) : 1;
+  const adminDomain = c.env.ADMIN_DOMAIN || '';
+  const res = await fetch(`${cfg.baseUrl}/v1/checkouts`, {
+    method: 'POST',
+    headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      product_id: productId,
+      units,
+      request_id: `${user.sub}_addon${body.addon_id}_${body.billing_period}`,
+      success_url: `https://${adminDomain}/admin/upgrade?success=1`,
+      customer: { email: user.email },
+      metadata: { user_id: String(user.sub), addon_id: String(body.addon_id), units: String(units), billing_period: body.billing_period, kind: 'addon' },
+    }),
+  });
+  const data = (await res.json()) as any;
+  if (!res.ok || !data?.checkout_url) return c.json({ success: false, error: data?.message || 'Creem hatası' }, 400);
+  return c.json({ success: true, data: { checkout_url: data.checkout_url } });
 });
 
 // POST /api/subscriptions/crypto - Submit crypto payment
@@ -670,6 +704,26 @@ export async function handleCreemWebhook(c: any) {
     typeof obj.customer === 'string' ? obj.customer : obj.customer?.id || null;
   const creemCheckoutId = typeof obj.id === 'string' ? obj.id : null;
 
+  // Add-on checkout — handle and early-return BEFORE the package branch so
+  // the base-plan logic never runs for add-on purchases.
+  if (type === 'checkout.completed' && meta.kind === 'addon') {
+    const addonId = parseInt(meta.addon_id || '0');
+    const units = parseInt(meta.units || '1');
+    if (!userId || !addonId) return c.json({ received: true });
+    if (creemCheckoutId) {
+      const dupe = await db.prepare('SELECT id FROM user_addons WHERE creem_checkout_id = ?').bind(creemCheckoutId).first();
+      if (dupe) return c.json({ received: true });
+    }
+    const now = new Date(); const periodEnd = new Date(now);
+    if (billingPeriod === 'yearly') periodEnd.setFullYear(periodEnd.getFullYear() + 1); else periodEnd.setMonth(periodEnd.getMonth() + 1);
+    await db.prepare(
+      `INSERT INTO user_addons (user_id, addon_id, units, billing_period, status, creem_checkout_id, creem_subscription_id, creem_customer_id, current_period_start, current_period_end)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`
+    ).bind(userId, addonId, units, billingPeriod, creemCheckoutId, creemSubId, creemCustId, now.toISOString(), periodEnd.toISOString()).run();
+    await recomputeUserEntitlements(db, userId);
+    return c.json({ received: true });
+  }
+
   if (type === 'checkout.completed') {
     if (!userId || !packageId) return c.json({ received: true });
 
@@ -779,6 +833,16 @@ export async function handleCreemWebhook(c: any) {
       )
       .bind(creemSubId)
       .run();
+  }
+
+  // Add-on cancel/expire — runs in addition to the base-plan cancel branch
+  // above; keys on creem_subscription_id in the user_addons table.
+  if ((type === 'subscription.canceled' || type === 'subscription.expired') && creemSubId) {
+    const ua = await db.prepare("SELECT user_id FROM user_addons WHERE creem_subscription_id = ? AND status = 'active'").bind(creemSubId).first<{ user_id: number }>();
+    if (ua) {
+      await db.prepare("UPDATE user_addons SET status = 'cancelled', updated_at = datetime('now') WHERE creem_subscription_id = ?").bind(creemSubId).run();
+      await recomputeUserEntitlements(db, ua.user_id);
+    }
   }
 
   return c.json({ received: true });
