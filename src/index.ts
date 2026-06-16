@@ -424,6 +424,20 @@ app.get('/', async (c, next) => {
   }
   await next();
 });
+
+// Serve the landing (in the requested language) at /en and /tr on the
+// admin domain too, so the management homepage IS the landing in both
+// languages — without this, /en fell through to the CMS blog home.
+// Must be registered before the public home route below.
+app.get('/:lang{en|tr}', async (c, next) => {
+  const host = (c.req.header('host') || '').toLowerCase().replace(/:\d+$/, '');
+  if (isAdminHost(host, c.env)) {
+    const { serveLanding } = await import('./routes/public/landing');
+    const res = await serveLanding(c);
+    if (res) return res;
+  }
+  await next();
+});
 app.route('/', landingPageRoutes);
 
 // ---- Media serving (R2) ----
