@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { KeyRound, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Wordmark } from '@/components/Wordmark';
 
 /**
  * ResetPassword — landing v2 themed (see Login.tsx for design rationale).
@@ -58,10 +59,8 @@ export function ResetPassword() {
           to="/login"
           className="flex items-center justify-center gap-2 mb-6 text-[#FAFAF7] hover:opacity-90 transition-opacity"
         >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F5A524] to-[#E89414] flex items-center justify-center text-[#0A0A0B] font-bold text-base shadow-lg shadow-amber-500/20">
-            W
-          </div>
-          <span className="font-semibold text-lg">WorkerCMS</span>
+          <Wordmark size={36} />
+          <span className="font-semibold text-lg">Worker CMS</span>
         </Link>
 
         <div className="rounded-2xl border border-[#1B1B20] bg-[#0F0F11]/90 backdrop-blur-sm p-8 shadow-2xl shadow-black/40">

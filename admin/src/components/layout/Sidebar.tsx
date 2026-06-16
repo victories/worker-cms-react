@@ -5,6 +5,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { t } from '@/lib/i18n';
 import { cn } from '@ui/lib/utils';
 import { SiteSwitcher } from './SiteSwitcher';
+import { Wordmark } from '@/components/Wordmark';
 import { Separator } from '@ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip';
 import {
@@ -261,10 +262,8 @@ export function Sidebar() {
     )}>
       <div className="p-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary" onClick={handleNavClick}>
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0">
-            W
-          </div>
-          {!sidebarCollapsed && <span>WorkerCms</span>}
+          <Wordmark size={32} />
+          {!sidebarCollapsed && <span>Worker CMS</span>}
         </Link>
       </div>
 

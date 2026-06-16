@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { Wordmark } from '@/components/Wordmark';
 import { t } from '@/lib/i18n';
 import { Shield, ArrowLeft } from 'lucide-react';
 
@@ -67,10 +68,8 @@ export function Login() {
           href="/"
           className="flex items-center justify-center gap-2 mb-6 text-[#FAFAF7] hover:opacity-90 transition-opacity"
         >
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F5A524] to-[#E89414] flex items-center justify-center text-[#0A0A0B] font-bold text-base shadow-lg shadow-amber-500/20">
-            W
-          </div>
-          <span className="font-semibold text-lg">WorkerCMS</span>
+          <Wordmark size={36} />
+          <span className="font-semibold text-lg">Worker CMS</span>
         </a>
 
         {/* Card */}

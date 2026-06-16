@@ -7,6 +7,7 @@ import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@ui/dropdown-menu';
 import { Globe, ArrowRight, Loader2, CheckCircle2, AlertCircle, Copy, Check, RefreshCw, Server, PartyPopper, LogOut, ChevronDown } from 'lucide-react';
+import { Wordmark } from '@/components/Wordmark';
 
 export function DomainSetup() {
   const { lang, user, logout } = useAuthStore();
@@ -128,8 +129,8 @@ export function DomainSetup() {
       {/* Top bar */}
       <div className="relative flex items-center justify-between px-6 py-4 border-b border-[#1B1B20] bg-[#0A0A0B]/80 backdrop-blur-sm">
         <a href="/" className="flex items-center gap-2 text-[#FAFAF7] hover:opacity-90 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F5A524] to-[#E89414] flex items-center justify-center text-[#0A0A0B] font-bold text-sm shadow-md shadow-amber-500/20">W</div>
-          <span className="font-semibold">WorkerCMS</span>
+          <Wordmark size={32} />
+          <span className="font-semibold">Worker CMS</span>
         </a>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
