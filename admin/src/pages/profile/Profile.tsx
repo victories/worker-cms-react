@@ -82,6 +82,8 @@ export function Profile() {
   const [selectedPauseIds, setSelectedPauseIds] = useState<number[]>([]);
   const [pauseBusy, setPauseBusy] = useState(false);
 
+  const [activatingId, setActivatingId] = useState<number | null>(null);
+
   const loadOverview = async () => {
     try {
       const res = await api.request<{ success: boolean; data: SubOverview }>('/subscriptions/overview');
@@ -183,6 +185,26 @@ export function Profile() {
     setSelectedPauseIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  };
+
+  // Reactivate a paused site (subject to the backend quota check).
+  const activateSite = async (siteId: number) => {
+    setActivatingId(siteId);
+    try {
+      const res = await api.request<{ success: boolean; error?: string }>(
+        `/sites/${siteId}/activate`,
+        { method: 'POST', body: {} }
+      );
+      if (res.success) {
+        toast(lang === 'tr' ? 'Site aktifleştirildi' : 'Site activated', 'success');
+        await loadOverview();
+      } else {
+        toast(res.error || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+    }
+    setActivatingId(null);
   };
 
   const periodPrice = (priceMonthly: number, priceYearly: number, period: 'monthly' | 'yearly') =>
@@ -476,6 +498,40 @@ export function Profile() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Sites list */}
+            {overview.sites.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm">{lang === 'tr' ? 'Siteler' : 'Sites'}</Label>
+                {overview.sites.map((site) => (
+                  <div
+                    key={site.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
+                  >
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="font-medium truncate">{site.name}</span>
+                      <Badge variant={site.status === 'paused' ? 'destructive' : 'default'}>
+                        {site.status === 'paused'
+                          ? (lang === 'tr' ? 'Duraklatıldı' : 'Paused')
+                          : (lang === 'tr' ? 'Aktif' : 'Active')}
+                      </Badge>
+                    </div>
+                    {site.status === 'paused' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        disabled={activatingId === site.id}
+                        onClick={() => activateSite(site.id)}
+                      >
+                        {activatingId === site.id && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                        {lang === 'tr' ? 'Aktifleştir' : 'Activate'}
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
