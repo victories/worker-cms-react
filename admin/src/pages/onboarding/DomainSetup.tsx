@@ -89,9 +89,16 @@ export function DomainSetup() {
       if (res.success && res.data?.verified) {
         setVerified(true);
       } else if (res.success && !res.data?.verified) {
-        setError(res.data?.message || (tr ? 'CNAME henüz algılanmadı' : 'CNAME not detected yet'));
+        // Build the message client-side — the backend's `message` is
+        // Turkish-only, so it leaked Turkish onto the English UI.
+        const target = res.data?.cname_target || cnameInfo.cname_target;
+        setError(
+          tr
+            ? `CNAME kaydı henüz algılanmadı. Domain sağlayıcınızda kaydı ${target} olarak ayarladığınızdan emin olun.`
+            : `CNAME record not detected yet. Make sure the record points to ${target} at your DNS provider.`
+        );
       } else {
-        setError(res.error || 'Verification failed');
+        setError(res.error || (tr ? 'Doğrulama başarısız' : 'Verification failed'));
       }
     } catch (err: any) {
       setError(err.message || 'Verification failed');
@@ -295,7 +302,9 @@ export function DomainSetup() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Ad / Host' : 'Name / Host'}</span>
-                      <span className="font-mono text-xs text-[#E2E2E5]">@ {tr ? 'veya' : 'or'} {cnameInfo.domain}</span>
+                      <span className="font-mono text-xs text-[#E2E2E5]">
+                        {cnameInfo.is_subdomain ? cnameInfo.domain : `@ ${tr ? 'veya' : 'or'} ${cnameInfo.domain}`}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
@@ -312,21 +321,23 @@ export function DomainSetup() {
                     </div>
                   </div>
 
-                  {/* www variant */}
-                  <div className="bg-[#0A0A0B] rounded-lg px-4 py-3 border border-[#1B1B20] space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
-                      <span className="font-mono text-xs font-bold text-[#F5A524]">CNAME</span>
+                  {/* www variant — root domains only; a subdomain has no www */}
+                  {!cnameInfo.is_subdomain && (
+                    <div className="bg-[#0A0A0B] rounded-lg px-4 py-3 border border-[#1B1B20] space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
+                        <span className="font-mono text-xs font-bold text-[#F5A524]">CNAME</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Ad / Host' : 'Name / Host'}</span>
+                        <span className="font-mono text-xs text-[#E2E2E5]">www</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
+                        <span className="font-mono text-xs font-bold text-[#FAFAF7]">{cnameInfo.cname_target}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Ad / Host' : 'Name / Host'}</span>
-                      <span className="font-mono text-xs text-[#E2E2E5]">www</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
-                      <span className="font-mono text-xs font-bold text-[#FAFAF7]">{cnameInfo.cname_target}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Quick guide */}
@@ -337,8 +348,10 @@ export function DomainSetup() {
                   <ol className="mt-2 space-y-1 list-decimal list-inside pl-1">
                     <li>{tr ? 'Domain sağlayıcınızın (GoDaddy, Namecheap vb.) DNS paneline girin' : 'Log in to your DNS provider (GoDaddy, Namecheap, etc.)'}</li>
                     <li>{tr ? 'DNS kayıtları bölümüne gidin' : 'Go to DNS records section'}</li>
-                    <li>{tr ? `Yeni bir CNAME kaydı ekleyin: @ → ${cnameInfo.cname_target}` : `Add a new CNAME record: @ → ${cnameInfo.cname_target}`}</li>
-                    <li>{tr ? `www için de aynı CNAME kaydını ekleyin: www → ${cnameInfo.cname_target}` : `Add the same CNAME for www: www → ${cnameInfo.cname_target}`}</li>
+                    <li>{tr ? `Yeni bir CNAME kaydı ekleyin: ${cnameInfo.is_subdomain ? cnameInfo.domain : '@'} → ${cnameInfo.cname_target}` : `Add a new CNAME record: ${cnameInfo.is_subdomain ? cnameInfo.domain : '@'} → ${cnameInfo.cname_target}`}</li>
+                    {!cnameInfo.is_subdomain && (
+                      <li>{tr ? `www için de aynı CNAME kaydını ekleyin: www → ${cnameInfo.cname_target}` : `Add the same CNAME for www: www → ${cnameInfo.cname_target}`}</li>
+                    )}
                     <li>{tr ? 'Kaydedin. Yayılma genellikle 1-5 dakika sürer' : 'Save. Propagation usually takes 1-5 minutes'}</li>
                   </ol>
                 </details>
