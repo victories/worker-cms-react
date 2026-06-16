@@ -12,7 +12,7 @@ import {
   LayoutDashboard, FileText, Image, FolderTree, Tag, MessageSquare, Mail,
   Menu, Users, Settings, Plug, Globe, BarChart3, Upload, Database, LayoutGrid,
   Key, Shield, Zap, X, ChevronDown, Paintbrush, Code, ArrowRightLeft, Link2,
-  Rocket, Crown, Package, CreditCard, Sparkles, Bot,
+  Rocket, Crown, Package, CreditCard, Sparkles, Bot, Boxes,
 } from 'lucide-react';
 
 // Simple nav items (not in accordion groups)
@@ -73,6 +73,7 @@ const navStructure: NavEntry[] = [
   { key: 'nav.analytics', href: '/analytics', icon: BarChart3 },
   { key: 'nav.contety', href: '/contety', icon: Sparkles, roles: ['admin', 'super_admin'] },
   { key: 'nav.cmshub_bot', href: '/cmshub-bot', icon: Bot, roles: ['admin', 'super_admin'] },
+  { key: 'nav.addons', href: '/addons', icon: Boxes, roles: ['super_admin'] },
   { key: 'nav.payments', href: '/payments', icon: CreditCard, roles: ['super_admin'] },
   // Settings group (Ayarlar)
   {

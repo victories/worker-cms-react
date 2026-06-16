@@ -45,6 +45,7 @@ import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
 import { DomainSetup } from '@/pages/onboarding/DomainSetup';
 import { PackageManager } from '@/pages/packages/PackageManager';
+import { AddonManager } from '@/pages/addons/AddonManager';
 import { UpgradePage } from '@/pages/packages/UpgradePage';
 import { PaymentsPage } from '@/pages/packages/PaymentsPage';
 import { ContentTypeList } from '@/pages/content-types/ContentTypeList';
@@ -145,6 +146,7 @@ export function App() {
           <Route path="cmshub-bot" element={<CmsHubBot />} />
           <Route path="settings/landing" element={<LandingSettings />} />
           <Route path="packages" element={<PackageManager />} />
+          <Route path="addons" element={<AddonManager />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="upgrade" element={<UpgradePage />} />
           <Route path="content-types" element={<ContentTypeList />} />
