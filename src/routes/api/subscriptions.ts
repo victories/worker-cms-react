@@ -3,9 +3,29 @@ import type { Bindings, Variables } from '../../types';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { getMailSettings, sendEmailViaResend, buildSubscriptionEmail } from '../../lib/email';
 import { verifyStripeSignature } from '../../lib/stripe-signature';
+import { verifyCreemSignature } from '../../lib/creem-signature';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 subscriptions.use('*', authMiddleware);
+
+// Creem.io config (api key, webhook secret, test mode) lives in
+// global_settings. Test mode hits the sandbox API; live hits production.
+async function getCreemConfig(db: D1Database) {
+  const rows = await db
+    .prepare(
+      "SELECT key, value FROM global_settings WHERE key IN ('creem_api_key','creem_webhook_secret','creem_test_mode')"
+    )
+    .all<{ key: string; value: string }>();
+  const map: Record<string, string> = {};
+  for (const r of rows.results || []) map[r.key] = r.value;
+  const testMode = map.creem_test_mode === '1' || map.creem_test_mode === 'true';
+  return {
+    apiKey: map.creem_api_key || '',
+    webhookSecret: map.creem_webhook_secret || '',
+    testMode,
+    baseUrl: testMode ? 'https://test-api.creem.io' : 'https://api.creem.io',
+  };
+}
 
 // GET /api/subscriptions/my - Get current user's active subscription
 subscriptions.get('/my', async (c) => {
@@ -163,6 +183,57 @@ subscriptions.post('/checkout', async (c) => {
   }
 
   return c.json({ success: true, data: { checkout_url: session.url, session_id: session.id } });
+});
+
+// POST /api/subscriptions/creem-checkout - Create a Creem.io checkout
+// session and return its hosted checkout URL. Mirrors the Stripe flow;
+// activation happens in handleCreemWebhook on `checkout.completed`.
+subscriptions.post('/creem-checkout', async (c) => {
+  const user = c.get('user')!;
+  const body = await c.req.json<{ package_id: number; billing_period: 'monthly' | 'yearly' }>();
+
+  const pkg = await c.env.DB.prepare('SELECT * FROM packages WHERE id = ? AND is_active = 1')
+    .bind(body.package_id)
+    .first<any>();
+  if (!pkg) return c.json({ success: false, error: 'Paket bulunamadı' }, 404);
+
+  const cfg = await getCreemConfig(c.env.DB);
+  if (!cfg.apiKey) return c.json({ success: false, error: 'Creem yapılandırılmamış' }, 500);
+
+  const productId =
+    body.billing_period === 'yearly' ? pkg.creem_product_yearly_id : pkg.creem_product_monthly_id;
+  if (!productId) {
+    return c.json({ success: false, error: 'Bu paket için Creem ürünü tanımlanmamış' }, 400);
+  }
+
+  const adminDomain = c.env.ADMIN_DOMAIN || '';
+  const res = await fetch(`${cfg.baseUrl}/v1/checkouts`, {
+    method: 'POST',
+    headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      product_id: productId,
+      // request_id is echoed back on the webhook; metadata carries the
+      // routing info we need to activate the right user's subscription.
+      request_id: `${user.sub}_${body.package_id}_${body.billing_period}`,
+      success_url: `https://${adminDomain}/admin/upgrade?success=1`,
+      customer: { email: user.email },
+      metadata: {
+        user_id: String(user.sub),
+        package_id: String(body.package_id),
+        billing_period: body.billing_period,
+      },
+    }),
+  });
+
+  const data = (await res.json()) as any;
+  if (!res.ok || !data?.checkout_url) {
+    return c.json(
+      { success: false, error: data?.message || data?.error || 'Creem hatası' },
+      400
+    );
+  }
+
+  return c.json({ success: true, data: { checkout_url: data.checkout_url, checkout_id: data.id } });
 });
 
 // POST /api/subscriptions/crypto - Submit crypto payment
@@ -575,12 +646,169 @@ export async function handleStripeWebhook(c: any) {
   return c.json({ received: true });
 }
 
+// Creem.io webhook handler (no auth — verified by HMAC signature).
+//
+// Creem signs the raw body with HMAC-SHA256 and sends the hex digest in
+// the `creem-signature` header. The event shape is
+// `{ eventType, object: { ..., metadata, customer, subscription } }`.
+// Activation mirrors the Stripe flow: checkout.completed creates the
+// subscription, subscription.paid renews it, and cancel/expire ends it.
+export async function handleCreemWebhook(c: any) {
+  const db: D1Database = c.env.DB;
+  const cfg = await getCreemConfig(db);
+  if (!cfg.webhookSecret) {
+    console.error('Creem webhook secret not configured');
+    return c.json({ error: 'Webhook secret not configured' }, 500);
+  }
+
+  const rawBody = await c.req.text();
+  const sig = c.req.header('creem-signature') || '';
+  const ok = await verifyCreemSignature(rawBody, sig, cfg.webhookSecret);
+  if (!ok) {
+    console.warn('Creem webhook signature verification failed');
+    return c.json({ error: 'Invalid signature' }, 400);
+  }
+
+  let event: any;
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400);
+  }
+
+  const type: string = event.eventType || event.type || '';
+  const obj: any = event.object || {};
+  const meta: any = obj.metadata || {};
+  const userId = parseInt(meta.user_id || '0');
+  const packageId = parseInt(meta.package_id || '0');
+  const billingPeriod = meta.billing_period === 'yearly' ? 'yearly' : 'monthly';
+  const creemSubId =
+    typeof obj.subscription === 'string' ? obj.subscription : obj.subscription?.id || null;
+  const creemCustId =
+    typeof obj.customer === 'string' ? obj.customer : obj.customer?.id || null;
+  const creemCheckoutId = typeof obj.id === 'string' ? obj.id : null;
+
+  if (type === 'checkout.completed') {
+    if (!userId || !packageId) return c.json({ received: true });
+
+    // Idempotency — Creem may retry deliveries; never double-activate.
+    if (creemCheckoutId) {
+      const dupe = await db
+        .prepare('SELECT id FROM subscriptions WHERE creem_checkout_id = ?')
+        .bind(creemCheckoutId)
+        .first();
+      if (dupe) return c.json({ received: true });
+    }
+
+    await db
+      .prepare(
+        "UPDATE subscriptions SET status = 'upgraded', updated_at = datetime('now') WHERE user_id = ? AND status = 'active'"
+      )
+      .bind(userId)
+      .run();
+
+    const now = new Date();
+    const periodEnd = new Date(now);
+    if (billingPeriod === 'yearly') periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    else periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    await db
+      .prepare(
+        `INSERT INTO subscriptions (user_id, package_id, status, billing_period, payment_method, creem_checkout_id, creem_subscription_id, creem_customer_id, current_period_start, current_period_end) VALUES (?, ?, 'active', ?, 'creem', ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        userId,
+        packageId,
+        billingPeriod,
+        creemCheckoutId,
+        creemSubId,
+        creemCustId,
+        now.toISOString(),
+        periodEnd.toISOString()
+      )
+      .run();
+
+    const pkg = await db
+      .prepare('SELECT max_sites, name FROM packages WHERE id = ?')
+      .bind(packageId)
+      .first<any>();
+    await db
+      .prepare(
+        "UPDATE users SET package_id = ?, max_sites = ?, updated_at = datetime('now') WHERE id = ?"
+      )
+      .bind(packageId, pkg?.max_sites || 1, userId)
+      .run();
+
+    try {
+      const userInfo = await db
+        .prepare('SELECT email, display_name FROM users WHERE id = ?')
+        .bind(userId)
+        .first<any>();
+      const mailSettings = await getMailSettings(db, c.env.RESEND_API_KEY);
+      if (userInfo && mailSettings.enabled && mailSettings.apiKey) {
+        const emailHtml = buildSubscriptionEmail({
+          userName: userInfo.display_name || userInfo.email,
+          packageName: pkg?.name || 'Unknown',
+          billingPeriod,
+          periodEnd: periodEnd.toLocaleDateString('tr-TR'),
+          paymentMethod: 'creem',
+        });
+        await sendEmailViaResend(mailSettings.apiKey, {
+          to: userInfo.email,
+          from: `${mailSettings.fromName || 'WP-CMS'} <${mailSettings.fromAddress}>`,
+          subject: '🎉 Aboneliğiniz Aktif / Your Subscription is Active',
+          html: emailHtml,
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send subscription email:', emailErr);
+    }
+  }
+
+  if (type === 'subscription.paid' && creemSubId) {
+    // Renewal — extend only when the period is actually near/past its end,
+    // so the invoice that accompanies the initial checkout doesn't grant a
+    // second period on top of the one checkout.completed just created.
+    const sub = await db
+      .prepare("SELECT * FROM subscriptions WHERE creem_subscription_id = ? AND status = 'active'")
+      .bind(creemSubId)
+      .first<any>();
+    if (sub) {
+      const currentEnd = new Date(sub.current_period_end).getTime();
+      const soon = Date.now() + 3 * 24 * 60 * 60 * 1000;
+      if (currentEnd <= soon) {
+        const periodEnd = new Date();
+        if (sub.billing_period === 'yearly') periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        else periodEnd.setMonth(periodEnd.getMonth() + 1);
+        await db
+          .prepare(
+            "UPDATE subscriptions SET current_period_end = ?, status = 'active', updated_at = datetime('now') WHERE id = ?"
+          )
+          .bind(periodEnd.toISOString(), sub.id)
+          .run();
+      }
+    }
+  }
+
+  if ((type === 'subscription.canceled' || type === 'subscription.expired') && creemSubId) {
+    await db
+      .prepare(
+        "UPDATE subscriptions SET status = 'cancelled', updated_at = datetime('now') WHERE creem_subscription_id = ?"
+      )
+      .bind(creemSubId)
+      .run();
+  }
+
+  return c.json({ received: true });
+}
+
 // Exported function for cron: expire subscriptions
 export async function expireSubscriptions(db: D1Database) {
   const now = new Date().toISOString();
-  // Find active non-stripe subscriptions past their period end
+  // Find active one-off subscriptions past their period end. Recurring
+  // providers (Stripe, Creem) renew/cancel via webhook, so they're excluded.
   const expired = await db.prepare(
-    "SELECT s.id, s.user_id FROM subscriptions s WHERE s.status = 'active' AND s.payment_method != 'stripe' AND s.current_period_end < ?"
+    "SELECT s.id, s.user_id FROM subscriptions s WHERE s.status = 'active' AND s.payment_method NOT IN ('stripe', 'creem') AND s.current_period_end < ?"
   ).bind(now).all<{ id: number; user_id: number }>();
 
   for (const sub of expired.results || []) {

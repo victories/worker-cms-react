@@ -72,6 +72,8 @@ packages.post('/admin', requireRole('super_admin'), async (c) => {
     sort_order?: number;
     stripe_price_monthly_id?: string;
     stripe_price_yearly_id?: string;
+    creem_product_monthly_id?: string;
+    creem_product_yearly_id?: string;
     crypto_enabled?: boolean;
     white_label?: boolean;
   }>();
@@ -81,7 +83,7 @@ packages.post('/admin', requireRole('super_admin'), async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO packages (name, description, price_monthly, price_yearly, max_sites, max_storage_mb, max_posts_per_site, features, is_active, sort_order, stripe_price_monthly_id, stripe_price_yearly_id, crypto_enabled, white_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+    `INSERT INTO packages (name, description, price_monthly, price_yearly, max_sites, max_storage_mb, max_posts_per_site, features, is_active, sort_order, stripe_price_monthly_id, stripe_price_yearly_id, creem_product_monthly_id, creem_product_yearly_id, crypto_enabled, white_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
   ).bind(
     body.name,
     body.description || null,
@@ -95,6 +97,8 @@ packages.post('/admin', requireRole('super_admin'), async (c) => {
     body.sort_order ?? 0,
     body.stripe_price_monthly_id || null,
     body.stripe_price_yearly_id || null,
+    body.creem_product_monthly_id || null,
+    body.creem_product_yearly_id || null,
     body.crypto_enabled !== false ? 1 : 0,
     body.white_label ? 1 : 0
   ).first();
@@ -111,7 +115,7 @@ packages.put('/admin/:id', requireRole('super_admin'), async (c) => {
   if (!existing) return c.json({ success: false, error: 'Paket bulunamadı' }, 404);
 
   const result = await c.env.DB.prepare(
-    `UPDATE packages SET name = ?, description = ?, price_monthly = ?, price_yearly = ?, max_sites = ?, max_storage_mb = ?, max_posts_per_site = ?, features = ?, is_active = ?, sort_order = ?, stripe_price_monthly_id = ?, stripe_price_yearly_id = ?, crypto_enabled = ?, white_label = ?, updated_at = datetime('now') WHERE id = ? RETURNING *`
+    `UPDATE packages SET name = ?, description = ?, price_monthly = ?, price_yearly = ?, max_sites = ?, max_storage_mb = ?, max_posts_per_site = ?, features = ?, is_active = ?, sort_order = ?, stripe_price_monthly_id = ?, stripe_price_yearly_id = ?, creem_product_monthly_id = ?, creem_product_yearly_id = ?, crypto_enabled = ?, white_label = ?, updated_at = datetime('now') WHERE id = ? RETURNING *`
   ).bind(
     body.name ?? existing.name,
     body.description !== undefined ? body.description : existing.description,
@@ -125,6 +129,8 @@ packages.put('/admin/:id', requireRole('super_admin'), async (c) => {
     body.sort_order ?? (existing as any).sort_order,
     body.stripe_price_monthly_id !== undefined ? body.stripe_price_monthly_id : (existing as any).stripe_price_monthly_id,
     body.stripe_price_yearly_id !== undefined ? body.stripe_price_yearly_id : (existing as any).stripe_price_yearly_id,
+    body.creem_product_monthly_id !== undefined ? body.creem_product_monthly_id : (existing as any).creem_product_monthly_id,
+    body.creem_product_yearly_id !== undefined ? body.creem_product_yearly_id : (existing as any).creem_product_yearly_id,
     body.crypto_enabled !== undefined ? (body.crypto_enabled ? 1 : 0) : (existing as any).crypto_enabled,
     body.white_label !== undefined ? (body.white_label ? 1 : 0) : (existing as any).white_label,
     id

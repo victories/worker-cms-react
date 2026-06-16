@@ -41,7 +41,7 @@ import landingApiRoutes from './routes/api/landing';
 import domainRoutes from './routes/api/domains';
 import packageRoutes from './routes/api/packages';
 import subscriptionRoutes from './routes/api/subscriptions';
-import { handleStripeWebhook } from './routes/api/subscriptions';
+import { handleStripeWebhook, handleCreemWebhook } from './routes/api/subscriptions';
 import { expireSubscriptions } from './routes/api/subscriptions';
 import contetyRoutes from './routes/api/contety';
 import themeRoutes from './routes/api/themes';
@@ -292,6 +292,11 @@ app.route('/mcp', mcpRoutes);
 // Stripe webhook (must be outside CORS/auth middleware - raw body needed)
 app.post('/api/webhooks/stripe', async (c) => {
   return handleStripeWebhook(c);
+});
+
+// Creem.io webhook (outside CORS/auth - raw body needed for HMAC verify)
+app.post('/api/webhooks/creem', async (c) => {
+  return handleCreemWebhook(c);
 });
 
 // Contety callback (public endpoint — Contety sends POST when async content is ready)

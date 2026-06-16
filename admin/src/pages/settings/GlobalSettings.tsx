@@ -1307,6 +1307,69 @@ export function GlobalSettings() {
         </div>
       </AccordionCard>
 
+      {/* Creem Payment Card — credit-card provider used by "Pay with Card" */}
+      <AccordionCard
+        icon={<span className="text-lg">💳</span>}
+        title={<>{lang === 'tr' ? 'Creem Ödeme (Kredi Kartı)' : 'Creem Payment (Card)'}<span className={`ml-auto w-2 h-2 rounded-full ${settings.creem_api_key ? 'bg-green-500' : 'bg-orange-400'}`} /></>}
+        description={lang === 'tr'
+          ? 'Kredi kartı ödemeleri Creem.io üzerinden alınır. Paket ürün ID\'leri Paket Yönetimi\'nden girilir.'
+          : 'Credit-card payments are processed via Creem.io. Product IDs are set per package in Package Management.'}
+      >
+        <div className="space-y-4">
+          <div>
+            <Label>Creem API Key</Label>
+            <SecretInput
+              value={settings.creem_api_key || ''}
+              onChange={(v) => updateSetting('creem_api_key', v)}
+              placeholder="creem_..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {lang === 'tr' ? 'Creem Dashboard → Developers → API Keys' : 'Creem Dashboard → Developers → API Keys'}
+            </p>
+          </div>
+          <div>
+            <Label>Creem Webhook Secret</Label>
+            <SecretInput
+              value={settings.creem_webhook_secret || ''}
+              onChange={(v) => updateSetting('creem_webhook_secret', v)}
+              placeholder="whsec_..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {lang === 'tr' ? 'Creem Dashboard → Developers → Webhooks → Signing secret' : 'Creem Dashboard → Developers → Webhooks → Signing secret'}
+            </p>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.creem_test_mode === '1'}
+              onChange={(e) => updateSetting('creem_test_mode', e.target.checked ? '1' : '0')}
+              className="rounded"
+            />
+            <span className="text-sm">
+              {lang === 'tr' ? 'Test (sandbox) modu — gerçek tahsilat yapılmaz' : 'Test (sandbox) mode — no real charges'}
+            </span>
+          </label>
+          <Separator />
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer hover:text-foreground transition-colors font-medium">
+              {lang === 'tr' ? '📖 Creem Kurulum Rehberi' : '📖 Creem Setup Guide'}
+            </summary>
+            <ol className="mt-2 space-y-1.5 list-decimal list-inside pl-1">
+              <li>{lang === 'tr' ? 'Creem hesabı oluşturun: creem.io' : 'Create a Creem account: creem.io'}</li>
+              <li>{lang === 'tr' ? 'Developers → API Keys → anahtarı kopyalayın (test için test anahtarı)' : 'Developers → API Keys → copy the key (test key for sandbox)'}</li>
+              <li>{lang === 'tr' ? 'Her paket için aylık/yıllık bir ürün (Product) oluşturun' : 'Create a monthly/yearly Product for each package'}</li>
+              <li>{lang === 'tr' ? 'Ürün ID\'lerini (prod_...) Paket Yönetimi → ilgili pakete girin' : 'Enter the Product IDs (prod_...) in Package Management'}</li>
+              <li>{lang === 'tr' ? 'Developers → Webhooks → endpoint ekleyin:' : 'Developers → Webhooks → add an endpoint:'}</li>
+              <li>
+                Webhook URL: <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">https://{'{'}ADMIN_DOMAIN{'}'}/api/webhooks/creem</code>
+              </li>
+              <li>{lang === 'tr' ? 'Events: checkout.completed, subscription.paid, subscription.canceled, subscription.expired' : 'Events: checkout.completed, subscription.paid, subscription.canceled, subscription.expired'}</li>
+              <li>{lang === 'tr' ? 'Webhook signing secret\'ı kopyalayıp yukarıya yapıştırın' : 'Copy the webhook signing secret and paste above'}</li>
+            </ol>
+          </details>
+        </div>
+      </AccordionCard>
+
       {/* Crypto Payment Wallets Card */}
       <AccordionCard
         icon={<span className="text-lg">🪙</span>}

@@ -24,6 +24,8 @@ interface PackageData {
   sort_order: number;
   stripe_price_monthly_id: string | null;
   stripe_price_yearly_id: string | null;
+  creem_product_monthly_id: string | null;
+  creem_product_yearly_id: string | null;
   crypto_enabled: number;
   white_label: number;
   active_subscribers?: number;
@@ -42,6 +44,8 @@ const emptyPackage = {
   sort_order: 0,
   stripe_price_monthly_id: '',
   stripe_price_yearly_id: '',
+  creem_product_monthly_id: '',
+  creem_product_yearly_id: '',
   crypto_enabled: true,
   white_label: false,
 };
@@ -105,6 +109,8 @@ export function PackageManager() {
       sort_order: pkg.sort_order,
       stripe_price_monthly_id: pkg.stripe_price_monthly_id || '',
       stripe_price_yearly_id: pkg.stripe_price_yearly_id || '',
+      creem_product_monthly_id: pkg.creem_product_monthly_id || '',
+      creem_product_yearly_id: pkg.creem_product_yearly_id || '',
       crypto_enabled: pkg.crypto_enabled === 1,
       white_label: pkg.white_label === 1,
     });
@@ -389,6 +395,20 @@ export function PackageManager() {
               <div>
                 <Label>Stripe Yearly Price ID</Label>
                 <Input value={form.stripe_price_yearly_id} onChange={(e) => setForm({ ...form, stripe_price_yearly_id: e.target.value })} placeholder="price_xxx" className="font-mono text-xs" />
+              </div>
+            </div>
+
+            {/* Creem product IDs — the card-payment provider. Create a
+                product per billing period in the Creem dashboard and paste
+                its ID here; the "Pay with Card" button uses these. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Creem Monthly Product ID</Label>
+                <Input value={form.creem_product_monthly_id} onChange={(e) => setForm({ ...form, creem_product_monthly_id: e.target.value })} placeholder="prod_xxx" className="font-mono text-xs" />
+              </div>
+              <div>
+                <Label>Creem Yearly Product ID</Label>
+                <Input value={form.creem_product_yearly_id} onChange={(e) => setForm({ ...form, creem_product_yearly_id: e.target.value })} placeholder="prod_xxx" className="font-mono text-xs" />
               </div>
             </div>
 

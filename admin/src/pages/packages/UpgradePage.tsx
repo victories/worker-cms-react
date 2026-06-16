@@ -92,17 +92,17 @@ export function UpgradePage() {
     setLoading(false);
   };
 
-  const handleStripeCheckout = async (pkgId: number) => {
+  const handleCreemCheckout = async (pkgId: number) => {
     setCheckoutLoading(pkgId);
     try {
-      const res = await api.request('/subscriptions/checkout', {
+      const res = await api.request('/subscriptions/creem-checkout', {
         method: 'POST',
         body: { package_id: pkgId, billing_period: billingPeriod },
       }) as any;
       if (res.success && res.data?.checkout_url) {
         window.location.href = res.data.checkout_url;
       } else {
-        toast(res.error || 'Stripe error', 'error');
+        toast(res.error || 'Creem error', 'error');
       }
     } catch (err: any) {
       toast(err.message || 'Error', 'error');
@@ -298,10 +298,10 @@ export function UpgradePage() {
                 </Button>
               ) : (
                 <div className="space-y-2">
-                  {pkg.stripe_price_monthly_id && (
+                  {pkg.creem_product_monthly_id && (
                     <Button
                       className="w-full"
-                      onClick={() => handleStripeCheckout(pkg.id)}
+                      onClick={() => handleCreemCheckout(pkg.id)}
                       disabled={checkoutLoading === pkg.id}
                     >
                       {checkoutLoading === pkg.id ? (
@@ -322,7 +322,7 @@ export function UpgradePage() {
                       {tr ? 'Crypto ile \u00d6de (USDT/USDC)' : 'Pay with Crypto (USDT/USDC)'}
                     </Button>
                   )}
-                  {!pkg.stripe_price_monthly_id && pkg.crypto_enabled !== 1 && (
+                  {!pkg.creem_product_monthly_id && pkg.crypto_enabled !== 1 && (
                     <Button className="w-full" variant="outline" disabled>
                       {tr ? '\u00d6deme se\u00e7ene\u011fi yok' : 'No payment option'}
                     </Button>
