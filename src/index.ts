@@ -40,6 +40,7 @@ import externalRoutes, { accountKeys as accountKeysRoutes } from './routes/api/e
 import landingApiRoutes from './routes/api/landing';
 import domainRoutes from './routes/api/domains';
 import packageRoutes from './routes/api/packages';
+import addonRoutes from './routes/api/addons';
 import subscriptionRoutes from './routes/api/subscriptions';
 import { handleStripeWebhook, handleCreemWebhook } from './routes/api/subscriptions';
 import { expireSubscriptions } from './routes/api/subscriptions';
@@ -280,6 +281,7 @@ app.route('/api/account', accountKeysRoutes);
 app.route('/api/landing', landingApiRoutes);
 app.route('/api/domains', domainRoutes);
 app.route('/api/packages', packageRoutes);
+app.route('/api/addons', addonRoutes);
 app.route('/api/subscriptions', subscriptionRoutes);
 app.route('/api/contety', contetyRoutes);
 app.route('/api/themes', themeRoutes);
