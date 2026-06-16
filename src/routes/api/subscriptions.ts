@@ -6,6 +6,7 @@ import { verifyStripeSignature } from '../../lib/stripe-signature';
 import { verifyCreemSignature } from '../../lib/creem-signature';
 import { getCreemConfig } from '../../lib/creem';
 import { recomputeUserEntitlements } from '../../lib/entitlements';
+import { sitesToPauseRequired } from '../../lib/site-quota';
 
 const subscriptions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 subscriptions.use('*', authMiddleware);
@@ -115,7 +116,7 @@ subscriptions.post('/cancel', async (c) => {
 subscriptions.post('/addon/:id/units', async (c) => {
   const user = c.get('user')!;
   const id = parseInt(c.req.param('id'));
-  const body = await c.req.json<{ units: number }>();
+  const body = await c.req.json<{ units: number; pause_site_ids?: number[] }>();
 
   const row = await c.env.DB.prepare(
     `SELECT ua.id, ua.units, ua.creem_subscription_id, a.type, a.max_units
@@ -132,6 +133,39 @@ subscriptions.post('/addon/:id/units', async (c) => {
   }
   const units = Math.min(row.max_units || 9999, requested);
   if (units === row.units) return c.json({ success: true, data: { units } });
+
+  const userRow = await c.env.DB.prepare('SELECT max_sites FROM users WHERE id = ?')
+    .bind(user.sub).first<{ max_sites: number }>();
+  const activeRow = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM user_sites us JOIN sites s ON s.id = us.site_id
+     WHERE us.user_id = ? AND s.status = 'active'`
+  ).bind(user.sub).first<{ n: number }>();
+  const currentMax = userRow?.max_sites ?? 0;
+  const activeSites = activeRow?.n ?? 0;
+  const resultingMax = currentMax + (units - row.units); // units < row.units when lowering
+  const mustPause = sitesToPauseRequired(activeSites, resultingMax);
+
+  const pauseIds = Array.isArray(body.pause_site_ids)
+    ? [...new Set(body.pause_site_ids.map((n) => Math.floor(n)).filter((n) => n > 0))]
+    : [];
+
+  if (mustPause > 0) {
+    if (pauseIds.length !== mustPause) {
+      return c.json({
+        success: false,
+        error: `Devam etmek için tam olarak ${mustPause} siteyi duraklatmalısınız`,
+        data: { must_pause: mustPause },
+      }, 400);
+    }
+    const owned = await c.env.DB.prepare(
+      `SELECT s.id FROM user_sites us JOIN sites s ON s.id = us.site_id
+       WHERE us.user_id = ? AND s.status = 'active'
+         AND s.id IN (${pauseIds.map(() => '?').join(',')})`
+    ).bind(user.sub, ...pauseIds).all<{ id: number }>();
+    if ((owned.results?.length ?? 0) !== pauseIds.length) {
+      return c.json({ success: false, error: 'Geçersiz site seçimi' }, 400);
+    }
+  }
 
   const cfg = await getCreemConfig(c.env.DB);
   if (!cfg.apiKey) return c.json({ success: false, error: 'Creem yapılandırılmamış' }, 500);
@@ -169,6 +203,14 @@ subscriptions.post('/addon/:id/units', async (c) => {
   if (!res.ok) {
     const d = (await res.json().catch(() => ({}))) as any;
     return c.json({ success: false, error: d?.message || 'Creem güncelleme hatası' }, 400);
+  }
+
+  if (pauseIds.length > 0) {
+    for (const sid of pauseIds) {
+      await c.env.DB.prepare(
+        "UPDATE sites SET status = 'paused', updated_at = datetime('now') WHERE id = ?"
+      ).bind(sid).run();
+    }
   }
 
   await c.env.DB.prepare("UPDATE user_addons SET units = ?, updated_at = datetime('now') WHERE id = ?")
