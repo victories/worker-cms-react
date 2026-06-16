@@ -68,8 +68,10 @@ describe('PBKDF2 versioned hash format', () => {
     expect(parts[4]).toMatch(/^[0-9a-f]{64}$/); // 32-byte derived key → 64 hex chars
   });
 
-  it('uses 600,000 iterations (OWASP 2023 target)', () => {
-    expect(PBKDF2_TARGET_ITERATIONS).toBe(600000);
+  it('uses 100,000 iterations (Cloudflare Workers PBKDF2 cap)', () => {
+    // Workers' crypto.subtle.deriveBits rejects iteration counts above
+    // 100,000, so the target is pinned to that ceiling (see src/lib/auth.ts).
+    expect(PBKDF2_TARGET_ITERATIONS).toBe(100000);
   });
 
   it('verifies a V2 hash it just produced', async () => {
@@ -109,7 +111,7 @@ describe('needsRehash', () => {
   });
 
   it('returns true for V2 hashes below the target iteration count', async () => {
-    const oldV2 = await makeV2Hash('hunter2', FIXED_SALT, 100000);
+    const oldV2 = await makeV2Hash('hunter2', FIXED_SALT, 50000);
     expect(needsRehash(oldV2)).toBe(true);
   });
 
