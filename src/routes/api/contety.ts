@@ -255,7 +255,23 @@ contety.get('/contents', requireRole('admin'), async (c) => {
     });
 
     const data = await getContentList(keyResult.apiKey, filters as any);
-    return c.json({ success: true, data });
+
+    // When the site uses the global (admin) fallback key, the Contety
+    // account holds every site's content — returning it unfiltered would
+    // leak the admin's (and other sites') content. We track every item
+    // this site generated in contety_contents, so intersect the account
+    // list with this site's tracked ids. A site using its OWN key owns
+    // its account, so it sees everything (no filtering).
+    let scoped = data;
+    if (keyResult.source === 'global' && Array.isArray(data)) {
+      const owned = await c.env.DB.prepare(
+        'SELECT contety_content_id FROM contety_contents WHERE site_id = ?'
+      ).bind(siteId).all<{ contety_content_id: number | string }>();
+      const ownedIds = new Set((owned.results || []).map((r) => Number(r.contety_content_id)));
+      scoped = data.filter((item) => ownedIds.has(Number(item.id)));
+    }
+
+    return c.json({ success: true, data: scoped });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return c.json({ success: false, error: message }, 500);
@@ -270,6 +286,17 @@ contety.get('/contents/:id', requireRole('admin'), async (c) => {
   const keyResult = await getApiKeyWithFallback(c.env.DB, siteId);
   if (!keyResult) {
     return c.json({ success: false, error: 'API key not configured' }, 400);
+  }
+
+  // On the global fallback key, only allow reading content this site
+  // generated (see /contents note). A site's own key owns its account.
+  if (keyResult.source === 'global') {
+    const ownsContent = await c.env.DB.prepare(
+      'SELECT 1 FROM contety_contents WHERE site_id = ? AND contety_content_id = ?'
+    ).bind(siteId, parseInt(contentId)).first();
+    if (!ownsContent) {
+      return c.json({ success: false, error: 'İçerik bulunamadı' }, 404);
+    }
   }
 
   try {
@@ -396,6 +423,17 @@ contety.post('/import/:contentId', requireRole('admin'), async (c) => {
   const keyResult = await getApiKeyWithFallback(c.env.DB, siteId);
   if (!keyResult) {
     return c.json({ success: false, error: 'API key not configured' }, 400);
+  }
+
+  // On the global fallback key, only allow importing content this site
+  // generated (see /contents note). A site's own key owns its account.
+  if (keyResult.source === 'global') {
+    const ownsContent = await c.env.DB.prepare(
+      'SELECT 1 FROM contety_contents WHERE site_id = ? AND contety_content_id = ?'
+    ).bind(siteId, parseInt(contentId)).first();
+    if (!ownsContent) {
+      return c.json({ success: false, error: 'İçerik bulunamadı' }, 404);
+    }
   }
 
   try {
