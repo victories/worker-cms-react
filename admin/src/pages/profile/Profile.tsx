@@ -156,6 +156,7 @@ export function Profile() {
   // Confirm lowering units, pausing the selected sites to fit the new quota.
   const confirmPause = async () => {
     if (!pausePrompt) return;
+    if (selectedPauseIds.length !== pausePrompt.mustPause) return;
     setPauseBusy(true);
     try {
       const res = await api.request<{ success: boolean; error?: string }>(
@@ -617,6 +618,11 @@ export function Profile() {
             </DialogHeader>
 
             <div className="space-y-2 max-h-72 overflow-y-auto">
+              {(overview?.sites.filter((s) => s.status === 'active').length ?? 0) === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {lang === 'tr' ? 'Duraklatılacak aktif site yok.' : 'No active sites to pause.'}
+                </p>
+              )}
               {overview?.sites.filter((s) => s.status === 'active').map((site) => {
                 const selected = selectedPauseIds.includes(site.id);
                 return (
