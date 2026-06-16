@@ -11,41 +11,31 @@ import { Textarea } from '@ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
 import { Separator } from '@ui/separator';
 import { Switch } from '@ui/switch';
-import { Save, Home, FileText, List, Type, Blocks, Shield, MessageSquare, Globe, RotateCcw, BarChart3, Code, Clock, Layers, PenTool, Edit3, ChevronDown } from 'lucide-react';
+import { Save, Home, FileText, List, Type, Blocks, Shield, MessageSquare, Globe, RotateCcw, BarChart3, Code, Clock, Layers, PenTool, Edit3 } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
 
-function AccordionCard({ icon, title, description, children, defaultOpen = false }: {
+// One settings section, shown only when its tab is active. Renders a
+// plain (always-open) card — the tab nav replaces the old accordion.
+function SectionCard({ active, icon, title, description, children }: {
+  active: boolean;
   icon: React.ReactNode;
   title: React.ReactNode;
   description?: string;
   children: React.ReactNode;
-  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  if (!active) return null;
   return (
     <Card>
-      <button type="button" onClick={() => setOpen(!open)} className="w-full text-left">
-        <CardHeader className="cursor-pointer select-none hover:bg-muted/30 transition-colors rounded-t-lg">
-          <CardTitle className="flex items-center gap-2 text-base">
-            {icon}
-            <span className="flex-1">{title}</span>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-          </CardTitle>
-          {description && !open && (
-            <CardDescription className="text-xs mt-1 line-clamp-1">{description}</CardDescription>
-          )}
-        </CardHeader>
-      </button>
-      {open && (
-        <>
-          {description && (
-            <div className="px-6 pb-2">
-              <p className="text-xs text-muted-foreground">{description}</p>
-            </div>
-          )}
-          <CardContent>{children}</CardContent>
-        </>
-      )}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          {icon}
+          <span className="flex-1">{title}</span>
+        </CardTitle>
+        {description && (
+          <CardDescription className="text-xs mt-1">{description}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
@@ -59,6 +49,7 @@ export function GeneralSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pages, setPages] = useState<{ id: number; title: string }[]>([]);
+  const [tab, setTab] = useState('general');
 
   useEffect(() => {
     if (!activeSite) return;
@@ -145,10 +136,21 @@ export function GeneralSettings() {
     );
   };
 
+  const TABS: { id: string; icon: React.ReactNode; label: string }[] = [
+    { id: 'general', icon: <Globe className="h-4 w-4" />, label: lang === 'tr' ? 'Genel' : 'General' },
+    { id: 'homepage', icon: <Home className="h-4 w-4" />, label: lang === 'tr' ? 'Ana Sayfa' : 'Homepage' },
+    { id: 'editor', icon: <Type className="h-4 w-4" />, label: lang === 'tr' ? 'Editör' : 'Editor' },
+    { id: 'seo', icon: <Globe className="h-4 w-4" />, label: 'SEO' },
+    { id: 'snippets', icon: <Code className="h-4 w-4" />, label: 'Rich Snippets' },
+    { id: 'analytics', icon: <BarChart3 className="h-4 w-4" />, label: 'Analytics' },
+    { id: 'recaptcha', icon: <Shield className="h-4 w-4" />, label: 'reCAPTCHA' },
+    { id: 'comments', icon: <MessageSquare className="h-4 w-4" />, label: lang === 'tr' ? 'Yorumlar' : 'Comments' },
+  ];
+
   if (loading) return <div className="p-4">{t('common.loading', lang)}</div>;
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('nav.settings', lang)}</h1>
         <Button onClick={handleSave} disabled={saving}>
@@ -157,12 +159,35 @@ export function GeneralSettings() {
         </Button>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        {/* Tab nav */}
+        <nav className="w-full md:w-52 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible md:sticky md:top-4">
+          {TABS.map((tabItem) => (
+            <button
+              key={tabItem.id}
+              type="button"
+              onClick={() => setTab(tabItem.id)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors text-left ${
+                tab === tabItem.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tabItem.icon}
+              <span>{tabItem.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Active section */}
+        <div className="flex-1 min-w-0 max-w-2xl space-y-4">
+
       {/* Genel Ayarlar */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'general'}
         icon={<Globe className="h-5 w-5" />}
         title={lang === 'tr' ? 'Genel Ayarlar' : 'General Settings'}
         description={`${activeSite?.name} - ${lang === 'tr' ? 'site ayarları' : 'site settings'}`}
-        defaultOpen={true}
       >
         <div className="space-y-4">
           <div>
@@ -231,10 +256,11 @@ export function GeneralSettings() {
             </p>
           </div>
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* Ana Sayfa Görünümü */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'homepage'}
         icon={<Home className="h-5 w-5" />}
         title={lang === 'tr' ? 'Ana Sayfa Görünümü' : 'Homepage Display'}
         description={lang === 'tr'
@@ -319,10 +345,11 @@ export function GeneralSettings() {
             </div>
           )}
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* Editör Tercihi */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'editor'}
         icon={<Type className="h-5 w-5" />}
         title={<>
           {lang === 'tr' ? 'Editör Tercihi' : 'Editor Preference'}
@@ -424,10 +451,11 @@ export function GeneralSettings() {
             </div>
           </label>
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* SEO */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'seo'}
         icon={<Globe className="h-5 w-5" />}
         title="SEO"
         description={lang === 'tr'
@@ -506,10 +534,11 @@ export function GeneralSettings() {
             </Select>
           </div>
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* Rich Snippets */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'snippets'}
         icon={<Code className="h-5 w-5" />}
         title="Rich Snippets (Schema.org)"
         description={lang === 'tr'
@@ -659,10 +688,11 @@ export function GeneralSettings() {
             </>
           )}
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* Analytics */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'analytics'}
         icon={<BarChart3 className="h-5 w-5" />}
         title={lang === 'tr' ? 'Analytics / İzleme Kodları' : 'Analytics / Tracking Codes'}
         description={lang === 'tr'
@@ -710,10 +740,11 @@ export function GeneralSettings() {
             />
           </div>
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* reCAPTCHA */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'recaptcha'}
         icon={<Shield className="h-5 w-5" />}
         title="reCAPTCHA v3"
         description={lang === 'tr'
@@ -821,10 +852,11 @@ export function GeneralSettings() {
             </>
           )}
         </div>
-      </AccordionCard>
+      </SectionCard>
 
       {/* Yorum Ayarları */}
-      <AccordionCard
+      <SectionCard
+        active={tab === 'comments'}
         icon={<MessageSquare className="h-5 w-5" />}
         title={lang === 'tr' ? 'Yorum Ayarları' : 'Comment Settings'}
         description={lang === 'tr'
@@ -910,7 +942,9 @@ export function GeneralSettings() {
             />
           </div>
         </div>
-      </AccordionCard>
+      </SectionCard>
+        </div>
+      </div>
     </div>
   );
 }
