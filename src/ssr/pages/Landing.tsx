@@ -768,12 +768,12 @@ function Nav({ brandName, nav, lang = 'tr', path = '/', anchorBase = '' }: NavPr
           </span>
         </a>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm text-ink-700">
+        <nav className="hidden md:flex items-center gap-1 text-sm text-ink-700">
           {items.map((item, i) => (
             <a
               key={i}
               href={resolveAnchor(item.url || '#', anchorBase)}
-              className="hover:text-ink-900 transition-colors"
+              className="px-3 py-1.5 rounded-md border border-transparent hover:text-amber-400 hover:border-amber-400/50 hover:bg-amber-400/5 transition-colors"
             >
               {item.label}
             </a>
@@ -810,7 +810,7 @@ function Nav({ brandName, nav, lang = 'tr', path = '/', anchorBase = '' }: NavPr
           </div>
           <a
             href={loginUrl}
-            className="hidden sm:inline-flex items-center text-sm text-ink-700 hover:text-ink-900 px-3 py-1.5 transition-colors"
+            className="hidden sm:inline-flex items-center text-sm text-ink-700 px-3 py-1.5 rounded-md border border-transparent hover:text-amber-400 hover:border-amber-400/50 hover:bg-amber-400/5 transition-colors"
           >
             {loginText}
           </a>
