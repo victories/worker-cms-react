@@ -1814,13 +1814,21 @@ function resolveFooterColumns(
 function LandingFooter({ footer, brandName, lang, anchorBase = '' }: LandingFooterProps) {
   const t = LANDING_UI[lang].footer;
   const columns = resolveFooterColumns(footer, t.linksFallback);
+  const tagline = footer.description || t.tagline;
   const bottom =
     footer.text || `© ${new Date().getFullYear()} ${brandName}`;
   return (
     <footer className="border-t border-ink-200 bg-ink-50">
-      <PageContainer className="py-16">
+      <PageContainer className="py-16 grid md:grid-cols-12 gap-10">
+        <div className="md:col-span-4">
+          <div className="flex items-center gap-2.5 mb-4">
+            <Wordmark />
+            <span className="font-semibold tracking-tight text-ink-900">{brandName}</span>
+          </div>
+          <p className="text-sm text-ink-700 max-w-sm leading-relaxed">{tagline}</p>
+        </div>
         {columns.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-8">
             {columns.map((col, i) => (
               <div key={i}>
                 <div className="text-[11px] font-mono uppercase tracking-wider text-ink-600 mb-3">
@@ -1846,12 +1854,7 @@ function LandingFooter({ footer, brandName, lang, anchorBase = '' }: LandingFoot
 
       <div className="border-t border-ink-200">
         <PageContainer className="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-ink-600">
-          <div className="flex items-center gap-2.5">
-            <Wordmark />
-            <span className="font-semibold tracking-tight text-ink-900">{brandName}</span>
-            <span className="text-ink-400">·</span>
-            <span>{bottom}</span>
-          </div>
+          <div>{bottom}</div>
           <div className="flex items-center gap-3">
             <span className="font-mono">{t.bottomRight}</span>
             <span className="flex items-center gap-1.5">
