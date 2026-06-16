@@ -8,7 +8,7 @@ import { Input } from '@ui/input';
 import { Label } from '@ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
 import { Badge } from '@ui/badge';
-import { User, Mail, Lock, Shield, Save, CheckCircle, CreditCard, Loader2 } from 'lucide-react';
+import { User, Mail, Lock, Shield, Save, CheckCircle, CreditCard, Loader2, Plus, Minus } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
@@ -67,6 +67,7 @@ export function Profile() {
   const [overview, setOverview] = useState<SubOverview | null>(null);
   const [cancelTarget, setCancelTarget] = useState<{ kind: 'package' | 'addon'; id: number; name: string } | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [unitBusyId, setUnitBusyId] = useState<number | null>(null);
 
   const loadOverview = async () => {
     try {
@@ -102,6 +103,28 @@ export function Profile() {
     }
     setCancelingId(null);
     setCancelTarget(null);
+  };
+
+  // Change a unit add-on's quantity (e.g. 2 sites → 1) via Creem proration.
+  // Dropping to 0 isn't allowed here — that's a full Cancel.
+  const changeUnits = async (addon: SubAddon, next: number) => {
+    if (next < 1) return;
+    setUnitBusyId(addon.id);
+    try {
+      const res = await api.request<{ success: boolean; error?: string }>(
+        `/subscriptions/addon/${addon.id}/units`,
+        { method: 'POST', body: { units: next } }
+      );
+      if (res.success) {
+        toast(lang === 'tr' ? 'Adet güncellendi' : 'Quantity updated', 'success');
+        await loadOverview();
+      } else {
+        toast(res.error || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+    }
+    setUnitBusyId(null);
   };
 
   const periodPrice = (priceMonthly: number, priceYearly: number, period: 'monthly' | 'yearly') =>
@@ -354,15 +377,40 @@ export function Profile() {
                               : `Cancels on ${fmtDate(addon.current_period_end)}`}
                           </span>
                         ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={cancelingId === rowKey}
-                            onClick={() => setCancelTarget({ kind: 'addon', id: addon.id, name: addon.addon_name })}
-                          >
-                            {cancelingId === rowKey && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                            {lang === 'tr' ? 'İptal Et' : 'Cancel'}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            {addon.type === 'unit' && (
+                              <div className="flex items-center gap-1" title={lang === 'tr' ? 'Adedi değiştir' : 'Change quantity'}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  disabled={unitBusyId === addon.id || addon.units <= 1}
+                                  onClick={() => changeUnits(addon, addon.units - 1)}
+                                >
+                                  {unitBusyId === addon.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
+                                </Button>
+                                <span className="w-6 text-center text-sm tabular-nums">{addon.units}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  disabled={unitBusyId === addon.id}
+                                  onClick={() => changeUnits(addon, addon.units + 1)}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={cancelingId === rowKey}
+                              onClick={() => setCancelTarget({ kind: 'addon', id: addon.id, name: addon.addon_name })}
+                            >
+                              {cancelingId === rowKey && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                              {lang === 'tr' ? 'İptal Et' : 'Cancel'}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>

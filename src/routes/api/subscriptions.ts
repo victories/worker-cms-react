@@ -99,6 +99,49 @@ subscriptions.post('/cancel', async (c) => {
   return c.json({ success: true, data: { period_end: row.current_period_end } });
 });
 
+// POST /api/subscriptions/addon/:id/units - change a unit add-on's quantity
+// (e.g. 2 extra sites → 1) by updating the Creem subscription's units with
+// proration. To remove the add-on entirely use /cancel instead.
+subscriptions.post('/addon/:id/units', async (c) => {
+  const user = c.get('user')!;
+  const id = parseInt(c.req.param('id'));
+  const body = await c.req.json<{ units: number }>();
+
+  const row = await c.env.DB.prepare(
+    `SELECT ua.id, ua.units, ua.creem_subscription_id, a.type, a.max_units
+     FROM user_addons ua JOIN addons a ON a.id = ua.addon_id
+     WHERE ua.id = ? AND ua.user_id = ? AND ua.status = 'active'`
+  ).bind(id, user.sub).first<any>();
+  if (!row) return c.json({ success: false, error: 'Eklenti bulunamadı' }, 404);
+  if (row.type !== 'unit') return c.json({ success: false, error: 'Bu eklenti adetli değil' }, 400);
+  if (!row.creem_subscription_id) return c.json({ success: false, error: 'Bu eklenti güncellenemez' }, 400);
+
+  const requested = Math.floor(body.units || 0);
+  if (requested < 1) {
+    return c.json({ success: false, error: 'En az 1 adet olmalı (tümünü kaldırmak için İptal edin)' }, 400);
+  }
+  const units = Math.min(row.max_units || 9999, requested);
+  if (units === row.units) return c.json({ success: true, data: { units } });
+
+  const cfg = await getCreemConfig(c.env.DB);
+  if (!cfg.apiKey) return c.json({ success: false, error: 'Creem yapılandırılmamış' }, 500);
+
+  const res = await fetch(`${cfg.baseUrl}/v1/subscriptions/${row.creem_subscription_id}`, {
+    method: 'POST',
+    headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ units }),
+  });
+  if (!res.ok) {
+    const d = (await res.json().catch(() => ({}))) as any;
+    return c.json({ success: false, error: d?.message || 'Creem güncelleme hatası' }, 400);
+  }
+
+  await c.env.DB.prepare("UPDATE user_addons SET units = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(units, id).run();
+  await recomputeUserEntitlements(c.env.DB, user.sub);
+  return c.json({ success: true, data: { units } });
+});
+
 // GET /api/subscriptions/prorate - Calculate proration credit for upgrade
 subscriptions.get('/prorate', async (c) => {
   const user = c.get('user')!;
