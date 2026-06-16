@@ -1,14 +1,53 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { t } from '@/lib/i18n';
+import { formatDate } from '@ui/lib/utils';
 import { Button } from '@ui/button';
 import { Input } from '@ui/input';
 import { Label } from '@ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
 import { Badge } from '@ui/badge';
-import { User, Mail, Lock, Shield, Save, CheckCircle } from 'lucide-react';
+import { User, Mail, Lock, Shield, Save, CheckCircle, CreditCard, Loader2 } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+
+interface SubPackage {
+  id: number;
+  status: string;
+  billing_period: 'monthly' | 'yearly';
+  payment_method?: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: number | boolean;
+  creem_subscription_id?: string | null;
+  package_name: string;
+  max_sites: number;
+  price_monthly: number;
+  price_yearly: number;
+}
+
+interface SubAddon {
+  id: number;
+  units: number;
+  billing_period: 'monthly' | 'yearly';
+  status: string;
+  current_period_end: string | null;
+  cancel_at_period_end: number | boolean;
+  creem_subscription_id?: string | null;
+  addon_name: string;
+  type: 'unit' | 'feature';
+  unit_label?: string | null;
+  feature_key?: string | null;
+  price_monthly: number;
+  price_yearly: number;
+}
+
+interface SubOverview {
+  max_sites: number;
+  sites_used: number;
+  package: SubPackage | null;
+  addons: SubAddon[];
+}
 
 export function Profile() {
   const { user, lang } = useAuthStore();
@@ -24,6 +63,52 @@ export function Profile() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [overview, setOverview] = useState<SubOverview | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{ kind: 'package' | 'addon'; id: number; name: string } | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
+
+  const loadOverview = async () => {
+    try {
+      const res = await api.request<{ success: boolean; data: SubOverview }>('/subscriptions/overview');
+      if (res.success) setOverview(res.data);
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadOverview();
+  }, []);
+
+  const fmtDate = (d: string | null) => formatDate(d, lang);
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const { kind, id } = cancelTarget;
+    const rowKey = `${kind}:${id}`;
+    setCancelingId(rowKey);
+    try {
+      const res = await api.request<{ success: boolean; data?: { period_end: string }; error?: string }>(
+        '/subscriptions/cancel',
+        { method: 'POST', body: { kind, id } }
+      );
+      if (res.success) {
+        toast(lang === 'tr' ? 'Dönem sonunda iptal edilecek' : 'Will cancel at period end', 'success');
+        await loadOverview();
+      } else {
+        toast(res.error || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+    }
+    setCancelingId(null);
+    setCancelTarget(null);
+  };
+
+  const periodPrice = (priceMonthly: number, priceYearly: number, period: 'monthly' | 'yearly') =>
+    period === 'yearly' ? priceYearly : priceMonthly;
+
+  const perLabel = (period: 'monthly' | 'yearly') =>
+    period === 'yearly' ? (lang === 'tr' ? 'yıl' : 'yr') : (lang === 'tr' ? 'ay' : 'mo');
 
   const handleSaveProfile = async () => {
     setSavingProfile(true);
@@ -173,6 +258,122 @@ export function Profile() {
         </CardContent>
       </Card>
 
+      {/* Subscription & Add-ons Card */}
+      {overview && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              {lang === 'tr' ? 'Abonelik & Eklentiler' : 'Subscription & Add-ons'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Quota line */}
+            <div className="text-sm text-muted-foreground">
+              {overview.sites_used} / {overview.max_sites} {lang === 'tr' ? 'site' : 'sites'}
+            </div>
+
+            {/* Package row */}
+            <div className="space-y-2">
+              <Label className="text-sm">{lang === 'tr' ? 'Paket' : 'Package'}</Label>
+              {overview.package ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold">{overview.package.package_name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      ${periodPrice(overview.package.price_monthly, overview.package.price_yearly, overview.package.billing_period).toFixed(2)}
+                      {' '}/ {perLabel(overview.package.billing_period)}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {lang === 'tr' ? 'Yenileme' : 'Renews'}: {fmtDate(overview.package.current_period_end)}
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    {overview.package.cancel_at_period_end ? (
+                      <span className="text-xs text-muted-foreground">
+                        {lang === 'tr'
+                          ? `Dönem sonunda iptal edilecek (${fmtDate(overview.package!.current_period_end)})`
+                          : `Cancels on ${fmtDate(overview.package!.current_period_end)}`}
+                      </span>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={cancelingId === `package:${overview.package.id}`}
+                        onClick={() =>
+                          setCancelTarget({ kind: 'package', id: overview.package!.id, name: overview.package!.package_name })
+                        }
+                      >
+                        {cancelingId === `package:${overview.package.id}` && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                        {lang === 'tr' ? 'İptal Et' : 'Cancel'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {lang === 'tr' ? 'Aktif paket yok' : 'No active package'}
+                </p>
+              )}
+            </div>
+
+            {/* Add-on rows */}
+            {overview.addons.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm">{lang === 'tr' ? 'Eklentiler' : 'Add-ons'}</Label>
+                {overview.addons.map((addon) => {
+                  const unitPrice = periodPrice(addon.price_monthly, addon.price_yearly, addon.billing_period);
+                  const total = addon.type === 'unit' ? unitPrice * addon.units : unitPrice;
+                  const rowKey = `addon:${addon.id}`;
+                  return (
+                    <div
+                      key={addon.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold">
+                          {addon.addon_name}
+                          {addon.type === 'unit' && (
+                            <span className="ml-1 text-sm font-normal text-muted-foreground">
+                              × {addon.units} {addon.unit_label || (lang === 'tr' ? 'birim' : 'unit')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          ${total.toFixed(2)} / {perLabel(addon.billing_period)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {lang === 'tr' ? 'Yenileme' : 'Renews'}: {fmtDate(addon.current_period_end)}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {addon.cancel_at_period_end ? (
+                          <span className="text-xs text-muted-foreground">
+                            {lang === 'tr'
+                              ? `Dönem sonunda iptal edilecek (${fmtDate(addon.current_period_end)})`
+                              : `Cancels on ${fmtDate(addon.current_period_end)}`}
+                          </span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={cancelingId === rowKey}
+                            onClick={() => setCancelTarget({ kind: 'addon', id: addon.id, name: addon.addon_name })}
+                          >
+                            {cancelingId === rowKey && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                            {lang === 'tr' ? 'İptal Et' : 'Cancel'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Change Password Card */}
       <Card>
         <CardHeader>
@@ -218,6 +419,23 @@ export function Profile() {
           </Button>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => { if (!open) setCancelTarget(null); }}
+        onConfirm={confirmCancel}
+        title={lang === 'tr' ? 'Aboneliği İptal Et' : 'Cancel Subscription'}
+        description={
+          cancelTarget
+            ? (lang === 'tr'
+                ? `"${cancelTarget.name}" dönem sonunda iptal edilecek. O zamana kadar kullanmaya devam edebilirsiniz.`
+                : `"${cancelTarget.name}" will be canceled at the end of the period. You can keep using it until then.`)
+            : undefined
+        }
+        confirmLabel={lang === 'tr' ? 'İptal Et' : 'Cancel Plan'}
+        cancelLabel={lang === 'tr' ? 'Vazgeç' : 'Keep'}
+        variant="destructive"
+      />
     </div>
   );
 }

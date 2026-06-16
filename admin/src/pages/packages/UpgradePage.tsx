@@ -7,7 +7,7 @@ import { Input } from '@ui/input';
 import { Badge } from '@ui/badge';
 import { useToast } from '@ui/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
-import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info } from 'lucide-react';
+import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info, X } from 'lucide-react';
 
 interface Addon {
   id: number;
@@ -63,11 +63,16 @@ export function UpgradePage() {
   const [walletAddresses, setWalletAddresses] = useState<Record<string, Record<string, string>>>({ usdt: {}, usdc: {} });
   const [copied, setCopied] = useState(false);
   const [prorationData, setProrationData] = useState<Record<number, any>>({});
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   useEffect(() => {
     fetchData();
     if (searchParams.get('success') === '1') {
       toast(tr ? '\u00d6deme ba\u015far\u0131l\u0131! Aboneli\u011finiz aktif.' : 'Payment successful! Subscription active.', 'success');
+      setShowSuccessBanner(true);
+      // Activation is via webhook (a few seconds) \u2014 re-fetch so the new state appears.
+      const retry = setTimeout(() => { fetchData(); }, 4000);
+      return () => clearTimeout(retry);
     }
   }, [billingPeriod]);
 
@@ -237,6 +242,25 @@ export function UpgradePage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {showSuccessBanner && (
+        <div className="flex items-start gap-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4 text-sm text-green-800 dark:text-green-300">
+          <PartyPopper className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
+          <p className="flex-1">
+            {tr
+              ? 'Ödemeniz alındı! Aboneliğiniz/eklentiniz birkaç saniye içinde aktifleşir.'
+              : 'Payment received! Your plan/add-on activates within a few seconds.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowSuccessBanner(false)}
+            className="shrink-0 rounded p-0.5 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/40"
+            aria-label={tr ? 'Kapat' : 'Dismiss'}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
           <Crown className="h-7 w-7 text-yellow-500" />

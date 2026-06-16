@@ -108,7 +108,7 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!isSuperAdmin) {
-      api.request('/subscriptions/my').then((res: any) => {
+      api.request('/subscriptions/overview').then((res: any) => {
         if (res?.success) setSubscription(res.data);
       }).catch(() => {});
     }
@@ -198,10 +198,17 @@ export function Dashboard() {
         {/* Quota badges for non-super_admin */}
         {!isSuperAdmin && (
           <div className="flex flex-wrap items-center gap-2">
-            {subscription ? (
+            {subscription?.package ? (
               <Badge variant="outline" className="gap-1.5 py-1 px-2.5 text-xs border-[#F5A524]/30 bg-[#F5A524]/10 text-[#F5A524]">
                 <Crown className="h-3 w-3" />
-                {subscription.package_name}
+                {subscription.package.package_name}
+              </Badge>
+            ) : subscription?.addons?.length > 0 ? (
+              <Badge variant="outline" className="gap-1.5 py-1 px-2.5 text-xs">
+                <Package className="h-3 w-3" />
+                {lang === 'tr'
+                  ? `${subscription.addons.length} eklenti`
+                  : `${subscription.addons.length} add-ons`}
               </Badge>
             ) : (
               <Badge variant="outline" className="gap-1.5 py-1 px-2.5 text-xs">
@@ -212,8 +219,8 @@ export function Dashboard() {
             <Badge variant="outline" className="gap-1.5 py-1 px-2.5 text-xs">
               <Globe className="h-3 w-3" />
               {lang === 'tr'
-                ? `${sites.length} / ${subscription?.max_sites || 0} site`
-                : `${sites.length} / ${subscription?.max_sites || 0} sites`}
+                ? `${subscription?.sites_used ?? sites.length} / ${subscription?.max_sites || 0} site`
+                : `${subscription?.sites_used ?? sites.length} / ${subscription?.max_sites || 0} sites`}
             </Badge>
           </div>
         )}
