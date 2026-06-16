@@ -471,7 +471,26 @@ export function Profile() {
                                 >
                                   {unitBusyId === addon.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
                                 </Button>
-                                <span className="w-6 text-center text-sm tabular-nums">{addon.units}</span>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  key={`units-${addon.id}-${addon.units}`}
+                                  defaultValue={addon.units}
+                                  disabled={unitBusyId === addon.id}
+                                  title={lang === 'tr' ? 'Adet girin' : 'Enter quantity'}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                  }}
+                                  onBlur={(e) => {
+                                    const v = Math.floor(Number(e.target.value));
+                                    if (!Number.isFinite(v) || v < 1) {
+                                      e.target.value = String(addon.units);
+                                      return;
+                                    }
+                                    if (v !== addon.units) changeUnits(addon, v);
+                                  }}
+                                  className="h-8 w-16 text-center px-1 tabular-nums"
+                                />
                                 <Button
                                   variant="outline"
                                   size="sm"
