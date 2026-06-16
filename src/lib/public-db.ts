@@ -317,16 +317,26 @@ export async function getSiteTheme(
 }
 
 /**
- * Check if a site has white_label enabled via its owner's active subscription package.
+ * Check if a site has white_label enabled via its owner's active subscription
+ * package, or via an active white-label add-on.
  */
 export async function hasWhiteLabel(db: D1Database, siteId: number): Promise<boolean> {
-  const result = await db.prepare(
-    `SELECT p.white_label FROM user_sites us
-     JOIN subscriptions sub ON sub.user_id = us.user_id AND sub.status = 'active'
-     JOIN packages p ON p.id = sub.package_id
-     WHERE us.site_id = ? AND p.white_label = 1 LIMIT 1`
-  ).bind(siteId).first<{ white_label: number }>();
-  return result?.white_label === 1;
+  const owner = await db.prepare(
+    `SELECT us.user_id FROM user_sites us WHERE us.site_id = ? LIMIT 1`
+  ).bind(siteId).first<{ user_id: number }>();
+  if (!owner) return false;
+  // Package-level white-label (unchanged behaviour)
+  const pkg = await db.prepare(
+    `SELECT 1 FROM subscriptions sub JOIN packages p ON p.id = sub.package_id
+     WHERE sub.user_id = ? AND sub.status = 'active' AND p.white_label = 1 LIMIT 1`
+  ).bind(owner.user_id).first();
+  if (pkg) return true;
+  // Add-on white-label
+  const addon = await db.prepare(
+    `SELECT 1 FROM user_addons ua JOIN addons a ON a.id = ua.addon_id
+     WHERE ua.user_id = ? AND ua.status = 'active' AND a.feature_key = 'white_label' LIMIT 1`
+  ).bind(owner.user_id).first();
+  return !!addon;
 }
 
 const AURORA_EMBED_BASE = 'https://aurora-amp-worker.example.workers.dev/embed/';
