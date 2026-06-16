@@ -754,7 +754,12 @@ function Nav({ brandName, nav, lang = 'tr', path = '/', anchorBase = '' }: NavPr
   const loginUrl = nav?.login_url || '/admin/login';
   const ctaText = nav?.cta_text;
   const ctaUrl = nav?.cta_url;
-  const nextParam = encodeURIComponent(path || '/');
+  // On the language-prefixed landing home (/en or /tr) the URL path forces
+  // the language (i18n priority: path > cookie), so switching must land on
+  // the bare, cookie-driven homepage instead of the same /en path — else
+  // the TR flag never switched. Deeper paths keep their URL.
+  const barePath = /^\/(en|tr)$/.test(path || '') ? '/' : path || '/';
+  const nextParam = encodeURIComponent(barePath);
   // The logo always links to the site root (the landing page on the
   // management site), not "#".
   const homeHref = anchorBase || '/';
