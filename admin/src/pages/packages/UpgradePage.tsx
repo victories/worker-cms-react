@@ -7,7 +7,7 @@ import { Input } from '@ui/input';
 import { Badge } from '@ui/badge';
 import { useToast } from '@ui/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
-import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info, X } from 'lucide-react';
+import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info, X, Globe } from 'lucide-react';
 
 interface Addon {
   id: number;
@@ -530,9 +530,24 @@ export function UpgradePage() {
                   className={`rounded-xl border-2 p-4 flex flex-col sm:flex-row sm:items-center gap-4 transition-all ${selected ? 'border-primary/50 bg-primary/5' : 'border-border'}`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold">{a.name}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold">{a.name}</span>
+                      {a.type === 'feature' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                          <Globe className="h-3 w-3" />
+                          {tr ? 'Tüm sitelerde geçerli' : 'Applies to all sites'}
+                        </span>
+                      )}
+                    </div>
                     {a.description && (
                       <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>
+                    )}
+                    {a.type === 'feature' && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {tr
+                          ? 'Hesap geneli — site sayınızdan bağımsız olarak tüm sitelerinizde aktif olur.'
+                          : 'Account-wide — active on every site you own, regardless of how many you have.'}
+                      </p>
                     )}
                     <div className="text-xs text-muted-foreground mt-1">
                       {a.type === 'unit'

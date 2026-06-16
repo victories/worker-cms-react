@@ -137,8 +137,8 @@ export function AMPSettings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  // Whether the account may use a custom AMP domain — granted by the
-  // Custom AMP Domain add-on or a White Label package/add-on.
+  // Whether the account may use a custom AMP domain — granted ONLY by the
+  // Custom AMP Domain add-on (White Label is a separate entitlement).
   const [canCustomAmpDomain, setCanCustomAmpDomain] = useState(false);
 
   useEffect(() => {
@@ -149,9 +149,8 @@ export function AMPSettings() {
     } else {
       api.request('/subscriptions/features').then((res: any) => {
         const features: string[] = res?.data?.features || [];
-        setCanCustomAmpDomain(
-          features.includes('custom_amp_domain') || features.includes('white_label')
-        );
+        // Custom AMP domain is its own add-on — White Label does NOT grant it.
+        setCanCustomAmpDomain(features.includes('custom_amp_domain'));
       }).catch(() => {});
     }
   }, [activeSite]);
