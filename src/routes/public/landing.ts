@@ -173,6 +173,50 @@ export async function serveLanding(c: {
   const title = `${brand.name || 'WorkerCms'}${brand.tagline ? ' — ' + brand.tagline : ''}`;
   const description = config.hero?.subtitle;
 
+  // Absolute origin for canonical / OG / hreflang / JSON-LD. The landing
+  // is the marketing homepage; canonical + og:url point to the
+  // language-specific URL, and hreflang advertises the TR/EN variants
+  // (the i18n middleware honours ?lang=). These tags live ONLY on the
+  // landing route, never on tenant (customer) sites.
+  const adminDomain = (c.env.ADMIN_DOMAIN || '').replace(/:\d+$/, '');
+  const origin = adminDomain ? `https://${adminDomain}` : '';
+  const canonicalUrl = `${origin}/?lang=${lang}`;
+  const ogImage = `${origin}/favicon.svg`;
+  const ogLocale = lang === 'tr' ? 'tr_TR' : 'en_US';
+
+  // Product schema for the marketing site (Organization + WebSite +
+  // SoftwareApplication). The free tier surfaces a "Free" price; this is
+  // the management site only — tenant sites get their own Rich Snippets.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${origin}/#organization`,
+        name: brand.name || 'Worker CMS',
+        url: origin || '/',
+        logo: ogImage,
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${origin}/#website`,
+        name: brand.name || 'Worker CMS',
+        url: origin || '/',
+        inLanguage: lang,
+        publisher: { '@id': `${origin}/#organization` },
+      },
+      {
+        '@type': 'SoftwareApplication',
+        name: brand.name || 'Worker CMS',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web',
+        description: description || '',
+        url: origin || '/',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      },
+    ],
+  };
+
   // Google Fonts for the v2 landing design — Inter (body), Instrument
   // Serif (display), JetBrains Mono (code/labels). Preconnect first to
   // shave the RTT, then the stylesheet itself. CSP middleware already
@@ -207,6 +251,32 @@ export async function serveLanding(c: {
         'family=Instrument+Serif&' +
         'family=JetBrains+Mono:wght@400&' +
         'display=swap',
+    }),
+    // Canonical (language-specific)
+    createElement('link', { key: 'canonical', rel: 'canonical', href: canonicalUrl }),
+    // hreflang alternates — TR / EN / x-default
+    createElement('link', { key: 'hl-tr', rel: 'alternate', hrefLang: 'tr', href: `${origin}/?lang=tr` }),
+    createElement('link', { key: 'hl-en', rel: 'alternate', hrefLang: 'en', href: `${origin}/?lang=en` }),
+    createElement('link', { key: 'hl-x', rel: 'alternate', hrefLang: 'x-default', href: `${origin}/` }),
+    // Open Graph
+    createElement('meta', { key: 'og-type', property: 'og:type', content: 'website' }),
+    createElement('meta', { key: 'og-site', property: 'og:site_name', content: brand.name || 'Worker CMS' }),
+    createElement('meta', { key: 'og-title', property: 'og:title', content: title }),
+    createElement('meta', { key: 'og-desc', property: 'og:description', content: description || '' }),
+    createElement('meta', { key: 'og-url', property: 'og:url', content: canonicalUrl }),
+    createElement('meta', { key: 'og-locale', property: 'og:locale', content: ogLocale }),
+    createElement('meta', { key: 'og-img', property: 'og:image', content: ogImage }),
+    // Twitter Card
+    createElement('meta', { key: 'tw-card', name: 'twitter:card', content: 'summary' }),
+    createElement('meta', { key: 'tw-title', name: 'twitter:title', content: title }),
+    createElement('meta', { key: 'tw-desc', name: 'twitter:description', content: description || '' }),
+    createElement('meta', { key: 'tw-img', name: 'twitter:image', content: ogImage }),
+    // Structured data (Organization + WebSite + SoftwareApplication)
+    createElement('script', {
+      key: 'jsonld',
+      type: 'application/ld+json',
+      nonce: cspNonce,
+      dangerouslySetInnerHTML: { __html: JSON.stringify(jsonLd) },
     })
   );
 

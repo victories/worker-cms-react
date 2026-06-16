@@ -224,6 +224,12 @@ app.use('*', async (c, next) => {
     c.res.headers.set('X-Content-Type-Options', 'nosniff');
   }
   c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // HSTS: force HTTPS for one year. Browsers ignore it over plain HTTP, so
+  // it's safe to send everywhere. No includeSubDomains — tenant custom
+  // domains may run non-HTTPS subdomains outside our control.
+  if (!c.res.headers.has('Strict-Transport-Security')) {
+    c.res.headers.set('Strict-Transport-Security', 'max-age=31536000');
+  }
   // Admin SPA must never be frameable (clickjacking). Public pages are left
   // alone — embedding decisions there belong to the (report-only) CSP.
   const path = new URL(c.req.url).pathname;
