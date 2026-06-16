@@ -1875,10 +1875,22 @@ function LandingFooter({ footer, brandName, lang, anchorBase = '' }: LandingFoot
                 <circle cx="20" cy="11" r="6" fill="#F79E1B" fillOpacity="0.9" />
               </svg>
               {/* Crypto (Bitcoin) */}
-              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="Kripto" role="img">
+              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="Bitcoin" role="img">
                 <rect width="34" height="22" rx="4" fill="#ffffff" stroke="#E2E2E2" />
                 <circle cx="17" cy="11" r="7" fill="#F7931A" />
                 <text x="17" y="15" fontFamily="Arial, Helvetica, sans-serif" fontSize="10" fontWeight="700" fill="#ffffff" textAnchor="middle">₿</text>
+              </svg>
+              {/* USDT (Tether) */}
+              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="USDT" role="img">
+                <rect width="34" height="22" rx="4" fill="#ffffff" stroke="#E2E2E2" />
+                <circle cx="17" cy="11" r="7" fill="#26A17B" />
+                <text x="17" y="15" fontFamily="Arial, Helvetica, sans-serif" fontSize="9" fontWeight="700" fill="#ffffff" textAnchor="middle">₮</text>
+              </svg>
+              {/* USDC */}
+              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="USDC" role="img">
+                <rect width="34" height="22" rx="4" fill="#ffffff" stroke="#E2E2E2" />
+                <circle cx="17" cy="11" r="7" fill="#2775CA" />
+                <text x="17" y="15" fontFamily="Arial, Helvetica, sans-serif" fontSize="10" fontWeight="700" fill="#ffffff" textAnchor="middle">$</text>
               </svg>
             </span>
           </div>
