@@ -54,6 +54,12 @@ subscriptions.get('/overview', async (c) => {
      JOIN sites s ON s.id = us.site_id
      WHERE us.user_id = ? AND s.status = 'active'`
   ).bind(user.sub).first<{ n: number }>();
+  const siteList = await c.env.DB.prepare(
+    `SELECT s.id, s.name, s.slug, s.status
+     FROM user_sites us JOIN sites s ON s.id = us.site_id
+     WHERE us.user_id = ?
+     ORDER BY s.status = 'active' DESC, s.name ASC`
+  ).bind(user.sub).all();
   return c.json({
     success: true,
     data: {
@@ -61,6 +67,7 @@ subscriptions.get('/overview', async (c) => {
       sites_used: sites?.n ?? 0,
       package: pkg || null,
       addons: addons.results || [],
+      sites: siteList.results || [],
     },
   });
 });
