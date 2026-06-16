@@ -243,6 +243,14 @@ export const LANDING_EN: LandingConfig = {
         ],
       },
       {
+        title: 'Resources',
+        links: [
+          { text: 'Worker CMS vs SonicJS', url: '/en/workercms-vs-sonicjs' },
+          { text: 'WordPress Migration', url: '/en/wordpress-to-workercms-migration' },
+          { text: 'Headless CMS Guide', url: '/en/headless-cms-cloudflare-workers' },
+        ],
+      },
+      {
         title: 'Company',
         links: [
           { text: 'Contact', url: '/legal/iletisim' },
