@@ -463,12 +463,12 @@ async function renderPostPage(
 
   const isPage = p.post_type === 'page';
 
-  // Management site (workercms.com itself): render static pages with
-  // the landing v2 chrome — same nav / footer / ink+amber palette as
-  // /landing. Keeps /iletisim, /gizlilik, /sartlar visually coherent
-  // with the marketing site instead of inheriting the publisher
-  // shadcn theme used by tenants like example.com.
-  if (isPage && site.is_management === 1) {
+  // Management site (workercms.com itself): render static pages AND blog
+  // posts with the landing v2 chrome — same nav / footer / ink+amber
+  // palette as /landing. Keeps /iletisim, /gizlilik and the marketing
+  // blog visually coherent with the landing instead of inheriting the
+  // publisher shadcn theme used by tenants like example.com.
+  if (site.is_management === 1) {
     const landingCfg = await loadLandingConfig(c);
     if (landingCfg) {
       // English visitors get the static English landing chrome (nav +

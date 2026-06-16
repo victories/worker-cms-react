@@ -272,3 +272,48 @@
 .landing-v2 ::-webkit-scrollbar-track   { background: #0A0A0B; }
 .landing-v2 ::-webkit-scrollbar-thumb   { background: #1B1B20; border-radius: 8px; }
 .landing-v2 ::-webkit-scrollbar-thumb:hover { background: #26262C; }
+
+/* ============================================
+   Article body (blog posts + static pages) rendered inside the landing
+   chrome via LandingPage. The CMS editor emits plain HTML (h2/h3/p/ul/
+   table/a/code) with no utility classes, so style the elements directly,
+   tuned for the dark ink surface. Scoped to `.landing-page-body`.
+   ============================================ */
+.landing-v2 .landing-page-body { font-size: 1.0625rem; }
+.landing-v2 .landing-page-body > * + * { margin-top: 1.1rem; }
+.landing-v2 .landing-page-body h2 {
+  font-family: 'Instrument Serif', ui-serif, Georgia, serif;
+  font-size: 1.9rem; line-height: 1.2; color: #FAFAF7; letter-spacing: -0.01em;
+  margin-top: 2.4rem; margin-bottom: 0.2rem;
+}
+.landing-v2 .landing-page-body h3 {
+  font-size: 1.3rem; font-weight: 600; color: #FAFAF7;
+  margin-top: 1.8rem; margin-bottom: 0.1rem;
+}
+.landing-v2 .landing-page-body p { color: #C9C9CF; line-height: 1.75; }
+.landing-v2 .landing-page-body a {
+  color: #F5A524; text-decoration: underline; text-underline-offset: 2px;
+}
+.landing-v2 .landing-page-body a:hover { color: #FFB638; }
+.landing-v2 .landing-page-body strong { color: #FAFAF7; }
+.landing-v2 .landing-page-body ul { list-style: disc; padding-left: 1.4rem; }
+.landing-v2 .landing-page-body ol { list-style: decimal; padding-left: 1.4rem; }
+.landing-v2 .landing-page-body li { color: #C9C9CF; margin-top: 0.4rem; line-height: 1.7; }
+.landing-v2 .landing-page-body table {
+  width: 100%; border-collapse: collapse; margin: 1.6rem 0; font-size: 0.95rem;
+  display: block; overflow-x: auto;
+}
+.landing-v2 .landing-page-body th,
+.landing-v2 .landing-page-body td {
+  border: 1px solid #26262C; padding: 0.6rem 0.85rem; text-align: left; vertical-align: top;
+}
+.landing-v2 .landing-page-body th { background: #141418; color: #FAFAF7; font-weight: 600; }
+.landing-v2 .landing-page-body td { color: #C9C9CF; }
+.landing-v2 .landing-page-body tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+.landing-v2 .landing-page-body blockquote {
+  border-left: 3px solid #F5A524; padding-left: 1rem; color: #B5B5BC; font-style: italic;
+}
+.landing-v2 .landing-page-body code {
+  background: #141418; color: #F5A524; padding: 0.15em 0.4em; border-radius: 4px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.9em;
+}
