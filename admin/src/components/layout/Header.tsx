@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/stores/authStore';
 import { useSiteStore } from '@/stores/siteStore';
-import { useThemeStore } from '@/stores/themeStore';
 import { useUIStore } from '@/stores/uiStore';
 import { t } from '@/lib/i18n';
 import { Button } from '@ui/button';
@@ -9,12 +8,11 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Languages, Moon, Sun, Monitor, Menu as MenuIcon, PanelLeftClose, PanelLeft, ExternalLink, UserCog, ArrowLeftCircle, Crown, Settings2, Check, Globe, Package, Rocket } from 'lucide-react';
+import { User, LogOut, Languages, Menu as MenuIcon, PanelLeftClose, PanelLeft, ExternalLink, UserCog, ArrowLeftCircle, Crown, Settings2, Check, Globe, Package, Rocket } from 'lucide-react';
 
 export function Header() {
   const { user, lang, setLang, logout, isImpersonating, originalUser, stopImpersonation } = useAuthStore();
   const { activeSite } = useSiteStore();
-  const { theme, setTheme, resolvedTheme } = useThemeStore();
   const { toggleSidebar, sidebarCollapsed, toggleCollapsed } = useUIStore();
   const navigate = useNavigate();
 
@@ -27,9 +25,6 @@ export function Header() {
     stopImpersonation();
     navigate('/users');
   };
-
-  const themeIcon = theme === 'system' ? Monitor : resolvedTheme === 'dark' ? Moon : Sun;
-  const ThemeIcon = themeIcon;
 
   return (
     <>
@@ -156,29 +151,6 @@ export function Header() {
               {lang === 'en' && <Check className="h-4 w-4 mr-2" />}
               {lang !== 'en' && <span className="w-4 mr-2" />}
               English
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-1.5 h-8">
-              <ThemeIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">{theme === 'system' ? 'Auto' : resolvedTheme === 'dark' ? 'Dark' : 'Light'}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setTheme('light')}>
-              <Sun className="h-4 w-4 mr-2" />
-              Light
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('dark')}>
-              <Moon className="h-4 w-4 mr-2" />
-              Dark
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setTheme('system')}>
-              <Monitor className="h-4 w-4 mr-2" />
-              System
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

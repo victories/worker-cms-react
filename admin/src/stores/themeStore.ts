@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 
+// The admin is dark-only (ink/amber, matching the landing & auth pages),
+// so there is no light variant to resolve. The store keeps its previous
+// shape so existing consumers don't break, but every value is pinned to
+// 'dark' and `.dark` is always applied to <html> — components that branch
+// on `document.documentElement.classList.contains('dark')` (e.g. the
+// editors) and native form controls all stay dark.
 type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeState {
@@ -9,46 +15,24 @@ interface ThemeState {
   initialize: () => void;
 }
 
-function getSystemTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(resolved: 'light' | 'dark') {
+function applyDark() {
   const root = document.documentElement;
-  root.classList.remove('light', 'dark');
-  root.classList.add(resolved);
+  root.classList.remove('light');
+  root.classList.add('dark');
 }
 
-export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: 'system',
-  resolvedTheme: 'light',
+export const useThemeStore = create<ThemeState>((set) => ({
+  theme: 'dark',
+  resolvedTheme: 'dark',
 
-  setTheme: (theme) => {
-    const resolved = theme === 'system' ? getSystemTheme() : theme;
-    applyTheme(resolved);
-    localStorage.setItem('theme', theme);
-    set({ theme, resolvedTheme: resolved });
+  setTheme: () => {
+    applyDark();
+    localStorage.setItem('theme', 'dark');
+    set({ theme: 'dark', resolvedTheme: 'dark' });
   },
 
   initialize: () => {
-    const saved = localStorage.getItem('theme') as Theme | null;
-    const theme = saved || 'system';
-    const resolved = theme === 'system' ? getSystemTheme() : theme;
-    applyTheme(resolved);
-    set({ theme, resolvedTheme: resolved });
-
-    // Listen for system theme changes
-    if (theme === 'system') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = (e: MediaQueryListEvent) => {
-        if (get().theme === 'system') {
-          const newResolved = e.matches ? 'dark' : 'light';
-          applyTheme(newResolved);
-          set({ resolvedTheme: newResolved });
-        }
-      };
-      mq.addEventListener('change', handler);
-    }
+    applyDark();
+    set({ theme: 'dark', resolvedTheme: 'dark' });
   },
 }));

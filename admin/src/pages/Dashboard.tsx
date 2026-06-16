@@ -67,11 +67,11 @@ function StatCard({ label, value, icon: Icon, color, gradient, sparklineData, ch
   const animatedValue = useCountUp(isNumeric ? numericValue : 0, 1200);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 rounded-xl shadow-sm">
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{label}</p>
+            <p className="text-sm text-muted-foreground font-medium">{label}</p>
             <p className="text-3xl font-bold mt-1 tracking-tight">
               {isNumeric ? animatedValue : value}
             </p>
@@ -84,7 +84,7 @@ function StatCard({ label, value, icon: Icon, color, gradient, sparklineData, ch
           <SparklineChart data={sparklineData} color={color} />
         </div>
         {changeText && (
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">{changeText}</p>
+          <p className="text-xs text-muted-foreground mt-2">{changeText}</p>
         )}
       </CardContent>
     </Card>
@@ -133,8 +133,8 @@ export function Dashboard() {
       label: t('dashboard.total_posts', lang),
       value: stats?.total_posts ?? '-',
       icon: FileText,
-      color: '#3b82f6',
-      gradient: 'from-blue-500 to-blue-400',
+      color: '#F5A524',
+      gradient: 'from-[#F5A524] to-[#E89414]',
       sparklineData: SPARK_DATA.posts,
       changeText: stats?.total_posts ? `+${Math.min(stats.total_posts, 12)} ${thisMonth}` : '',
     },
@@ -142,8 +142,8 @@ export function Dashboard() {
       label: t('dashboard.total_pages', lang),
       value: stats?.total_pages ?? '-',
       icon: File,
-      color: '#10b981',
-      gradient: 'from-emerald-500 to-emerald-400',
+      color: '#F5A524',
+      gradient: 'from-[#F5A524] to-[#E89414]',
       sparklineData: SPARK_DATA.pages,
       changeText: stats?.total_pages ? `+${Math.min(stats.total_pages, 3)} ${thisMonth}` : '',
     },
@@ -151,8 +151,8 @@ export function Dashboard() {
       label: t('dashboard.total_comments', lang),
       value: stats?.total_comments ?? '-',
       icon: MessageSquare,
-      color: '#f59e0b',
-      gradient: 'from-amber-500 to-amber-400',
+      color: '#F5A524',
+      gradient: 'from-[#F5A524] to-[#E89414]',
       sparklineData: SPARK_DATA.comments,
       changeText: stats?.total_comments ? `+${Math.min(stats.total_comments, 8)} ${thisMonth}` : '',
     },
@@ -160,8 +160,8 @@ export function Dashboard() {
       label: t('dashboard.total_media', lang),
       value: stats?.total_media ?? '-',
       icon: Image,
-      color: '#8b5cf6',
-      gradient: 'from-violet-500 to-violet-400',
+      color: '#F5A524',
+      gradient: 'from-[#F5A524] to-[#E89414]',
       sparklineData: SPARK_DATA.media,
       changeText: stats?.total_media ? `+${Math.min(stats.total_media, 45)} ${thisMonth}` : '',
     },
@@ -182,12 +182,12 @@ export function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-blue-400 dark:via-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#FFB638] to-[#F5A524] bg-clip-text text-transparent">
               {t('dashboard.welcome', lang)}, {user?.display_name}!
             </span>
           </h1>
           {activeSite && (
-            <p className="text-zinc-500 dark:text-zinc-400 mt-1">
+            <p className="text-muted-foreground mt-1">
               {lang === 'tr'
                 ? `${activeSite.name} ile neler oluyor`
                 : `Here's what's happening with ${activeSite.name}`}
@@ -199,7 +199,7 @@ export function Dashboard() {
         {!isSuperAdmin && (
           <div className="flex flex-wrap items-center gap-2">
             {subscription ? (
-              <Badge variant="outline" className="gap-1.5 py-1 px-2.5 text-xs border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300">
+              <Badge variant="outline" className="gap-1.5 py-1 px-2.5 text-xs border-[#F5A524]/30 bg-[#F5A524]/10 text-[#F5A524]">
                 <Crown className="h-3 w-3" />
                 {subscription.package_name}
               </Badge>
@@ -241,16 +241,16 @@ export function Dashboard() {
       {/* ---- Recent Posts + Recent Comments ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Recent Posts */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+        <Card className="rounded-xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-500" />
+              <FileText className="h-4 w-4 text-primary" />
               {t('dashboard.recent_posts', lang)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {recentPosts.length === 0 ? (
-              <p className="text-sm text-zinc-400 dark:text-zinc-500 py-6 text-center">
+              <p className="text-sm text-muted-foreground py-6 text-center">
                 {t('posts.no_posts', lang)}
               </p>
             ) : (
@@ -258,18 +258,18 @@ export function Dashboard() {
                 {recentPosts.map((post, i) => (
                   <div
                     key={post.id}
-                    className={`flex items-center justify-between py-2.5 px-3 -mx-3 rounded-lg transition-colors duration-150 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 group ${
-                      i % 2 === 0 ? 'bg-zinc-50/50 dark:bg-zinc-800/20' : ''
+                    className={`flex items-center justify-between py-2.5 px-3 -mx-3 rounded-lg transition-colors duration-150 hover:bg-muted group ${
+                      i % 2 === 0 ? 'bg-muted/30' : ''
                     }`}
                   >
                     <div className="min-w-0 flex-1">
                       <Link
                         to={`/posts/${post.id}`}
-                        className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 truncate block transition-colors duration-150"
+                        className="text-sm font-medium hover:text-primary truncate block transition-colors duration-150"
                       >
                         {post.title}
                       </Link>
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {formatDate(post.created_at, lang)}
                       </p>
                     </div>
@@ -288,7 +288,7 @@ export function Dashboard() {
             {recentPosts.length > 0 && (
               <Link
                 to="/posts"
-                className="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline mt-4 font-medium"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4 font-medium"
               >
                 {lang === 'tr' ? 'Tum Yazilari Gor' : 'View All Posts'}
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -298,16 +298,16 @@ export function Dashboard() {
         </Card>
 
         {/* Recent Comments */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+        <Card className="rounded-xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-amber-500" />
+              <MessageSquare className="h-4 w-4 text-primary" />
               {t('dashboard.recent_comments', lang)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {recentComments.length === 0 ? (
-              <p className="text-sm text-zinc-400 dark:text-zinc-500 py-6 text-center">
+              <p className="text-sm text-muted-foreground py-6 text-center">
                 {t('common.no_results', lang)}
               </p>
             ) : (
@@ -315,8 +315,8 @@ export function Dashboard() {
                 {recentComments.map((comment, i) => (
                   <div
                     key={comment.id}
-                    className={`py-2.5 px-3 -mx-3 rounded-lg transition-colors duration-150 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 group ${
-                      i % 2 === 0 ? 'bg-zinc-50/50 dark:bg-zinc-800/20' : ''
+                    className={`py-2.5 px-3 -mx-3 rounded-lg transition-colors duration-150 hover:bg-muted group ${
+                      i % 2 === 0 ? 'bg-muted/30' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -325,7 +325,7 @@ export function Dashboard() {
                         {comment.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500 line-clamp-2 mt-1">
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                       {comment.content?.replace(/<[^>]*>/g, '')}
                     </p>
                   </div>
@@ -335,7 +335,7 @@ export function Dashboard() {
             {recentComments.length > 0 && (
               <Link
                 to="/comments"
-                className="inline-flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400 hover:underline mt-4 font-medium"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4 font-medium"
               >
                 {lang === 'tr' ? 'Tum Yorumlari Gor' : 'View All Comments'}
                 <ArrowRight className="h-3.5 w-3.5" />
