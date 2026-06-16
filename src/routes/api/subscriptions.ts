@@ -130,10 +130,10 @@ subscriptions.post('/addon/:id/units', async (c) => {
   // field. Fetch the subscription to find the item id (an add-on subscription
   // has a single recurring item), then update that item's units with
   // immediate proration.
-  const subRes = await fetch(`${cfg.baseUrl}/v1/subscriptions/${row.creem_subscription_id}`, {
-    method: 'GET',
-    headers: { 'x-api-key': cfg.apiKey },
-  });
+  const subRes = await fetch(
+    `${cfg.baseUrl}/v1/subscriptions?subscription_id=${encodeURIComponent(row.creem_subscription_id)}`,
+    { method: 'GET', headers: { 'x-api-key': cfg.apiKey } }
+  );
   if (!subRes.ok) {
     const d = (await subRes.json().catch(() => ({}))) as any;
     return c.json({ success: false, error: d?.message || 'Creem aboneliği bulunamadı' }, 400);
