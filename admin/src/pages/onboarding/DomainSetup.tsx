@@ -113,22 +113,26 @@ export function DomainSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="auth-v2 relative min-h-screen flex flex-col">
+      {/* Background layers — match the landing/auth dark theme */}
+      <div className="absolute inset-0 hero-glow pointer-events-none" />
+      <div className="absolute inset-0 grid-dots opacity-60 pointer-events-none" />
+
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">W</div>
-          <span className="font-semibold">WorkerCms</span>
-        </div>
+      <div className="relative flex items-center justify-between px-6 py-4 border-b border-[#1B1B20] bg-[#0A0A0B]/80 backdrop-blur-sm">
+        <a href="/" className="flex items-center gap-2 text-[#FAFAF7] hover:opacity-90 transition-opacity">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F5A524] to-[#E89414] flex items-center justify-center text-[#0A0A0B] font-bold text-sm shadow-md shadow-amber-500/20">W</div>
+          <span className="font-semibold">WorkerCMS</span>
+        </a>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md px-2 py-1 -mr-2 hover:bg-muted">
+            <button className="flex items-center gap-1.5 text-sm text-[#8A8A93] hover:text-[#F5A524] transition-colors rounded-md px-2 py-1 -mr-2">
               {user?.display_name || user?.email}
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleLogout}>
+          <DropdownMenuContent align="end" className="bg-[#0F0F11] border-[#1B1B20] text-[#E2E2E5]">
+            <DropdownMenuItem onClick={handleLogout} className="focus:bg-[#141418] focus:text-[#FAFAF7]">
               <LogOut className="h-4 w-4 mr-2" />
               {tr ? 'Çıkış Yap' : 'Log Out'}
             </DropdownMenuItem>
@@ -136,33 +140,33 @@ export function DomainSetup() {
         </DropdownMenu>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="relative flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-lg">
           {/* Step 1: Enter Domain */}
           {step === 'enter' && (
             <div className="animate-fade-in">
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/50 mb-4">
-                  <Globe className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#F5A524]/10 mb-4">
+                  <Globe className="w-8 h-8 text-[#F5A524]" />
                 </div>
-                <h1 className="text-2xl font-bold mb-2">
+                <h1 className="font-serif text-4xl text-[#FAFAF7] mb-2">
                   {tr ? 'Domain Ekle' : 'Add Domain'}
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-[#8A8A93] text-sm">
                   {tr ? 'Siteniz için kullanmak istediğiniz domain adını girin.' : 'Enter the domain name you want to use for your site.'}
                 </p>
               </div>
 
               <form onSubmit={handleSetup} className="space-y-4">
                 {error && (
-                  <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
+                  <div className="flex items-center gap-2 p-3 text-sm text-red-300 bg-red-500/10 rounded-lg border border-red-500/30">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
                   </div>
                 )}
 
                 <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#5C5C66] z-10" />
                   <Input
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
@@ -173,7 +177,7 @@ export function DomainSetup() {
                   />
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#5C5C66]">
                   {tr
                     ? 'Domain adını girin (örn: example.com veya sub.example.com). Root domainlerde www otomatik eklenecektir.'
                     : 'Enter your domain (e.g. example.com or sub.example.com). www will be added automatically for root domains.'}
@@ -181,7 +185,7 @@ export function DomainSetup() {
 
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  className="w-full h-11 rounded-lg font-medium text-[#0A0A0B] bg-gradient-to-br from-[#F5A524] to-[#E89414] hover:from-[#FFB638] hover:to-[#F5A524] shadow-lg shadow-amber-500/20 transition-all"
                   disabled={loading}
                 >
                   {loading ? (
@@ -203,7 +207,7 @@ export function DomainSetup() {
                 <button
                   type="button"
                   onClick={handleGoToDashboard}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-sm text-[#8A8A93] hover:text-[#F5A524] transition-colors"
                 >
                   {tr ? 'Şimdilik atla, sonra eklerim →' : 'Skip for now, add later →'}
                 </button>
@@ -215,13 +219,13 @@ export function DomainSetup() {
           {step === 'cname' && cnameInfo && (
             <div className="animate-fade-in">
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/50 mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                 </div>
-                <h1 className="text-2xl font-bold mb-2">
+                <h1 className="font-serif text-4xl text-[#FAFAF7] mb-2">
                   {tr ? 'Siteniz Oluşturuldu! 🎉' : 'Your Site is Created! 🎉'}
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-[#8A8A93] text-sm">
                   {tr
                     ? 'Siteniz hazır, hemen içerik oluşturmaya başlayabilirsiniz. Domain\'in tam çalışması için CNAME kaydı eklemeniz yeterli.'
                     : 'Your site is ready, you can start creating content right away. Just add a CNAME record for the domain to fully work.'}
@@ -230,14 +234,14 @@ export function DomainSetup() {
 
               {/* Verified success */}
               {verified && (
-                <div className="flex items-center gap-2 p-3 mb-4 text-sm text-green-700 bg-green-50 dark:bg-green-950/50 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 p-3 mb-4 text-sm text-emerald-300 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
                   <PartyPopper className="w-4 h-4 flex-shrink-0" />
                   {tr ? 'CNAME doğrulandı! Domain aktif.' : 'CNAME verified! Domain is active.'}
                 </div>
               )}
 
               {error && (
-                <div className="flex items-center gap-2 p-3 text-sm text-orange-600 bg-orange-50 dark:bg-orange-950/50 rounded-lg border border-orange-200 dark:border-orange-800 mb-4">
+                <div className="flex items-center gap-2 p-3 text-sm text-orange-300 bg-orange-500/10 rounded-lg border border-orange-500/30 mb-4">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {error}
                 </div>
@@ -246,32 +250,32 @@ export function DomainSetup() {
               {/* Go to Dashboard CTA */}
               <Button
                 onClick={handleGoToDashboard}
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white mb-6"
+                className="w-full h-11 rounded-lg font-medium text-[#0A0A0B] bg-gradient-to-br from-[#F5A524] to-[#E89414] hover:from-[#FFB638] hover:to-[#F5A524] shadow-lg shadow-amber-500/20 transition-all mb-6"
               >
                 {tr ? 'Panele Git ve İçerik Oluştur' : 'Go to Dashboard & Create Content'}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
 
               {/* CNAME Records section */}
-              <div className="rounded-xl border bg-muted/20 p-5 space-y-4">
+              <div className="rounded-xl border border-[#1B1B20] bg-[#0F0F11]/80 p-5 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Server className="w-5 h-5 text-orange-500" />
-                  <h3 className="font-semibold text-sm">
+                  <Server className="w-5 h-5 text-[#F5A524]" />
+                  <h3 className="font-semibold text-sm text-[#FAFAF7]">
                     {tr ? 'CNAME Kaydı Ekleyin' : 'Add CNAME Record'}
                   </h3>
                   {!verified && (
-                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300">
                       {tr ? 'Bekliyor' : 'Pending'}
                     </span>
                   )}
                   {verified && (
-                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
                       {tr ? 'Aktif ✓' : 'Active ✓'}
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#8A8A93]">
                   {tr
                     ? cnameInfo.is_subdomain
                       ? `Domain sağlayıcınızda ${cnameInfo.domain} için aşağıdaki CNAME kaydını ekleyin.`
@@ -284,50 +288,50 @@ export function DomainSetup() {
                 {/* CNAME Record */}
                 <div className="space-y-2">
                   {/* Bare domain */}
-                  <div className="bg-background rounded-lg px-4 py-3 border space-y-1">
+                  <div className="bg-[#0A0A0B] rounded-lg px-4 py-3 border border-[#1B1B20] space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
-                      <span className="font-mono text-xs font-bold text-blue-600">CNAME</span>
+                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
+                      <span className="font-mono text-xs font-bold text-[#F5A524]">CNAME</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Ad / Host' : 'Name / Host'}</span>
-                      <span className="font-mono text-xs">@ {tr ? 'veya' : 'or'} {cnameInfo.domain}</span>
+                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Ad / Host' : 'Name / Host'}</span>
+                      <span className="font-mono text-xs text-[#E2E2E5]">@ {tr ? 'veya' : 'or'} {cnameInfo.domain}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
+                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-bold">{cnameInfo.cname_target}</span>
+                        <span className="font-mono text-xs font-bold text-[#FAFAF7]">{cnameInfo.cname_target}</span>
                         <button
                           type="button"
                           onClick={copyCname}
-                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          className="text-[#8A8A93] hover:text-[#F5A524] transition-colors"
                         >
-                          {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                       </div>
                     </div>
                   </div>
 
                   {/* www variant */}
-                  <div className="bg-background rounded-lg px-4 py-3 border space-y-1">
+                  <div className="bg-[#0A0A0B] rounded-lg px-4 py-3 border border-[#1B1B20] space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
-                      <span className="font-mono text-xs font-bold text-blue-600">CNAME</span>
+                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Kayıt Tipi' : 'Record Type'}</span>
+                      <span className="font-mono text-xs font-bold text-[#F5A524]">CNAME</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Ad / Host' : 'Name / Host'}</span>
-                      <span className="font-mono text-xs">www</span>
+                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Ad / Host' : 'Name / Host'}</span>
+                      <span className="font-mono text-xs text-[#E2E2E5]">www</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
-                      <span className="font-mono text-xs font-bold">{cnameInfo.cname_target}</span>
+                      <span className="text-xs font-semibold text-[#8A8A93]">{tr ? 'Hedef / Value' : 'Target / Value'}</span>
+                      <span className="font-mono text-xs font-bold text-[#FAFAF7]">{cnameInfo.cname_target}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Quick guide */}
-                <details className="text-xs text-muted-foreground">
-                  <summary className="cursor-pointer hover:text-foreground transition-colors font-medium">
+                <details className="text-xs text-[#8A8A93]">
+                  <summary className="cursor-pointer hover:text-[#F5A524] transition-colors font-medium">
                     {tr ? 'Nasıl yapılır?' : 'How to do this?'}
                   </summary>
                   <ol className="mt-2 space-y-1 list-decimal list-inside pl-1">
@@ -339,8 +343,8 @@ export function DomainSetup() {
                   </ol>
                 </details>
 
-                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg px-3 py-2 border border-blue-100 dark:border-blue-900">
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                <div className="bg-[#F5A524]/[0.06] rounded-lg px-3 py-2 border border-[#F5A524]/20">
+                  <p className="text-xs text-[#E2E2E5]">
                     {tr
                       ? '💡 NS değiştirmenize gerek yok! Sadece CNAME kaydı eklemek yeterli. Mevcut e-posta ve diğer DNS kayıtlarınız etkilenmez.'
                       : '💡 No need to change nameservers! Just add a CNAME record. Your existing email and other DNS records are not affected.'}
@@ -353,7 +357,7 @@ export function DomainSetup() {
                     onClick={handleVerify}
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="w-full border-[#26262C] bg-[#0A0A0B] text-[#E2E2E5] hover:bg-[#141418] hover:border-[#3A3A42] hover:text-[#FAFAF7]"
                     disabled={verifying}
                   >
                     {verifying ? (
@@ -370,7 +374,7 @@ export function DomainSetup() {
                   </Button>
                 )}
 
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-xs text-[#5C5C66] text-center">
                   {tr
                     ? '💡 CNAME yayılması otomatik kontrol ediliyor. Panelde çalışmaya başlayabilirsiniz.'
                     : '💡 CNAME propagation is checked automatically. You can start working in the panel.'}
