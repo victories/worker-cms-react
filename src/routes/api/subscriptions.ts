@@ -419,10 +419,13 @@ subscriptions.post('/assign', requireRole('super_admin'), async (c) => {
     admin.sub
   ).first();
 
-  // Update user's package_id and max_sites
+  // Update the user's package, then recompute effective max_sites
+  // (package base + active add-on units) so paid extra-site add-ons
+  // survive a package change.
   await c.env.DB.prepare(
-    'UPDATE users SET package_id = ?, max_sites = ?, updated_at = datetime(\'now\') WHERE id = ?'
-  ).bind(body.package_id, pkg.max_sites, body.user_id).run();
+    "UPDATE users SET package_id = ?, updated_at = datetime('now') WHERE id = ?"
+  ).bind(body.package_id, body.user_id).run();
+  await recomputeUserEntitlements(c.env.DB, body.user_id);
 
   // Send confirmation email
   try {
@@ -489,8 +492,9 @@ subscriptions.post('/:id/approve', requireRole('super_admin'), async (c) => {
   const pkg = await c.env.DB.prepare('SELECT * FROM packages WHERE id = ?').bind(sub.package_id).first<any>();
   if (pkg) {
     await c.env.DB.prepare(
-      'UPDATE users SET package_id = ?, max_sites = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).bind(sub.package_id, pkg.max_sites, sub.user_id).run();
+      "UPDATE users SET package_id = ?, updated_at = datetime('now') WHERE id = ?"
+    ).bind(sub.package_id, sub.user_id).run();
+    await recomputeUserEntitlements(c.env.DB, sub.user_id);
   }
 
   // Send confirmation email
@@ -605,8 +609,9 @@ export async function handleStripeWebhook(c: any) {
     // Update user
     const pkg = await db.prepare('SELECT max_sites FROM packages WHERE id = ?').bind(packageId).first<any>();
     await db.prepare(
-      'UPDATE users SET package_id = ?, max_sites = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).bind(packageId, pkg?.max_sites || 1, userId).run();
+      "UPDATE users SET package_id = ?, updated_at = datetime('now') WHERE id = ?"
+    ).bind(packageId, userId).run();
+    await recomputeUserEntitlements(db, userId);
 
     // Send confirmation email
     try {
@@ -770,10 +775,11 @@ export async function handleCreemWebhook(c: any) {
       .first<any>();
     await db
       .prepare(
-        "UPDATE users SET package_id = ?, max_sites = ?, updated_at = datetime('now') WHERE id = ?"
+        "UPDATE users SET package_id = ?, updated_at = datetime('now') WHERE id = ?"
       )
-      .bind(packageId, pkg?.max_sites || 1, userId)
+      .bind(packageId, userId)
       .run();
+    await recomputeUserEntitlements(db, userId);
 
     try {
       const userInfo = await db
