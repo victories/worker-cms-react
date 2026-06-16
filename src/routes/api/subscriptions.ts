@@ -149,7 +149,10 @@ subscriptions.post('/addon/:id/units', async (c) => {
     method: 'POST',
     headers: { 'x-api-key': cfg.apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      items: [{ id: item.id, units }],
+      // Creem matches the existing line item only when product_id and
+      // price_id are sent alongside the item id; id+units alone 404s with
+      // "Could not find product or price".
+      items: [{ id: item.id, product_id: item.product_id, price_id: item.price_id, units }],
       update_behavior: 'proration-charge-immediately',
     }),
   });
