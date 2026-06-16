@@ -8,8 +8,9 @@ import { Input } from '@ui/input';
 import { Label } from '@ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/card';
 import { Badge } from '@ui/badge';
-import { User, Mail, Lock, Shield, Save, CheckCircle, CreditCard, Loader2, Plus, Minus } from 'lucide-react';
+import { User, Mail, Lock, Shield, Save, CheckCircle, CreditCard, Loader2, Plus, Minus, Check } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@ui/dialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
 interface SubPackage {
@@ -42,11 +43,19 @@ interface SubAddon {
   price_yearly: number;
 }
 
+interface SiteRow {
+  id: number;
+  name: string;
+  slug: string;
+  status: 'active' | 'paused';
+}
+
 interface SubOverview {
   max_sites: number;
   sites_used: number;
   package: SubPackage | null;
   addons: SubAddon[];
+  sites: SiteRow[];
 }
 
 export function Profile() {
@@ -68,6 +77,10 @@ export function Profile() {
   const [cancelTarget, setCancelTarget] = useState<{ kind: 'package' | 'addon'; id: number; name: string } | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [unitBusyId, setUnitBusyId] = useState<number | null>(null);
+
+  const [pausePrompt, setPausePrompt] = useState<{ addon: SubAddon; nextUnits: number; mustPause: number } | null>(null);
+  const [selectedPauseIds, setSelectedPauseIds] = useState<number[]>([]);
+  const [pauseBusy, setPauseBusy] = useState(false);
 
   const loadOverview = async () => {
     try {
@@ -109,6 +122,17 @@ export function Profile() {
   // Dropping to 0 isn't allowed here — that's a full Cancel.
   const changeUnits = async (addon: SubAddon, next: number) => {
     if (next < 1) return;
+    // Lowering units may put the user over quota. If so, ask which active
+    // sites to pause before calling the API.
+    if (overview && next < addon.units) {
+      const resultingMax = overview.max_sites + (next - addon.units);
+      const mustPause = Math.max(0, (overview.sites_used ?? 0) - resultingMax);
+      if (mustPause > 0) {
+        setPausePrompt({ addon, nextUnits: next, mustPause });
+        setSelectedPauseIds([]);
+        return;
+      }
+    }
     setUnitBusyId(addon.id);
     try {
       const res = await api.request<{ success: boolean; error?: string }>(
@@ -125,6 +149,40 @@ export function Profile() {
       toast(err.message || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
     }
     setUnitBusyId(null);
+  };
+
+  // Confirm lowering units, pausing the selected sites to fit the new quota.
+  const confirmPause = async () => {
+    if (!pausePrompt) return;
+    setPauseBusy(true);
+    try {
+      const res = await api.request<{ success: boolean; error?: string }>(
+        `/subscriptions/addon/${pausePrompt.addon.id}/units`,
+        { method: 'POST', body: { units: pausePrompt.nextUnits, pause_site_ids: selectedPauseIds } }
+      );
+      if (res.success) {
+        toast(
+          lang === 'tr'
+            ? 'Adet güncellendi ve seçilen siteler duraklatıldı'
+            : 'Quantity updated and selected sites paused',
+          'success'
+        );
+        setPausePrompt(null);
+        setSelectedPauseIds([]);
+        await loadOverview();
+      } else {
+        toast(res.error || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || (lang === 'tr' ? 'Hata oluştu' : 'Error occurred'), 'error');
+    }
+    setPauseBusy(false);
+  };
+
+  const togglePauseId = (id: number) => {
+    setSelectedPauseIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
   const periodPrice = (priceMonthly: number, priceYearly: number, period: 'monthly' | 'yearly') =>
@@ -486,6 +544,70 @@ export function Profile() {
         cancelLabel={lang === 'tr' ? 'Vazgeç' : 'Keep'}
         variant="destructive"
       />
+
+      {/* Pause-sites dialog (shown when lowering units would exceed quota) */}
+      {pausePrompt && (
+        <Dialog open onOpenChange={(open) => { if (!open) setPausePrompt(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {lang === 'tr' ? 'Hangi siteleri duraklatalım?' : 'Which sites to pause?'}
+              </DialogTitle>
+              <DialogDescription>
+                {lang === 'tr'
+                  ? `Kotayı düşürmek için tam olarak ${pausePrompt.mustPause} site duraklatmalısınız.`
+                  : `You must pause exactly ${pausePrompt.mustPause} site(s) to lower the quota.`}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {overview?.sites.filter((s) => s.status === 'active').map((site) => {
+                const selected = selectedPauseIds.includes(site.id);
+                return (
+                  <button
+                    type="button"
+                    key={site.id}
+                    aria-pressed={selected}
+                    onClick={() => togglePauseId(site.id)}
+                    className={`w-full flex items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${
+                      selected
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:bg-muted/50'
+                    }`}
+                  >
+                    <span className="font-medium truncate">{site.name}</span>
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                        selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
+                      }`}
+                    >
+                      {selected && <Check className="h-3.5 w-3.5" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <DialogFooter className="items-center sm:justify-between">
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {selectedPauseIds.length}/{pausePrompt.mustPause}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setPausePrompt(null)} disabled={pauseBusy}>
+                  {lang === 'tr' ? 'Vazgeç' : 'Cancel'}
+                </Button>
+                <Button
+                  onClick={confirmPause}
+                  disabled={pauseBusy || selectedPauseIds.length !== pausePrompt.mustPause}
+                >
+                  {pauseBusy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {lang === 'tr' ? 'Duraklat ve düşür' : 'Pause & lower'}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
