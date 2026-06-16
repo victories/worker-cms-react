@@ -1860,7 +1860,28 @@ function LandingFooter({ footer, brandName, lang, anchorBase = '' }: LandingFoot
       <div className="border-t border-ink-200">
         <PageContainer className="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-ink-600">
           <div>{bottom}</div>
-          <div className="font-mono">{t.bottomRight}</div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono">{t.bottomRight}</span>
+            <span className="flex items-center gap-1.5">
+              {/* Visa */}
+              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="Visa" role="img">
+                <rect width="34" height="22" rx="4" fill="#ffffff" stroke="#E2E2E2" />
+                <text x="17" y="15" fontFamily="Arial, Helvetica, sans-serif" fontSize="10" fontWeight="700" fontStyle="italic" fill="#1434CB" textAnchor="middle" letterSpacing="0.5">VISA</text>
+              </svg>
+              {/* Mastercard */}
+              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="Mastercard" role="img">
+                <rect width="34" height="22" rx="4" fill="#ffffff" stroke="#E2E2E2" />
+                <circle cx="14" cy="11" r="6" fill="#EB001B" />
+                <circle cx="20" cy="11" r="6" fill="#F79E1B" fillOpacity="0.9" />
+              </svg>
+              {/* Crypto (Bitcoin) */}
+              <svg width="34" height="22" viewBox="0 0 34 22" xmlns="http://www.w3.org/2000/svg" aria-label="Kripto" role="img">
+                <rect width="34" height="22" rx="4" fill="#ffffff" stroke="#E2E2E2" />
+                <circle cx="17" cy="11" r="7" fill="#F7931A" />
+                <text x="17" y="15" fontFamily="Arial, Helvetica, sans-serif" fontSize="10" fontWeight="700" fill="#ffffff" textAnchor="middle">₿</text>
+              </svg>
+            </span>
+          </div>
         </PageContainer>
       </div>
     </footer>
