@@ -75,8 +75,11 @@ sites.post('/', async (c) => {
       return c.json({ success: false, error: 'Site oluşturma yetkiniz yok' }, 403);
     }
     // Count user's existing sites
-    const countResult = await c.env.DB.prepare('SELECT COUNT(*) as count FROM user_sites WHERE user_id = ?')
-      .bind(currentUser.sub).first<{ count: number }>();
+    const countResult = await c.env.DB.prepare(
+      `SELECT COUNT(*) as count FROM user_sites us
+       JOIN sites s ON s.id = us.site_id
+       WHERE us.user_id = ? AND s.status = 'active'`
+    ).bind(currentUser.sub).first<{ count: number }>();
     if ((countResult?.count ?? 0) >= maxSites) {
       return c.json({ success: false, error: `Maksimum site limitine ulaştınız (${maxSites})` }, 403);
     }

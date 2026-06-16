@@ -49,8 +49,11 @@ subscriptions.get('/overview', async (c) => {
      WHERE ua.user_id = ? AND ua.status = 'active'
      ORDER BY ua.created_at DESC`
   ).bind(user.sub).all();
-  const sites = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM user_sites WHERE user_id = ?')
-    .bind(user.sub).first<{ n: number }>();
+  const sites = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM user_sites us
+     JOIN sites s ON s.id = us.site_id
+     WHERE us.user_id = ? AND s.status = 'active'`
+  ).bind(user.sub).first<{ n: number }>();
   return c.json({
     success: true,
     data: {
