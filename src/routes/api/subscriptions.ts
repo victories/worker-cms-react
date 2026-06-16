@@ -53,7 +53,7 @@ subscriptions.get('/overview', async (c) => {
   const addons = await c.env.DB.prepare(
     `SELECT ua.id, ua.units, ua.billing_period, ua.status, ua.current_period_end,
             ua.cancel_at_period_end, ua.creem_subscription_id,
-            a.name AS addon_name, a.type, a.unit_label, a.feature_key,
+            a.key AS addon_key, a.name AS addon_name, a.type, a.unit_label, a.feature_key,
             a.price_monthly, a.price_yearly
      FROM user_addons ua JOIN addons a ON a.id = ua.addon_id
      WHERE ua.user_id = ? AND ua.status = 'active'

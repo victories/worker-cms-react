@@ -12,6 +12,7 @@ import { User, Mail, Lock, Shield, Save, CheckCircle, CreditCard, Loader2, Plus,
 import { useToast } from '@ui/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@ui/dialog';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { addonName } from '@/lib/addon-i18n';
 
 interface SubPackage {
   id: number;
@@ -35,6 +36,7 @@ interface SubAddon {
   current_period_end: string | null;
   cancel_at_period_end: number | boolean;
   creem_subscription_id?: string | null;
+  addon_key?: string;
   addon_name: string;
   type: 'unit' | 'feature';
   unit_label?: string | null;
@@ -437,7 +439,7 @@ export function Profile() {
                     >
                       <div className="min-w-0">
                         <div className="font-semibold">
-                          {addon.addon_name}
+                          {addonName(addon.addon_key, addon.addon_name, lang === 'tr')}
                           {addon.type === 'unit' && (
                             <span className="ml-1 text-sm font-normal text-muted-foreground">
                               × {addon.units} {addon.unit_label || (lang === 'tr' ? 'birim' : 'unit')}
@@ -507,7 +509,7 @@ export function Profile() {
                               size="sm"
                               className="text-destructive border-destructive/50 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                               disabled={cancelingId === rowKey}
-                              onClick={() => setCancelTarget({ kind: 'addon', id: addon.id, name: addon.addon_name })}
+                              onClick={() => setCancelTarget({ kind: 'addon', id: addon.id, name: addonName(addon.addon_key, addon.addon_name, lang === 'tr') })}
                             >
                               {cancelingId === rowKey && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
                               {lang === 'tr' ? 'İptal Et' : 'Cancel'}

@@ -8,6 +8,7 @@ import { Badge } from '@ui/badge';
 import { useToast } from '@ui/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
 import { Crown, Check, CreditCard, Coins, Loader2, PartyPopper, Copy, ExternalLink, ArrowUp, Building2, MessageCircle, Plus, Minus, Puzzle, Info, X, Globe } from 'lucide-react';
+import { addonName, addonDescription } from '@/lib/addon-i18n';
 
 interface Addon {
   id: number;
@@ -531,7 +532,7 @@ export function UpgradePage() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold">{a.name}</span>
+                      <span className="font-semibold">{addonName(a.key, a.name, tr)}</span>
                       {a.type === 'feature' && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
                           <Globe className="h-3 w-3" />
@@ -539,8 +540,8 @@ export function UpgradePage() {
                         </span>
                       )}
                     </div>
-                    {a.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>
+                    {addonDescription(a.key, a.description, tr) && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{addonDescription(a.key, a.description, tr)}</p>
                     )}
                     {a.type === 'feature' && (
                       <p className="text-xs text-muted-foreground mt-0.5">
