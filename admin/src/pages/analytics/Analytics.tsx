@@ -266,6 +266,9 @@ export function Analytics() {
                 {views.map((entry) => {
                   const heightPercent = maxViews > 0 ? (entry.views / maxViews) * 100 : 0;
                   const barHeight = Math.max(heightPercent, 1);
+                  // Peak day(s) get a brighter accent so the chart reads as
+                  // data, not one flat gold block.
+                  const isPeak = entry.views > 0 && entry.views === maxViews;
                   return (
                     <div
                       key={entry.date}
@@ -277,9 +280,14 @@ export function Analytics() {
                           {formatDate(entry.date)}: {entry.views.toLocaleString()}
                         </div>
                       </div>
-                      {/* Bar */}
+                      {/* Bar: vertical gradient (deep amber base → bright gold
+                          top) with a teal accent on the peak day. */}
                       <div
-                        className="w-full rounded-t-sm bg-primary/80 hover:bg-primary transition-colors min-h-[2px]"
+                        className={`w-full rounded-t-sm bg-gradient-to-t transition-all min-h-[2px] ${
+                          isPeak
+                            ? 'from-emerald-600 to-emerald-300 group-hover:to-emerald-200'
+                            : 'from-primary/50 via-primary to-amber-300 group-hover:to-amber-200'
+                        }`}
                         style={{ height: `${barHeight}%` }}
                       />
                     </div>
