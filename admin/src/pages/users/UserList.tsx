@@ -223,7 +223,9 @@ export function UserList() {
   };
 
   const assignedSiteIds = userSites.map((s: any) => s.id);
-  const availableSites = sites.filter((s: any) => !assignedSiteIds.includes(s.id));
+  const availableSites = (isAdmin ? adminSites : sites).filter(
+    (s: any) => !assignedSiteIds.includes(s.id)
+  );
 
   return (
     <div className="space-y-4">
@@ -296,7 +298,8 @@ export function UserList() {
                           <LogIn className="h-3 w-3" />
                         </Button>
                       )}
-                      {isSuperAdmin && u.role !== 'super_admin' && (
+                      {((isSuperAdmin && u.role !== 'super_admin') ||
+                        (isAdmin && (u.role === 'writer' || u.role === 'editor'))) && (
                         <Button size="sm" variant="ghost" onClick={() => openSiteAssignment(u)} title={lang === 'tr' ? 'Site Ataması' : 'Site Assignment'}>
                           <Globe className="h-3 w-3" />
                         </Button>

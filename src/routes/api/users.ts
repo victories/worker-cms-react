@@ -17,18 +17,12 @@ users.get('/', requireRole('admin'), async (c) => {
       'SELECT id, email, display_name, role, language, totp_enabled, max_sites, max_editors, max_writers, ai_enabled, ai_use_global, created_by, last_login, created_at FROM users ORDER BY created_at DESC'
     ).all();
   } else {
-    // Admin can see users they created + users assigned to their sites
-    const siteId = c.get('siteId');
-    if (!siteId) return c.json({ success: false, error: 'Site belirtilmedi' }, 400);
-
+    // Account owners (admin) manage the team members they created — shown
+    // regardless of which site is selected, so they can dispatch sites.
     result = await c.env.DB.prepare(
-      `SELECT u.id, u.email, u.display_name, u.role, u.language, u.totp_enabled, u.max_sites, u.max_editors, u.max_writers, u.ai_enabled, u.ai_use_global, u.created_by, u.last_login, u.created_at,
-       us.role_override
-       FROM users u
-       JOIN user_sites us ON u.id = us.user_id
-       WHERE us.site_id = ?
-       ORDER BY u.created_at DESC`
-    ).bind(siteId).all();
+      `SELECT id, email, display_name, role, language, totp_enabled, max_sites, max_editors, max_writers, ai_enabled, ai_use_global, created_by, last_login, created_at
+       FROM users WHERE created_by = ? ORDER BY created_at DESC`
+    ).bind(user.sub).all();
   }
 
   return c.json({ success: true, data: result.results });
@@ -218,12 +212,42 @@ users.delete('/:id', requireRole('super_admin'), async (c) => {
   return c.json({ success: true, data: { message: 'Kullanıcı silindi' } });
 });
 
-// POST /api/users/:id/sites - Assign user to site
-users.post('/:id/sites', requireRole('super_admin'), async (c) => {
+// Account owners (admin) may manage site assignments only for team members
+// THEY created, and only for sites THEY own. super_admin bypasses both
+// checks. `siteId === null` skips the site-ownership check (read-only list).
+async function canManageTeamSite(
+  c: any,
+  user: { sub: number; role: string },
+  targetUserId: number,
+  siteId: number | null
+): Promise<{ ok: true } | { ok: false; status: 403 | 404; error: string }> {
+  if (user.role === 'super_admin') return { ok: true };
+  const target = (await c.env.DB.prepare('SELECT created_by FROM users WHERE id = ?')
+    .bind(targetUserId).first()) as { created_by: number | null } | null;
+  if (!target) return { ok: false, status: 404, error: 'Kullanıcı bulunamadı' };
+  if (target.created_by !== user.sub) {
+    return { ok: false, status: 403, error: 'Bu ekip üyesini yönetme yetkiniz yok' };
+  }
+  if (siteId !== null) {
+    const owns = await c.env.DB.prepare(
+      'SELECT 1 FROM user_sites WHERE user_id = ? AND site_id = ?'
+    ).bind(user.sub, siteId).first();
+    if (!owns) return { ok: false, status: 403, error: 'Bu siteyi atama yetkiniz yok' };
+  }
+  return { ok: true };
+}
+
+// POST /api/users/:id/sites - Assign user to site (super_admin, or an
+// account owner managing their own team member + own site)
+users.post('/:id/sites', requireRole('admin'), async (c) => {
   const userId = parseInt(c.req.param('id'));
+  const user = c.get('user')!;
   const body = await c.req.json<{ site_id: number; role_override?: string }>();
 
   if (!body.site_id) return c.json({ success: false, error: 'site_id gerekli' }, 400);
+
+  const access = await canManageTeamSite(c, user, userId, body.site_id);
+  if (!access.ok) return c.json({ success: false, error: access.error }, access.status);
 
   await c.env.DB.prepare(
     'INSERT OR REPLACE INTO user_sites (user_id, site_id, role_override) VALUES (?, ?, ?)'
@@ -233,9 +257,13 @@ users.post('/:id/sites', requireRole('super_admin'), async (c) => {
 });
 
 // DELETE /api/users/:id/sites/:siteId - Remove user from site
-users.delete('/:id/sites/:siteId', requireRole('super_admin'), async (c) => {
+users.delete('/:id/sites/:siteId', requireRole('admin'), async (c) => {
   const userId = parseInt(c.req.param('id'));
   const siteId = parseInt(c.req.param('siteId'));
+  const user = c.get('user')!;
+
+  const access = await canManageTeamSite(c, user, userId, siteId);
+  if (!access.ok) return c.json({ success: false, error: access.error }, access.status);
 
   await c.env.DB.prepare('DELETE FROM user_sites WHERE user_id = ? AND site_id = ?')
     .bind(userId, siteId).run();
@@ -243,9 +271,16 @@ users.delete('/:id/sites/:siteId', requireRole('super_admin'), async (c) => {
   return c.json({ success: true, data: { message: 'Kullanıcı siteden kaldırıldı' } });
 });
 
-// GET /api/users/:id/sites - Get user's sites
+// GET /api/users/:id/sites - Get user's sites (self, or super_admin, or an
+// account owner reading their own team member)
 users.get('/:id/sites', async (c) => {
   const userId = parseInt(c.req.param('id'));
+  const user = c.get('user')!;
+
+  if (user.role !== 'super_admin' && userId !== user.sub) {
+    const access = await canManageTeamSite(c, user, userId, null);
+    if (!access.ok) return c.json({ success: false, error: access.error }, access.status);
+  }
 
   const result = await c.env.DB.prepare(
     'SELECT s.*, us.role_override FROM sites s JOIN user_sites us ON s.id = us.site_id WHERE us.user_id = ?'
