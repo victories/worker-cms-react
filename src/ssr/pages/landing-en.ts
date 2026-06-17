@@ -253,6 +253,7 @@ export const LANDING_EN: LandingConfig = {
       {
         title: 'Company',
         links: [
+          { text: 'About', url: '/legal/hakkimizda' },
           { text: 'Contact', url: '/legal/iletisim' },
           { text: 'System status', url: '/legal/durum' },
         ],

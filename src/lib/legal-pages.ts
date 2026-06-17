@@ -615,6 +615,101 @@ export const LEGAL_PAGES: readonly LegalPage[] = [
 </p>
 `.trim(),
   },
+  {
+    slug: 'hakkimizda',
+    title_tr: 'Hakkımızda',
+    title_en: 'About',
+    description_tr: `{{brand}}, ${COMPANY.name} tarafından geliştirilen edge-native bir içerik yönetim platformudur.`,
+    description_en: `{{brand}} is an edge-native content management platform built by ${COMPANY.name}.`,
+    footer_label_tr: 'Hakkımızda',
+    footer_label_en: 'About',
+    content_tr: `
+<h2>Biz Kimiz</h2>
+
+<p>{{brand}}, <strong>${COMPANY.name}</strong> tarafından geliştirilip işletilen bir hizmettir. Edge-native yazılımlar, büyük ölçekli barındırma altyapısı ve yapay zeka destekli araçlar geliştiriyoruz. Odağımız düşük gecikme, yüksek güvenilirlik ve küresel dağıtım.</p>
+
+<h2>Ne Yapıyoruz</h2>
+<ul>
+  <li><strong>Edge altyapısı ve barındırma:</strong> Küresel olarak dağıtılmış, düşük gecikmeli barındırma ve edge ağ altyapısı.</li>
+  <li><strong>Yazılım geliştirme:</strong> Edge-native uygulamalar, çok kiracılı (multi-tenant) platformlar ve yüksek performanslı sistemler.</li>
+  <li><strong>Yapay zeka destekli araçlar:</strong> Otomatik içerik üretimi, çeviri ve iş akışı otomasyonu.</li>
+</ul>
+
+<h2>{{brand}}</h2>
+<p>{{brand}}, WordPress'in özgürlüğünü modern yazılımın hızıyla buluşturan, Cloudflare'in edge ağı üzerinde çalışan çok siteli (multi-site) bir içerik yönetim platformudur. Tek bir panelden onlarca siteyi yönetebilir, içeriğinizi dünyanın her noktasına milisaniyeler içinde sunabilirsiniz.</p>
+
+<h2>Üretimdeki Ürünlerimiz</h2>
+<ul>
+  <li><strong>Worker CMS</strong> — Çok kiracılı, edge-native içerik yönetim sistemi.</li>
+  <li><strong>SubtitleTranslate</strong> — 50+ dilde yapay zeka destekli altyazı çevirisi.</li>
+  <li><strong>CMS Content Bot</strong> — WordPress için 107+ dilde yapay zeka içerik üretimi.</li>
+  <li><strong>example.com</strong> — Markalı nameserver ve DNS yönetimi.</li>
+  <li><strong>ozellb.com</strong> — Küresel edge tabanlı SaaS HTTP yük dengeleyici.</li>
+</ul>
+
+<h2>Rakamlarla</h2>
+<ul>
+  <li><strong>%99,99</strong> çalışma süresi (uptime)</li>
+  <li><strong>200+</strong> edge lokasyonu</li>
+  <li><strong>10.000+</strong> yönetilen alan adı</li>
+  <li><strong>5+ milyar</strong> aylık istek</li>
+</ul>
+
+<h2>Şirket Bilgileri</h2>
+<p>
+  <strong>${COMPANY.name}</strong><br>
+  ${COMPANY.jurisdiction}'da kayıtlı özel limited şirket<br>
+  Şirket No (Companies House): ${COMPANY.number}<br>
+  Kayıtlı adres: ${COMPANY.addressLine}<br>
+  E-posta: <a href="mailto:info@example.com">info@example.com</a>
+</p>
+
+<p>Bizimle iletişime geçmek için <a href="/legal/iletisim">İletişim</a> sayfamızı ziyaret edin.</p>
+`.trim(),
+    content_en: `
+<h2>Who We Are</h2>
+
+<p>{{brand}} is a service built and operated by <strong>${COMPANY.name}</strong>. We develop edge-native software, large-scale hosting infrastructure and AI-powered tools, with an emphasis on low latency, high reliability and global distribution.</p>
+
+<h2>What We Do</h2>
+<ul>
+  <li><strong>Edge infrastructure &amp; hosting:</strong> Globally distributed, low-latency hosting and edge network infrastructure.</li>
+  <li><strong>Software development:</strong> Edge-native applications, multi-tenant platforms and high-performance systems.</li>
+  <li><strong>AI-powered tools:</strong> Automated content generation, translation and workflow automation.</li>
+</ul>
+
+<h2>{{brand}}</h2>
+<p>{{brand}} is a multi-site content management platform running on Cloudflare's edge network — bringing the freedom of WordPress at the speed of modern software. Manage dozens of sites from a single dashboard and serve your content to every corner of the world in milliseconds.</p>
+
+<h2>Our Products in Production</h2>
+<ul>
+  <li><strong>Worker CMS</strong> — Multi-tenant, edge-native content management system.</li>
+  <li><strong>SubtitleTranslate</strong> — AI-powered subtitle translation across 50+ languages.</li>
+  <li><strong>CMS Content Bot</strong> — AI content generation for WordPress with 107+ language support.</li>
+  <li><strong>example.com</strong> — Branded nameserver and DNS management.</li>
+  <li><strong>ozellb.com</strong> — Global edge-based SaaS HTTP load balancer.</li>
+</ul>
+
+<h2>By the Numbers</h2>
+<ul>
+  <li><strong>99.99%</strong> uptime</li>
+  <li><strong>200+</strong> edge locations</li>
+  <li><strong>10,000+</strong> managed domains</li>
+  <li><strong>5+ billion</strong> monthly requests</li>
+</ul>
+
+<h2>Company Details</h2>
+<p>
+  <strong>${COMPANY.name}</strong><br>
+  A private limited company registered in ${COMPANY.jurisdiction}<br>
+  Company number (Companies House): ${COMPANY.number}<br>
+  Registered office: ${COMPANY.addressLine}<br>
+  Email: <a href="mailto:info@example.com">info@example.com</a>
+</p>
+
+<p>To get in touch, visit our <a href="/legal/iletisim">Contact</a> page.</p>
+`.trim(),
+  },
 ];
 
 export function findLegalPage(slug: string): LegalPage | null {
