@@ -2040,10 +2040,12 @@ const STATUS_LEVEL_STYLES: Record<
   { dot: string; text: string; chip: string; banner: string }
 > = {
   operational: {
-    dot: 'bg-emerald-400',
-    text: 'text-emerald-400',
+    // Brand gold for the dot, headline and banner frame. The component
+    // status badge (chip) keeps the green "Operational" wording on purpose.
+    dot: 'bg-amber-400',
+    text: 'text-amber-400',
     chip: 'text-emerald-400 bg-emerald-400/10',
-    banner: 'border-emerald-400/30',
+    banner: 'border-amber-400/30',
   },
   degraded: {
     dot: 'bg-amber-400',
@@ -2269,7 +2271,7 @@ export function StatusPageView({
             </div>
             <div className="rounded-2xl border border-ink-200 bg-ink-50 px-5 py-8 text-center">
               <div className="inline-flex items-center gap-2 text-sm text-ink-600">
-                <Icon name="check" size={16} stroke="#34d399" strokeWidth={2} />
+                <Icon name="check" size={16} stroke="#F5A524" strokeWidth={2} />
                 {s.incidentsEmpty}
               </div>
             </div>

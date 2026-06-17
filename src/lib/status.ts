@@ -42,8 +42,8 @@ export interface StatusComponentDef {
 export const STATUS_COMPONENTS: readonly StatusComponentDef[] = [
   {
     key: 'web',
-    name_tr: 'Web (Cloudflare Workers)',
-    name_en: 'Web (Cloudflare Workers)',
+    name_tr: 'Web',
+    name_en: 'Web',
     source: 'cloudflare',
     // Cloudflare's component is named exactly "Workers" (distinct from
     // "Workers KV", "Workers AI", "Workers Assets", …).
