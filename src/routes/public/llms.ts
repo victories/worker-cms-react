@@ -85,6 +85,24 @@ function htmlToMarkdown(html: string): string {
   return s;
 }
 
+// ---- /robots.txt --------------------------------------------------------
+// Allows all crawlers (incl. AI bots), keeps them out of /admin and /api,
+// and points at both the XML sitemap and the llms.txt index.
+llms.get('/robots.txt', (c) => {
+  const origin = new URL(c.req.url).origin;
+  const body =
+    `User-agent: *\n` +
+    `Allow: /\n` +
+    `Disallow: /admin\n` +
+    `Disallow: /api/\n` +
+    `\n` +
+    `Sitemap: ${origin}/sitemap.xml\n` +
+    `\n` +
+    `# LLM-friendly index (llmstxt.org)\n` +
+    `# llms.txt: ${origin}/llms.txt\n`;
+  return c.text(body, 200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+});
+
 // ---- /llms.txt ----------------------------------------------------------
 llms.get('/llms.txt', async (c) => {
   const site = c.get('site') as any;
