@@ -255,6 +255,8 @@ export function PostEditor({ postType = 'post' }: PostEditorProps) {
       if (res.success && res.data) {
         setFeaturedImageId(res.data.id);
         setFeaturedImageUrl(res.data.r2_key ? mediaUrl(res.data.r2_key) : `/uploads/${res.data.filename}`);
+      } else if (res?.error) {
+        toast(res.error, 'error');
       }
     } catch (err) {
       console.error('Featured image upload failed:', err);

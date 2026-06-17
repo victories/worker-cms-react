@@ -73,6 +73,49 @@ export async function siteHasFeature(
   return value;
 }
 
+/**
+ * Returns `true` if the site belongs to a *paid* account: it is the
+ * management site, an owner is a super_admin, or any owner has an active
+ * subscription to a package whose price is greater than zero. Free
+ * accounts (no active paid subscription) return `false`.
+ *
+ * Used to gate fair-use limits such as the per-image upload cap. Cached
+ * per-process for ~1 minute (same TTL as feature lookups) and shares the
+ * `invalidateSiteFeatures` invalidation via the `:__paid__` cache key.
+ */
+export async function siteIsPaidAccount(db: D1Database, siteId: number): Promise<boolean> {
+  const cacheKey = `${siteId}:__paid__`;
+  const now = Date.now();
+  const cached = FEATURE_CACHE.get(cacheKey);
+  if (cached && cached.expires > now) return cached.value;
+
+  let value = false;
+  try {
+    const row = await db
+      .prepare(
+        `SELECT
+           (SELECT 1 FROM sites WHERE id = ? AND is_management = 1) AS mgmt,
+           (SELECT 1 FROM user_sites us JOIN users u ON u.id = us.user_id
+              WHERE us.site_id = ? AND u.role = 'super_admin' LIMIT 1) AS sa,
+           (SELECT 1 FROM user_sites us
+              JOIN subscriptions s ON s.user_id = us.user_id
+              JOIN packages p ON p.id = s.package_id
+              WHERE us.site_id = ? AND s.status = 'active'
+                AND (p.price_monthly > 0 OR p.price_yearly > 0) LIMIT 1) AS paid`
+      )
+      .bind(siteId, siteId, siteId)
+      .first<{ mgmt: number | null; sa: number | null; paid: number | null }>();
+    value = !!(row && (row.mgmt || row.sa || row.paid));
+  } catch {
+    // DB read failures fail-OPEN here: never block a legitimate upload
+    // because of a transient query error. The 50MB hard cap still applies.
+    value = true;
+  }
+
+  FEATURE_CACHE.set(cacheKey, { value, expires: now + TTL_MS });
+  return value;
+}
+
 /** Drop the cached lookup for a site so admins see plan changes immediately. */
 export function invalidateSiteFeatures(siteId: number) {
   for (const key of FEATURE_CACHE.keys()) {

@@ -22,12 +22,14 @@ export function ImageModal({ open, onOpenChange, onInsert, lang = 'en' }: ImageM
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setUrl('');
     setPreview(null);
     setUploadedUrl(null);
+    setError(null);
     setUploading(false);
     setTab('upload');
   };
@@ -39,6 +41,7 @@ export function ImageModal({ open, onOpenChange, onInsert, lang = 'en' }: ImageM
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
+    setError(null);
 
     // Show local preview
     const reader = new FileReader();
@@ -53,9 +56,14 @@ export function ImageModal({ open, onOpenChange, onInsert, lang = 'en' }: ImageM
       const res = await api.uploadMedia(formData) as any;
       if (res.success && res.data) {
         setUploadedUrl(res.data.r2_key ? mediaUrl(res.data.r2_key) : `/uploads/${res.data.filename}`);
+      } else if (res?.error) {
+        setPreview(null);
+        setError(res.error);
       }
     } catch (err) {
       console.error('Upload failed:', err);
+      setPreview(null);
+      setError(lang === 'tr' ? 'Yükleme başarısız' : 'Upload failed');
     }
     setUploading(false);
   };
@@ -135,6 +143,9 @@ export function ImageModal({ open, onOpenChange, onInsert, lang = 'en' }: ImageM
                 <p className="text-xs text-muted-foreground mt-1">
                   PNG, JPG, GIF, WebP
                 </p>
+                {error && (
+                  <p className="text-xs text-destructive mt-3">{error}</p>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

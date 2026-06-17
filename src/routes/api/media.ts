@@ -4,6 +4,7 @@ import { authMiddleware, requireSite, siteAccessMiddleware } from '../../middlew
 import { uploadFile, deleteFile } from '../../lib/storage';
 import { parsePagination, paginate, countRows, buildMeta } from '../../lib/db';
 import { pluginEngine } from '../../lib/plugins/engine';
+import { siteIsPaidAccount } from '../../lib/site-features';
 
 const media = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -23,6 +24,11 @@ const ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+// Free accounts may upload images up to this size. Larger images require a
+// paid plan. Non-image files and paid accounts use the 50MB hard cap above.
+const FREE_IMAGE_MAX_SIZE = 1 * 1024 * 1024; // 1MB
+const FREE_IMAGE_ERROR =
+  'Ücretsiz planda görseller en fazla 1 MB olabilir. Daha büyük görseller yüklemek için planınızı yükseltin.';
 
 // GET /api/media
 media.get('/', async (c) => {
@@ -84,6 +90,14 @@ media.post('/', async (c) => {
     return c.json({ success: false, error: 'Dosya boyutu çok büyük (max 50MB)' }, 400);
   }
 
+  // Free-account fair-use: images are capped at 1MB. Paid accounts (and the
+  // management site / super_admin owners) use the 50MB cap checked above.
+  if (file.type.startsWith('image/') && file.size > FREE_IMAGE_MAX_SIZE) {
+    if (!(await siteIsPaidAccount(c.env.DB, siteId))) {
+      return c.json({ success: false, error: FREE_IMAGE_ERROR }, 413);
+    }
+  }
+
   const buffer = await file.arrayBuffer();
   const { key, size } = await uploadFile(c.env.R2, siteId, buffer, file.name, file.type);
 
@@ -122,6 +136,14 @@ media.post('/from-r2', async (c) => {
   const filename = body.r2_key.split('/').pop() || 'unknown';
   const mimeType = obj.httpMetadata?.contentType || 'image/webp';
   const size = obj.size;
+
+  // Same free-account image cap as the direct upload path, so registering a
+  // pre-uploaded R2 object can't bypass the 1MB limit.
+  if (mimeType.startsWith('image/') && size > FREE_IMAGE_MAX_SIZE) {
+    if (!(await siteIsPaidAccount(c.env.DB, siteId))) {
+      return c.json({ success: false, error: FREE_IMAGE_ERROR }, 413);
+    }
+  }
 
   const result = await c.env.DB.prepare(
     'INSERT INTO media (site_id, r2_key, filename, mime_type, size, alt_text, author_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *'

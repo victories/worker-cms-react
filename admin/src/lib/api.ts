@@ -222,7 +222,7 @@ class ApiClient {
   }
 
   async uploadMedia(formData: FormData) {
-    return this.request('/media', {
+    return this.request<{ success: boolean; data?: any; error?: string }>('/media', {
       method: 'POST',
       body: formData as unknown as BodyInit,
       contentType: '', // let browser set multipart boundary

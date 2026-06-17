@@ -60,17 +60,22 @@ export function MediaLibrary() {
     if (!files || files.length === 0) return;
 
     setUploading(true);
+    let uploadError: string | null = null;
+    let uploaded = 0;
     try {
       for (const file of Array.from(files)) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('alt_text', altTextFromFilename(file.name));
-        await api.uploadMedia(formData);
+        const res = await api.uploadMedia(formData);
+        if (res?.success) uploaded++;
+        else if (!uploadError) uploadError = res?.error || null;
       }
-      toast(lang === 'tr' ? 'Dosyalar yüklendi' : 'Files uploaded successfully', 'success');
     } catch {
-      toast(lang === 'tr' ? 'Yükleme başarısız' : 'Upload failed', 'error');
+      uploadError = lang === 'tr' ? 'Yükleme başarısız' : 'Upload failed';
     }
+    if (uploadError) toast(uploadError, 'error');
+    else toast(lang === 'tr' ? 'Dosyalar yüklendi' : 'Files uploaded successfully', 'success');
     setUploading(false);
     loadMedia();
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -97,17 +102,20 @@ export function MediaLibrary() {
     if (!files || files.length === 0) return;
 
     setUploading(true);
+    let uploadError: string | null = null;
     try {
       for (const file of Array.from(files)) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('alt_text', altTextFromFilename(file.name));
-        await api.uploadMedia(formData);
+        const res = await api.uploadMedia(formData);
+        if (!res?.success && !uploadError) uploadError = res?.error || null;
       }
-      toast(lang === 'tr' ? 'Dosyalar yüklendi' : 'Files uploaded successfully', 'success');
     } catch {
-      toast(lang === 'tr' ? 'Yükleme başarısız' : 'Upload failed', 'error');
+      uploadError = lang === 'tr' ? 'Yükleme başarısız' : 'Upload failed';
     }
+    if (uploadError) toast(uploadError, 'error');
+    else toast(lang === 'tr' ? 'Dosyalar yüklendi' : 'Files uploaded successfully', 'success');
     setUploading(false);
     loadMedia();
   };
