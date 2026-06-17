@@ -19,8 +19,8 @@ export const LANDING_EN: LandingConfig = {
   },
   nav: {
     items: [
-      { label: 'Features', url: '#features' },
       { label: 'Performance', url: '#architecture' },
+      { label: 'Features', url: '#features' },
       { label: 'AI Integration', url: '#mcp' },
       { label: 'Plugins', url: '#plugins' },
       { label: 'Pricing', url: '#pricing' },
@@ -235,8 +235,8 @@ export const LANDING_EN: LandingConfig = {
       {
         title: 'Product',
         links: [
-          { text: 'Features', url: '#features' },
           { text: 'Performance', url: '#architecture' },
+          { text: 'Features', url: '#features' },
           { text: 'AI Integration', url: '#mcp' },
           { text: 'Plugins', url: '#plugins' },
           { text: 'Pricing', url: '#pricing' },
