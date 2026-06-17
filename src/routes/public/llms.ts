@@ -110,29 +110,34 @@ llms.get('/llms.txt', async (c) => {
   if (!site || !siteId) return c.notFound();
 
   const origin = new URL(c.req.url).origin;
-  const lang = (site.default_language as string) || 'tr';
+  const defaultLang = (site.default_language as string) || 'tr';
   const name = (site.name as string) || 'Site';
   const desc = (site.description as string) || '';
 
+  type Row = { slug: string; title: string; excerpt: string | null; language: string };
   const [pages, posts] = await Promise.all([
     c.env.DB.prepare(
-      `SELECT slug, title, excerpt FROM posts
-       WHERE site_id = ? AND post_type = 'page' AND status = 'publish' AND language = ?
-       ORDER BY title ASC`
-    ).bind(siteId, lang).all<{ slug: string; title: string; excerpt: string | null }>(),
+      `SELECT slug, title, excerpt, language FROM posts
+       WHERE site_id = ? AND post_type = 'page' AND status = 'publish'
+       ORDER BY language ASC, title ASC`
+    ).bind(siteId).all<Row>(),
     c.env.DB.prepare(
-      `SELECT slug, title, excerpt FROM posts
-       WHERE site_id = ? AND post_type = 'post' AND status = 'publish' AND language = ?
-       ORDER BY published_at DESC LIMIT 200`
-    ).bind(siteId, lang).all<{ slug: string; title: string; excerpt: string | null }>(),
+      `SELECT slug, title, excerpt, language FROM posts
+       WHERE site_id = ? AND post_type = 'post' AND status = 'publish'
+       ORDER BY published_at DESC LIMIT 300`
+    ).bind(siteId).all<Row>(),
   ]);
+
+  // Non-default languages are served under a /{lang}/ prefix.
+  const mdUrl = (r: Row) =>
+    `${origin}/${r.language && r.language !== defaultLang ? r.language + '/' : ''}${r.slug}.md`;
 
   let out = `# ${name}\n`;
   if (desc) out += `\n> ${oneLine(desc, 300)}\n`;
   out += `\nLLM-friendly index of ${name}. Every linked entry has a clean Markdown version at the same URL with a \`.md\` suffix.\n`;
 
-  const list = (rows: { slug: string; title: string; excerpt: string | null }[]) =>
-    rows.map((r) => `- [${r.title}](${origin}/${r.slug}.md)${r.excerpt ? ': ' + oneLine(r.excerpt) : ''}`).join('\n');
+  const list = (rows: Row[]) =>
+    rows.map((r) => `- [${r.title}](${mdUrl(r)})${r.excerpt ? ': ' + oneLine(r.excerpt) : ''}`).join('\n');
 
   if (pages.results.length) out += `\n## Pages\n\n${list(pages.results)}\n`;
   if (posts.results.length) out += `\n## Posts\n\n${list(posts.results)}\n`;
