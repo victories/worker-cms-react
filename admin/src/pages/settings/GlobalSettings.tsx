@@ -7,7 +7,7 @@ import { Input } from '@ui/input';
 import { Label } from '@ui/label';
 import { Separator } from '@ui/separator';
 import { Switch } from '@ui/switch';
-import { Save, Globe, Shield, MessageSquare, Mail, BarChart3, Clock, Type, Blocks, PenTool, Layers, Edit3, KeyRound, ExternalLink, Copy, Check, Eye, EyeOff, ChevronDown, FileText, Send, RotateCcw, X, Code } from 'lucide-react';
+import { Save, Globe, Shield, MessageSquare, Mail, BarChart3, Clock, Type, Blocks, PenTool, Layers, Edit3, KeyRound, ExternalLink, Copy, Check, Eye, EyeOff, ChevronDown, FileText, Send, RotateCcw, X, Code, CreditCard } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
 
 function CopyButton({ text }: { text: string }) {
@@ -46,14 +46,33 @@ function SecretInput({ value, onChange, placeholder }: { value: string; onChange
   );
 }
 
-function AccordionCard({ icon, title, description, children, defaultOpen = false }: {
+function AccordionCard({ icon, title, description, children, defaultOpen = false, forceOpen = false }: {
   icon: React.ReactNode;
   title: React.ReactNode;
   description?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  // When true the card renders as a plain always-open panel (no chevron,
+  // no collapse) — used by the tabbed layout where one card shows at a time.
+  forceOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  if (forceOpen) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            {icon}
+            <span className="flex-1">{title}</span>
+          </CardTitle>
+          {description && (
+            <CardDescription className="text-xs mt-1">{description}</CardDescription>
+          )}
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+      </Card>
+    );
+  }
   return (
     <Card>
       <button
@@ -86,16 +105,18 @@ function AccordionCard({ icon, title, description, children, defaultOpen = false
   );
 }
 
-function CloudflareSettingsCard({ lang, settings, updateSetting }: {
+function CloudflareSettingsCard({ lang, settings, updateSetting, forceOpen = false }: {
   lang: string;
   settings: Record<string, string>;
   updateSetting: (key: string, value: string) => void;
+  forceOpen?: boolean;
 }) {
   const tr = lang === 'tr';
   const configured = !!(settings.cf_api_key && settings.cf_email);
 
   return (
     <AccordionCard
+      forceOpen={forceOpen}
       icon={<svg viewBox="0 0 48 48" className="h-5 w-5">
             <path fill="#F38020" d="M32.67 24.94l-.98-3.36a1.1 1.1 0 00-1.07-.78H14.35a.37.37 0 01-.35-.25.36.36 0 01.12-.41l1.98-1.36a2.2 2.2 0 001.35-1.64l.73-2.53c.7-2.4-.46-4.93-2.71-5.86a3.67 3.67 0 00-4.83 2.19l-.56 1.94-.2-.66A3.67 3.67 0 006.4 14.6a3.67 3.67 0 00-2.19 4.69l3.1 10.7a.46.46 0 00.44.32h23.83a.55.55 0 00.53-.41l.56-1.94a3.67 3.67 0 000-3.02z"/>
             <path fill="#FAAE40" d="M38.08 20.8H33.5a.55.55 0 00-.53.41l-.56 1.94a3.67 3.67 0 000 3.02l.98 3.36a1.1 1.1 0 001.07.78h5.97a.37.37 0 00.35-.25.36.36 0 00-.12-.41l-1.98-1.36a1.1 1.1 0 01-.43-.67l-1.7-5.87a.55.55 0 00-.47-.95z"/>
@@ -162,10 +183,11 @@ function CloudflareSettingsCard({ lang, settings, updateSetting }: {
   );
 }
 
-function OAuthSettingsCard({ lang, settings, updateSetting }: {
+function OAuthSettingsCard({ lang, settings, updateSetting, forceOpen = false }: {
   lang: string;
   settings: Record<string, string>;
   updateSetting: (key: string, value: string) => void;
+  forceOpen?: boolean;
 }) {
   const tr = lang === 'tr';
   const googleEnabled = !!(settings.google_client_id && settings.google_client_secret);
@@ -179,6 +201,7 @@ function OAuthSettingsCard({ lang, settings, updateSetting }: {
 
   return (
     <AccordionCard
+      forceOpen={forceOpen}
       icon={<KeyRound className="h-5 w-5" />}
       title={tr ? 'OAuth / Sosyal Giriş' : 'OAuth / Social Login'}
       description={tr
@@ -727,10 +750,11 @@ const EMAIL_EVENTS_CONFIG: EmailEventMeta[] = [
   },
 ];
 
-function EmailSettingsCard({ lang, settings, updateSetting }: {
+function EmailSettingsCard({ lang, settings, updateSetting, forceOpen = false }: {
   lang: string;
   settings: Record<string, string>;
   updateSetting: (key: string, value: string) => void;
+  forceOpen?: boolean;
 }) {
   const tr = lang === 'tr';
   const mailEnabled = settings.mail_enabled !== 'false';
@@ -747,6 +771,7 @@ function EmailSettingsCard({ lang, settings, updateSetting }: {
   return (
     <>
       <AccordionCard
+        forceOpen={forceOpen}
         icon={<Mail className="h-5 w-5" />}
         title={tr ? 'E-posta Ayarları & Şablonlar' : 'Email Settings & Templates'}
         description={tr
@@ -898,6 +923,7 @@ export function GlobalSettings() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState('timezone');
 
   useEffect(() => {
     loadSettings();
@@ -934,8 +960,20 @@ export function GlobalSettings() {
   const recaptchaEnabled = settings.recaptcha_enabled === 'true';
   const commentsEnabled = settings.comments_enabled === 'true';
 
+  const TABS: { id: string; icon: React.ReactNode; label: string }[] = [
+    { id: 'timezone', icon: <Clock className="h-4 w-4" />, label: lang === 'tr' ? 'Saat Dilimi' : 'Timezone' },
+    { id: 'editor', icon: <Type className="h-4 w-4" />, label: lang === 'tr' ? 'Editör' : 'Editor' },
+    { id: 'recaptcha', icon: <Shield className="h-4 w-4" />, label: 'reCAPTCHA' },
+    { id: 'comments', icon: <MessageSquare className="h-4 w-4" />, label: lang === 'tr' ? 'Yorumlar' : 'Comments' },
+    { id: 'email', icon: <Mail className="h-4 w-4" />, label: lang === 'tr' ? 'E-posta' : 'Email' },
+    { id: 'cloudflare', icon: <Globe className="h-4 w-4" />, label: 'Cloudflare' },
+    { id: 'oauth', icon: <KeyRound className="h-4 w-4" />, label: lang === 'tr' ? 'Sosyal Giriş' : 'Social Login' },
+    { id: 'payments', icon: <CreditCard className="h-4 w-4" />, label: lang === 'tr' ? 'Ödemeler' : 'Payments' },
+    { id: 'analytics', icon: <BarChart3 className="h-4 w-4" />, label: 'Analytics' },
+  ];
+
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -954,8 +992,33 @@ export function GlobalSettings() {
         </Button>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        {/* Tab nav */}
+        <nav className="w-full md:w-52 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible md:sticky md:top-4">
+          {TABS.map((tabItem) => (
+            <button
+              key={tabItem.id}
+              type="button"
+              onClick={() => setTab(tabItem.id)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors text-left ${
+                tab === tabItem.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tabItem.icon}
+              <span>{tabItem.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Active section */}
+        <div className="flex-1 min-w-0 max-w-2xl space-y-4">
+
       {/* Timezone Card */}
+      {tab === 'timezone' && (
       <AccordionCard
+        forceOpen
         icon={<Clock className="h-5 w-5" />}
         title={lang === 'tr' ? 'Saat Dilimi' : 'Timezone'}
         description={lang === 'tr'
@@ -993,9 +1056,12 @@ export function GlobalSettings() {
             </p>
           </div>
       </AccordionCard>
+      )}
 
       {/* Editor Preference Card */}
+      {tab === 'editor' && (
       <AccordionCard
+        forceOpen
         icon={<Type className="h-5 w-5" />}
         title={lang === 'tr' ? 'Varsayılan Editör' : 'Default Editor'}
         description={lang === 'tr'
@@ -1095,8 +1161,12 @@ export function GlobalSettings() {
           </div>
       </AccordionCard>
 
+      )}
+
       {/* reCAPTCHA v3 Card */}
+      {tab === 'recaptcha' && (
       <AccordionCard
+        forceOpen
         icon={<Shield className="h-5 w-5" />}
         title="reCAPTCHA v3"
         description={lang === 'tr'
@@ -1178,8 +1248,12 @@ export function GlobalSettings() {
         </div>
       </AccordionCard>
 
+      )}
+
       {/* Comment Settings Card */}
+      {tab === 'comments' && (
       <AccordionCard
+        forceOpen
         icon={<MessageSquare className="h-5 w-5" />}
         title={lang === 'tr' ? 'Yorum Ayarları' : 'Comment Settings'}
         description={lang === 'tr'
@@ -1238,17 +1312,29 @@ export function GlobalSettings() {
         </div>
       </AccordionCard>
 
+      )}
+
       {/* Mail Settings & Templates Card */}
-      <EmailSettingsCard lang={lang} settings={settings} updateSetting={updateSetting} />
+      {tab === 'email' && (
+        <EmailSettingsCard lang={lang} settings={settings} updateSetting={updateSetting} forceOpen />
+      )}
 
       {/* Cloudflare Integration Card */}
-      <CloudflareSettingsCard lang={lang} settings={settings} updateSetting={updateSetting} />
+      {tab === 'cloudflare' && (
+        <CloudflareSettingsCard lang={lang} settings={settings} updateSetting={updateSetting} forceOpen />
+      )}
 
       {/* OAuth / Social Login Card */}
-      <OAuthSettingsCard lang={lang} settings={settings} updateSetting={updateSetting} />
+      {tab === 'oauth' && (
+        <OAuthSettingsCard lang={lang} settings={settings} updateSetting={updateSetting} forceOpen />
+      )}
 
+      {/* Payments: Stripe + Creem + Crypto */}
+      {tab === 'payments' && (
+      <>
       {/* Stripe Payment Card */}
       <AccordionCard
+        forceOpen
         icon={<span className="text-lg">💳</span>}
         title={<>{lang === 'tr' ? 'Stripe Ödeme' : 'Stripe Payment'}<span className={`ml-auto w-2 h-2 rounded-full ${settings.stripe_secret_key ? 'bg-green-500' : 'bg-orange-400'}`} /></>}
         description={lang === 'tr'
@@ -1309,6 +1395,7 @@ export function GlobalSettings() {
 
       {/* Creem Payment Card — credit-card provider used by "Pay with Card" */}
       <AccordionCard
+        forceOpen
         icon={<span className="text-lg">💳</span>}
         title={<>{lang === 'tr' ? 'Creem Ödeme (Kredi Kartı)' : 'Creem Payment (Card)'}<span className={`ml-auto w-2 h-2 rounded-full ${settings.creem_api_key ? 'bg-green-500' : 'bg-orange-400'}`} /></>}
         description={lang === 'tr'
@@ -1372,6 +1459,7 @@ export function GlobalSettings() {
 
       {/* Crypto Payment Wallets Card */}
       <AccordionCard
+        forceOpen
         icon={<span className="text-lg">🪙</span>}
         title={<>{lang === 'tr' ? 'Crypto Ödeme Cüzdanları' : 'Crypto Payment Wallets'}<span className={`ml-auto w-2 h-2 rounded-full ${Object.keys(settings).some(k => k.startsWith('crypto_wallet_') && settings[k]) ? 'bg-green-500' : 'bg-orange-400'}`} /></>}
         description={lang === 'tr'
@@ -1421,8 +1509,13 @@ export function GlobalSettings() {
         </div>
       </AccordionCard>
 
+      </>
+      )}
+
       {/* Analytics / Tracking Codes Card */}
+      {tab === 'analytics' && (
       <AccordionCard
+        forceOpen
         icon={<BarChart3 className="h-5 w-5" />}
         title={lang === 'tr' ? 'Analytics / İzleme Kodları' : 'Analytics / Tracking Codes'}
         description={lang === 'tr'
@@ -1463,6 +1556,10 @@ export function GlobalSettings() {
           </div>
         </div>
       </AccordionCard>
+      )}
+
+        </div>
+      </div>
     </div>
   );
 }
