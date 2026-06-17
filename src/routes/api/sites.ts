@@ -56,7 +56,15 @@ sites.get('/my', async (c) => {
       const domains = await c.env.DB.prepare('SELECT * FROM site_domains WHERE site_id = ?')
         .bind(site.id)
         .all();
-      return { ...site, domains: domains.results };
+      // Owner = first (lowest-id) user assigned to the site, i.e. the
+      // account owner — same rule as the super_admin /sites list, so the
+      // owner column renders identically here.
+      const owner = await c.env.DB.prepare(
+        `SELECT u.id, u.email, u.display_name, u.role FROM users u
+         JOIN user_sites us ON u.id = us.user_id
+         WHERE us.site_id = ? ORDER BY u.id ASC LIMIT 1`
+      ).bind(site.id).first<{ id: number; email: string; display_name: string; role: string }>();
+      return { ...site, domains: domains.results, owner: owner || null };
     })
   );
 
