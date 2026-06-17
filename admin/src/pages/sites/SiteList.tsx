@@ -29,6 +29,11 @@ export function SiteList() {
 
   const isSuperAdmin = user?.role === 'super_admin';
   const [subscription, setSubscription] = useState<any>(null);
+  // Effective quota (package base + active add-ons), authoritative source
+  // for the site allowance. /subscriptions/my only returns the package row,
+  // which is null/free for à-la-carte add-on buyers — so the denominator
+  // must come from /subscriptions/overview, which reads users.max_sites.
+  const [quota, setQuota] = useState<{ max_sites: number; sites_used: number } | null>(null);
   const [showLimitWarning, setShowLimitWarning] = useState(false);
   const [userDeleteSite, setUserDeleteSite] = useState<any>(null);
   const [userDeleteConfirmDomain, setUserDeleteConfirmDomain] = useState('');
@@ -45,8 +50,18 @@ export function SiteList() {
       api.request('/subscriptions/my').then((res: any) => {
         if (res?.success) setSubscription(res.data);
       }).catch(() => {});
+      api.request('/subscriptions/overview').then((res: any) => {
+        if (res?.success && res.data) {
+          setQuota({ max_sites: res.data.max_sites ?? 1, sites_used: res.data.sites_used ?? 0 });
+        }
+      }).catch(() => {});
     }
   }, []);
+
+  // Effective site allowance and usage — addon-aware. Falls back to the
+  // package row / stale auth-store value only until /overview resolves.
+  const effectiveMax = quota?.max_sites ?? subscription?.max_sites ?? user?.max_sites ?? 1;
+  const sitesUsed = quota?.sites_used ?? sites.length;
 
   // Filter sites based on search query
   const filteredSites = useMemo(() => {
@@ -146,8 +161,7 @@ export function SiteList() {
         <h1 className="text-2xl font-bold">{t('nav.sites', lang)}</h1>
         <Button onClick={() => {
           if (!isSuperAdmin) {
-            const maxSites = subscription?.max_sites || user?.max_sites || 1;
-            if (sites.length >= maxSites) {
+            if (sitesUsed >= effectiveMax) {
               setShowLimitWarning(true);
               return;
             }
@@ -188,13 +202,13 @@ export function SiteList() {
                     <div>
                       <p className="text-sm font-medium">{lang === 'tr' ? 'Ücretsiz Plan' : 'Free Plan'}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {sites.length >= (user?.max_sites || 1)
+                        {sitesUsed >= effectiveMax
                           ? (lang === 'tr'
-                            ? `${user?.max_sites || 1} site hakkınızın tamamını kullandınız. Yükseltme yaparak daha fazla site ekleyebilirsiniz.`
-                            : `You've used all ${user?.max_sites || 1} site(s). Upgrade to add more.`)
+                            ? `${effectiveMax} site hakkınızın tamamını kullandınız. Yükseltme yaparak daha fazla site ekleyebilirsiniz.`
+                            : `You've used all ${effectiveMax} site(s). Upgrade to add more.`)
                           : (lang === 'tr'
-                            ? `${sites.length} / ${user?.max_sites || 1} site kullanılıyor`
-                            : `${sites.length} / ${user?.max_sites || 1} site(s) used`)}
+                            ? `${sitesUsed} / ${effectiveMax} site kullanılıyor`
+                            : `${sitesUsed} / ${effectiveMax} site(s) used`)}
                       </p>
                     </div>
                   </div>
@@ -209,8 +223,8 @@ export function SiteList() {
                   <div className="flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-blue-500" />
                     <span className="text-muted-foreground">{lang === 'tr' ? 'Site:' : 'Sites:'}</span>
-                    <span className={`font-semibold ${sites.length >= (subscription?.max_sites || user?.max_sites || 1) ? 'text-red-500' : ''}`}>
-                      {sites.length} / {subscription?.max_sites || user?.max_sites || 1}
+                    <span className={`font-semibold ${sitesUsed >= effectiveMax ? 'text-red-500' : ''}`}>
+                      {sitesUsed} / {effectiveMax}
                     </span>
                   </div>
 
@@ -655,8 +669,8 @@ export function SiteList() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {lang === 'tr'
-                ? `Mevcut paketinizde maksimum ${subscription?.max_sites || user?.max_sites || 1} site hakkınız bulunmaktadır ve tamamını kullandınız.`
-                : `Your current plan allows a maximum of ${subscription?.max_sites || user?.max_sites || 1} site(s) and you've used all of them.`}
+                ? `Mevcut paketinizde maksimum ${effectiveMax} site hakkınız bulunmaktadır ve tamamını kullandınız.`
+                : `Your current plan allows a maximum of ${effectiveMax} site(s) and you've used all of them.`}
             </p>
             <p className="text-sm text-muted-foreground">
               {lang === 'tr'

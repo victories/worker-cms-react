@@ -44,6 +44,8 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 // → Settings (accordion: Site Settings, AMP, API Keys, 2FA)
 const navStructure: NavEntry[] = [
   { key: 'nav.dashboard', href: '/', icon: LayoutDashboard },
+  // Sites — account owners manage their sites here (super_admin sees all).
+  { key: 'nav.sites', href: '/sites', icon: Globe, roles: ['admin', 'super_admin'] },
   // Content group (İçerik)
   {
     key: 'nav.content',
