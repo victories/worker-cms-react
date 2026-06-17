@@ -19,3 +19,7 @@ declare module '*/__generated__/publisher-client' {
 declare module '*/__generated__/landing-client' {
   export const LANDING_CLIENT_JS: string;
 }
+
+declare module '*/__generated__/version' {
+  export const APP_VERSION: string;
+}

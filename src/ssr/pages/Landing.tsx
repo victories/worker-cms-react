@@ -5,6 +5,7 @@ import {
   type StatusSnapshot,
   type StatusLevel,
 } from '../../lib/status';
+import { APP_VERSION } from '../__generated__/version';
 
 /**
  * Landing — React SSR port of the "Worker CMS Landing v2" marketing
@@ -1859,7 +1860,14 @@ function LandingFooter({ footer, brandName, lang, anchorBase = '' }: LandingFoot
 
       <div className="border-t border-ink-200">
         <PageContainer className="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-ink-600">
-          <div>{bottom}</div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{bottom}</span>
+            <span className="text-ink-400" aria-hidden>·</span>
+            <span>
+              Powered by {brandName}{' '}
+              <span className="font-mono text-ink-500">{APP_VERSION}</span>
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <span className="font-mono">{t.bottomRight}</span>
             <span className="flex items-center gap-1.5">
