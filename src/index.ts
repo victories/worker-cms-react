@@ -66,6 +66,7 @@ import ampDynamicRoutes from './routes/public/amp/dynamic';
 import gitRoutes from './routes/public/git';
 import landingPageRoutes from './routes/public/landing';
 import legalRoutes from './routes/public/legal';
+import protoRoutes from './routes/public/proto';
 import setLangRoutes from './routes/public/set-lang';
 
 // Contety polling cron
@@ -396,6 +397,10 @@ app.route('/git', gitRoutes);
 // route. Site admins who want custom copy can publish their own page
 // without conflict.
 app.route('/legal', legalRoutes);
+
+// TEMP: Site-template visual-proof prototypes (Faz 0). Remove once a
+// magazine direction is chosen and the real template is built.
+app.route('/__proto', protoRoutes);
 
 // ---- Language switcher ----
 // GET /set-lang/:lang?next=<path> sets the cms_lang cookie and bounces
