@@ -53,6 +53,7 @@ import mcpRoutes from './routes/api/mcp';
 // Public Site Routes (SSR)
 import homeRoutes from './routes/public/home';
 import postRoutes from './routes/public/post';
+import llmsRoutes from './routes/public/llms';
 import archiveRoutes from './routes/public/archive';
 import searchRoutes from './routes/public/search';
 import feedRoutes from './routes/public/feed';
@@ -603,6 +604,7 @@ app.use('*', async (c, next) => {
 app.route('/', searchRoutes);    // /search, /:lang/search
 app.route('/', archiveRoutes);   // /category/:slug, /:lang/category/:slug, etc.
 app.route('/', homeRoutes);      // / (default lang home), /:lang (non-default lang home)
+app.route('/', llmsRoutes);      // /llms.txt, /:slug.md — before postRoutes so .md wins
 app.route('/', postRoutes);      // /:slug (default lang), /:lang/:slug (non-default — must be last)
 
 export default {
