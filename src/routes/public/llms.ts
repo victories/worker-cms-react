@@ -36,7 +36,11 @@ function decodeEntities(s: string): string {
 }
 
 function stripTags(html: string): string {
-  return decodeEntities((html || '').replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+  return decodeEntities(
+    (html || '')
+      .replace(/\[\/?[a-z0-9_-]+(?:\s[^\]]*)?\]/gi, '') // CMS shortcodes
+      .replace(/<[^>]+>/g, '')
+  ).replace(/\s+/g, ' ').trim();
 }
 
 function oneLine(s: string, max = 180): string {
@@ -66,6 +70,10 @@ function htmlToMarkdown(html: string): string {
   s = s.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_m, t) => `\n\n> ${stripTags(t)}\n\n`);
   s = s.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, t) => `\n- ${stripTags(t)}`);
   s = s.replace(/<\/(ul|ol)>/gi, '\n\n').replace(/<(ul|ol)[^>]*>/gi, '\n');
+  // Tables → simple pipe rows (readable, not a full GFM table).
+  s = s.replace(/<(th|td)[^>]*>([\s\S]*?)<\/\1>/gi, (_m, _tag, t) => `| ${stripTags(t)} `);
+  s = s.replace(/<\/tr>/gi, '|\n');
+  s = s.replace(/<\/(table|thead|tbody|tfoot|tr)>/gi, '\n').replace(/<(table|thead|tbody|tfoot|tr)[^>]*>/gi, '');
   s = s.replace(/<hr\s*\/?>/gi, '\n\n---\n\n');
   s = s.replace(/<\/p>/gi, '\n\n').replace(/<p[^>]*>/gi, '');
   s = s.replace(/<br\s*\/?>/gi, '\n');
