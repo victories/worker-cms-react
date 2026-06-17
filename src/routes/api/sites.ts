@@ -220,8 +220,10 @@ sites.put('/:id', async (c) => {
     if (!membership) {
       return c.json({ success: false, error: 'Bu siteye erişim yetkiniz yok' }, 403);
     }
-    // Regular users cannot change status or is_management
-    delete body.status;
+    // Owners may pause their own site, but cannot resume via PUT (resume
+    // goes through /:id/activate, which enforces the quota), nor change
+    // is_management. Any status value other than 'paused' is ignored.
+    if (body.status && body.status !== 'paused') delete body.status;
     delete body.is_management;
   }
 

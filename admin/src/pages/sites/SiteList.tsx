@@ -126,14 +126,21 @@ export function SiteList() {
   const confirmPause = async () => {
     if (pauseId === null) return;
     try {
-      const newStatus = pauseAction === 'pause' ? 'paused' : 'active';
-      await api.request(`/sites/${pauseId}`, { method: 'PUT', body: { status: newStatus } });
-      toast(
-        pauseAction === 'pause'
-          ? (lang === 'tr' ? 'Site duraklatıldı' : 'Site paused')
-          : (lang === 'tr' ? 'Site yeniden aktif' : 'Site resumed'),
-        'success'
-      );
+      // Resume for non-super_admin goes through /activate (quota-checked);
+      // pause and super_admin status changes use the plain PUT.
+      const res: any = (pauseAction === 'resume' && !isSuperAdmin)
+        ? await api.request(`/sites/${pauseId}/activate`, { method: 'POST' })
+        : await api.request(`/sites/${pauseId}`, { method: 'PUT', body: { status: pauseAction === 'pause' ? 'paused' : 'active' } });
+      if (res && res.success === false) {
+        toast(res.error || (lang === 'tr' ? 'İşlem başarısız' : 'Operation failed'), 'error');
+      } else {
+        toast(
+          pauseAction === 'pause'
+            ? (lang === 'tr' ? 'Site duraklatıldı' : 'Site paused')
+            : (lang === 'tr' ? 'Site yeniden aktif' : 'Site resumed'),
+          'success'
+        );
+      }
     } catch {
       toast(lang === 'tr' ? 'İşlem başarısız' : 'Operation failed', 'error');
     }
@@ -434,7 +441,7 @@ export function SiteList() {
                           <Settings className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
-                      {isSuperAdmin && !isDefault && (
+                      {!isDefault && (
                         <Button
                           size="sm"
                           variant="ghost"
