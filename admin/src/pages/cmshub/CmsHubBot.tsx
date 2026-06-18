@@ -311,7 +311,7 @@ export function CmsHubBot() {
                 ) : sites.length === 0 ? (
                   <div className="p-6 text-sm text-muted-foreground">{tr ? 'Henüz site eklenmemiş.' : 'No sites yet.'}</div>
                 ) : (
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto"><table className="w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr className="text-left">
                         <th className="p-3">{tr ? 'Ad' : 'Name'}</th>
@@ -345,7 +345,7 @@ export function CmsHubBot() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 )}
               </CardContent>
             </Card>
@@ -359,7 +359,7 @@ export function CmsHubBot() {
                 ) : content.length === 0 ? (
                   <div className="p-6 text-sm text-muted-foreground">{tr ? 'Henüz içerik yok.' : 'No content yet.'}</div>
                 ) : (
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto"><table className="w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr className="text-left">
                         <th className="p-3">{tr ? 'Başlık' : 'Title'}</th>
@@ -394,7 +394,7 @@ export function CmsHubBot() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </table></div>
                 )}
               </CardContent>
             </Card>

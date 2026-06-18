@@ -295,7 +295,7 @@ export function SiteList() {
       )}
 
       <div className="rounded-md border">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="text-left px-4 py-3 font-medium">{lang === 'tr' ? 'Site Adı' : 'Site Name'}</th>
@@ -487,7 +487,7 @@ export function SiteList() {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Create Site Dialog */}

@@ -90,7 +90,7 @@ export default function PluginLogs() {
         <div className="text-center py-8 text-gray-500">Henuz log yok</div>
       ) : (
         <div className="bg-white border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th className="text-left px-4 py-2">Tarih</th>
@@ -119,7 +119,7 @@ export default function PluginLogs() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </div>

@@ -127,7 +127,7 @@ export function TaxonomyList({ type }: TaxonomyListProps) {
             ) : items.length === 0 ? (
               <p className="text-muted-foreground">{t('common.no_results', lang)}</p>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto"><table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 px-2 font-medium">{lang === 'tr' ? 'Ad' : 'Name'}</th>
@@ -155,7 +155,7 @@ export function TaxonomyList({ type }: TaxonomyListProps) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </CardContent>
         </Card>

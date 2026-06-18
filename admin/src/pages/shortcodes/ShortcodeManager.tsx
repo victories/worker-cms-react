@@ -277,7 +277,7 @@ export function ShortcodeManager() {
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden bg-card">
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="text-left px-4 py-3 text-sm font-medium">
@@ -365,7 +365,7 @@ export function ShortcodeManager() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </div>
