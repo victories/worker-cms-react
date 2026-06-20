@@ -14,5 +14,6 @@ wrangler.*.toml
 *.log
 .DS_Store
 .claude/
+.worktrees/
 tmp/
 admin/tsconfig.tsbuildinfo
