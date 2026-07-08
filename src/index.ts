@@ -608,7 +608,35 @@ app.route('/', llmsRoutes);      // /llms.txt, /:slug.md — before postRoutes s
 app.route('/', postRoutes);      // /:slug (default lang), /:lang/:slug (non-default — must be last)
 
 export default {
-  fetch: app.fetch,
+  // Reverse-proxy host override. An upstream proxy (e.g. our OpenResty edge)
+  // can route a customer domain to this worker over its `*.workers.dev`
+  // hostname while carrying the real domain in the `X-Site-Host` header. We
+  // rewrite the request URL so canonical links, redirects and `c.req.url`
+  // reflect the customer domain; `siteResolver` reads `X-Site-Host` directly
+  // for site resolution. All fronted domains are ours, so no shared secret.
+  fetch: (request: Request, env: Bindings, ctx: ExecutionContext) => {
+    const proxied = request.headers.get('x-site-host');
+    if (proxied) {
+      const clean = proxied.trim().toLowerCase().replace(/:\d+$/, '');
+      if (/^[a-z0-9.-]+$/.test(clean)) {
+        const url = new URL(request.url);
+        url.hostname = clean;
+        url.port = '';
+        // Rewrite both the URL and the `Host` header so every host-reader in
+        // the app (landing/admin routing, www redirects, canonical links)
+        // sees the customer domain uniformly, not the workers.dev name.
+        const headers = new Headers(request.headers);
+        headers.set('host', clean);
+        const init: RequestInit = { method: request.method, headers };
+        if (request.method !== 'GET' && request.method !== 'HEAD') {
+          init.body = request.body;
+          (init as { duplex?: 'half' }).duplex = 'half';
+        }
+        request = new Request(url.toString(), init);
+      }
+    }
+    return app.fetch(request, env, ctx);
+  },
   async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
     const now = new Date().toISOString();
     // Publish scheduled posts

@@ -13,7 +13,12 @@ function isAdminDomain(host: string, env: any): boolean {
 // Domain → site_id resolution middleware
 // This is the CRITICAL middleware that enables multi-site functionality
 export const siteResolver = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
-  const host = c.req.header('host') || '';
+  // `X-Site-Host` is set by our upstream proxy when it fronts a customer
+  // domain and forwards to this worker over `*.workers.dev`. When present it
+  // is the authoritative host for site resolution (the wire `Host` header is
+  // the workers.dev routing name). See the fetch wrapper in `index.ts`.
+  const proxyHost = (c.req.header('x-site-host') || '').trim().toLowerCase();
+  const host = proxyHost || c.req.header('host') || '';
 
   // Admin domain handling
   if (isAdminDomain(host, c.env)) {
