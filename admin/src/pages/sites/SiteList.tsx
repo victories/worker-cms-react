@@ -24,6 +24,7 @@ export function SiteList() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [pauseId, setPauseId] = useState<number | null>(null);
   const [pauseAction, setPauseAction] = useState<'pause' | 'resume'>('pause');
+  const [activateId, setActivateId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
@@ -145,6 +146,29 @@ export function SiteList() {
       toast(lang === 'tr' ? 'İşlem başarısız' : 'Operation failed', 'error');
     }
     setPauseId(null);
+    fetchSites();
+  };
+
+  // Force-activate a domain even if its CNAME isn't verified (super_admin).
+  // Flips the site status to 'active' via the plain PUT, which for a
+  // super_admin accepts any status (owners can't force-activate — the PUT
+  // strips non-'paused' statuses for them; that path stays quota-checked).
+  const confirmActivate = async () => {
+    if (activateId === null) return;
+    try {
+      const res: any = await api.request(`/sites/${activateId}`, {
+        method: 'PUT',
+        body: { status: 'active' },
+      });
+      if (res && res.success === false) {
+        toast(res.error || (lang === 'tr' ? 'İşlem başarısız' : 'Operation failed'), 'error');
+      } else {
+        toast(lang === 'tr' ? 'Domain aktifleştirildi' : 'Domain activated', 'success');
+      }
+    } catch {
+      toast(lang === 'tr' ? 'İşlem başarısız' : 'Operation failed', 'error');
+    }
+    setActivateId(null);
     fetchSites();
   };
 
@@ -441,7 +465,19 @@ export function SiteList() {
                           <Settings className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
-                      {!isDefault && (
+                      {/* Force-activate a CNAME-pending domain (skip verification) */}
+                      {!isDefault && site.status === 'pending' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-green-600"
+                          onClick={() => setActivateId(site.id)}
+                          title={lang === 'tr' ? 'Aktifleştir (CNAME beklemeden)' : 'Activate (skip CNAME)'}
+                        >
+                          <Play className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!isDefault && site.status !== 'pending' && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -574,6 +610,20 @@ export function SiteList() {
           : (lang === 'tr' ? 'Aktifleştir' : 'Resume')}
         cancelLabel={lang === 'tr' ? 'İptal' : 'Cancel'}
         variant={pauseAction === 'pause' ? 'destructive' : 'default'}
+      />
+
+      {/* Force-Activate (skip CNAME) Confirm Dialog */}
+      <ConfirmDialog
+        open={activateId !== null}
+        onOpenChange={(open) => { if (!open) setActivateId(null); }}
+        onConfirm={confirmActivate}
+        title={lang === 'tr' ? 'Domaini Aktifleştir' : 'Activate Domain'}
+        description={lang === 'tr'
+          ? 'CNAME doğrulanmamış olsa bile bu domain aktifleştirilip yayına alınacak. Domain trafiğinin bu sunucuya yönlendirilmiş olması gerekir.'
+          : 'This domain will be activated and go live even if its CNAME is not verified. Make sure the domain traffic is routed to this server.'}
+        confirmLabel={lang === 'tr' ? 'Aktifleştir' : 'Activate'}
+        cancelLabel={lang === 'tr' ? 'İptal' : 'Cancel'}
+        variant="default"
       />
 
       {/* User Delete Site Confirmation Dialog */}
