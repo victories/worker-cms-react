@@ -67,6 +67,10 @@ export function SiteList() {
   const effectiveMax = quota?.max_sites ?? subscription?.max_sites ?? user?.max_sites ?? 1;
   const sitesUsed = quota?.sites_used ?? sites.length;
 
+  // Status breakdown for the page header (over all sites, not the filtered view).
+  const activeCount = sites.filter((s: any) => s.status === 'active').length;
+  const pausedCount = sites.filter((s: any) => s.status === 'paused').length;
+
   // Filter sites based on search query
   const filteredSites = useMemo(() => {
     if (!searchQuery.trim()) return sites;
@@ -204,7 +208,14 @@ export function SiteList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('nav.sites', lang)}</h1>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-2xl font-bold">{t('nav.sites', lang)}</h1>
+          <span className="text-sm text-muted-foreground">
+            {lang === 'tr'
+              ? <><span className="text-green-600 font-medium">{activeCount} aktif</span> · <span className="text-red-500 font-medium">{pausedCount} duraklatılmış</span> · toplam {sites.length} site</>
+              : <><span className="text-green-600 font-medium">{activeCount} active</span> · <span className="text-red-500 font-medium">{pausedCount} paused</span> · {sites.length} total</>}
+          </span>
+        </div>
         <Button onClick={() => {
           if (!isSuperAdmin) {
             if (sitesUsed >= effectiveMax) {
