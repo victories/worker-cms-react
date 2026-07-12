@@ -49,7 +49,7 @@ export function SiteSwitcher() {
         <SelectTrigger className="w-full bg-primary/5 border-primary/20">
           <div className="flex items-center gap-2 min-w-0">
             <Globe className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate text-sm font-mono">{activeLabel}</span>
+            <span className={`truncate text-sm font-mono ${activeSite?.status === 'paused' ? 'text-red-500' : ''}`}>{activeLabel}</span>
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -68,7 +68,9 @@ export function SiteSwitcher() {
           </div>
           {filtered.map((site: any) => (
             <SelectItem key={site.id} value={String(site.id)}>
-              <span className="font-mono text-sm">{siteDomain(site) || site.name}</span>
+              <span className={`font-mono text-sm ${site.status === 'paused' ? 'text-red-500 font-semibold' : ''}`}>
+                {siteDomain(site) || site.name}
+              </span>
             </SelectItem>
           ))}
           {filtered.length === 0 && (
