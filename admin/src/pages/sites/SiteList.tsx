@@ -9,7 +9,7 @@ import { Input } from '@ui/input';
 import { Label } from '@ui/label';
 import { Badge } from '@ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@ui/dialog';
-import { Globe, Plus, Settings, Trash2, ExternalLink, Pause, Play, CheckCircle2, Search, X, User, Crown, Package, ArrowUpRight, Loader2, Copy, Check, RefreshCw, Server, Info } from 'lucide-react';
+import { Globe, Plus, Settings, Trash2, ExternalLink, Pause, Play, CheckCircle2, Search, X, User, Crown, Package, ArrowUpRight, Loader2, Copy, Check, RefreshCw, Server, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useToast } from '@ui/toast-notification';
 import { Card, CardContent } from '@ui/card';
@@ -26,6 +26,9 @@ export function SiteList() {
   const [pauseAction, setPauseAction] = useState<'pause' | 'resume'>('pause');
   const [activateId, setActivateId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // Status column sort: 'none' = insertion order, 'asc' = active first (then
+  // pending, then paused/suspended), 'desc' = suspended first.
+  const [statusSort, setStatusSort] = useState<'none' | 'asc' | 'desc'>('none');
   const navigate = useNavigate();
 
   const isSuperAdmin = user?.role === 'super_admin';
@@ -83,6 +86,18 @@ export function SiteList() {
       return false;
     });
   }, [sites, searchQuery]);
+
+  // Rank for the Status sort: active first, then pending, then paused/other.
+  const statusRank = (s: string) => (s === 'active' ? 0 : s === 'pending' ? 1 : 2);
+  const displayedSites = useMemo(() => {
+    if (statusSort === 'none') return filteredSites;
+    const arr = [...filteredSites];
+    arr.sort((a: any, b: any) => {
+      const d = statusRank(a.status) - statusRank(b.status);
+      return statusSort === 'asc' ? d : -d;
+    });
+    return arr;
+  }, [filteredSites, statusSort]);
 
   const handleCreate = async () => {
     if (!newSite.name) return;
@@ -326,14 +341,25 @@ export function SiteList() {
               <th className="text-left px-4 py-3 font-medium">Domain</th>
               <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">{lang === 'tr' ? 'Sahip' : 'Owner'}</th>
               <th className="text-left px-4 py-3 font-medium hidden md:table-cell">{lang === 'tr' ? 'Açıklama' : 'Description'}</th>
-              <th className="text-center px-4 py-3 font-medium">{lang === 'tr' ? 'Durum' : 'Status'}</th>
+              <th
+                className="text-center px-4 py-3 font-medium cursor-pointer select-none hover:text-primary transition-colors"
+                onClick={() => setStatusSort((s) => (s === 'asc' ? 'desc' : s === 'desc' ? 'none' : 'asc'))}
+                title={lang === 'tr' ? 'Duruma göre sırala (aktifler önce)' : 'Sort by status (active first)'}
+              >
+                <span className="inline-flex items-center gap-1">
+                  {lang === 'tr' ? 'Durum' : 'Status'}
+                  {statusSort === 'asc' ? <ArrowUp className="h-3.5 w-3.5" />
+                    : statusSort === 'desc' ? <ArrowDown className="h-3.5 w-3.5" />
+                    : <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />}
+                </span>
+              </th>
               <th className="text-center px-4 py-3 font-medium hidden sm:table-cell">{lang === 'tr' ? 'Yazılar' : 'Posts'}</th>
               <th className="text-center px-4 py-3 font-medium hidden sm:table-cell">{lang === 'tr' ? 'Medya' : 'Media'}</th>
               <th className="text-right px-4 py-3 font-medium">{lang === 'tr' ? 'İşlemler' : 'Actions'}</th>
             </tr>
           </thead>
           <tbody>
-            {filteredSites.map((site: any) => {
+            {displayedSites.map((site: any) => {
               const primaryDomain = getPrimaryDomain(site);
               const isActive = activeSite?.id === site.id;
               const isDefault = isDefaultSite(site);
@@ -513,7 +539,7 @@ export function SiteList() {
                 </tr>
               );
             })}
-            {filteredSites.length === 0 && (
+            {displayedSites.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                   {searchQuery.trim()
