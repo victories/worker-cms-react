@@ -366,7 +366,7 @@ export function SiteList() {
                           href={`https://${primaryDomain.domain}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary hover:underline font-mono text-xs"
+                          className={`hover:underline font-mono text-xs ${site.status === 'paused' ? 'text-red-500 font-semibold' : 'text-primary'}`}
                         >
                           {primaryDomain.domain}
                         </a>

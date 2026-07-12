@@ -72,9 +72,9 @@ export function Header() {
               href={siteUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hidden sm:inline-flex items-center gap-1 hover:text-primary transition-colors"
+              className="text-sm text-muted-foreground hidden sm:inline-flex items-center gap-1 hover:text-primary transition-colors font-mono"
             >
-              {activeSite.name}
+              {primaryDomain}
               <ExternalLink className="h-3 w-3" />
             </a>
           ) : (

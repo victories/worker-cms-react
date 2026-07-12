@@ -143,6 +143,7 @@ export function GeneralSettings() {
     { id: 'seo', icon: <Globe className="h-4 w-4" />, label: 'SEO' },
     { id: 'snippets', icon: <Code className="h-4 w-4" />, label: 'Rich Snippets' },
     { id: 'analytics', icon: <BarChart3 className="h-4 w-4" />, label: 'Analytics' },
+    { id: 'header', icon: <Code className="h-4 w-4" />, label: lang === 'tr' ? 'Header Kodu' : 'Header Code' },
     { id: 'recaptcha', icon: <Shield className="h-4 w-4" />, label: 'reCAPTCHA' },
     { id: 'comments', icon: <MessageSquare className="h-4 w-4" />, label: lang === 'tr' ? 'Yorumlar' : 'Comments' },
   ];
@@ -739,6 +740,36 @@ export function GeneralSettings() {
               placeholder={'<!-- Facebook Pixel, Hotjar, etc. -->'}
             />
           </div>
+        </div>
+      </SectionCard>
+
+      {/* Header Code */}
+      <SectionCard
+        active={tab === 'header'}
+        icon={<Code className="h-5 w-5" />}
+        title={lang === 'tr' ? 'Header Kodu' : 'Header Code'}
+        description={lang === 'tr'
+          ? '<head> içine, analytics/izleme kodundan önce eklenen özel kod.'
+          : 'Custom code injected into <head>, before the analytics/tracking code.'}
+      >
+        <div>
+          <Label className="inline-flex items-center gap-2">
+            {lang === 'tr' ? '<head> İçine Eklenecek Kod (analytics öncesi)' : 'Code for <head> (before analytics)'}
+            <GlobalBadge settingKey="header_code" />
+            <ResetToGlobalButton settingKey="header_code" />
+          </Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            {lang === 'tr'
+              ? 'Doğrulama meta etiketleri, preconnect, özel scriptler vb. Analytics kodundan önce yüklenir.'
+              : 'Verification meta tags, preconnect, custom scripts, etc. Loaded before the analytics code.'}
+          </p>
+          <Textarea
+            value={settings.header_code || ''}
+            onChange={(e) => updateSetting('header_code', e.target.value)}
+            rows={6}
+            className="font-mono text-xs"
+            placeholder={'<meta name="google-site-verification" content="..." />\n<link rel="preconnect" href="..." />'}
+          />
         </div>
       </SectionCard>
 

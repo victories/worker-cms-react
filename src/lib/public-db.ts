@@ -463,15 +463,21 @@ const DEFAULT_ANALYTICS: AnalyticsConfig = { head_code: '', body_code: '' };
 export async function getAnalyticsSettings(db: D1Database, siteId: number, kv?: KVNamespace): Promise<AnalyticsConfig> {
   return cached(kv, `site:${siteId}:analytics`, 3600, async () => {
     const [siteRows, globalRows] = await Promise.all([
-      db.prepare("SELECT key, value FROM settings WHERE site_id = ? AND key IN ('analytics_head_code', 'analytics_body_code')").bind(siteId).all(),
-      db.prepare("SELECT key, value FROM global_settings WHERE key IN ('analytics_head_code', 'analytics_body_code')").all(),
+      db.prepare("SELECT key, value FROM settings WHERE site_id = ? AND key IN ('analytics_head_code', 'analytics_body_code', 'header_code')").bind(siteId).all(),
+      db.prepare("SELECT key, value FROM global_settings WHERE key IN ('analytics_head_code', 'analytics_body_code', 'header_code')").all(),
     ]);
 
     const siteMap = new Map((siteRows.results as any[]).map((r: any) => [r.key, r.value]));
     const globalMap = new Map((globalRows.results as any[]).map((r: any) => [r.key, r.value]));
 
+    // Custom header code is injected into <head> BEFORE the analytics/tracking
+    // snippet, so verification meta tags, preconnects or scripts the tracking
+    // code relies on load first.
+    const headerCode = (siteMap.get('header_code') ?? globalMap.get('header_code') ?? '') as string;
+    const analyticsHead = (siteMap.get('analytics_head_code') ?? globalMap.get('analytics_head_code') ?? '') as string;
+
     return {
-      head_code: (siteMap.get('analytics_head_code') ?? globalMap.get('analytics_head_code') ?? '') as string,
+      head_code: [headerCode, analyticsHead].filter(Boolean).join('\n'),
       body_code: (siteMap.get('analytics_body_code') ?? globalMap.get('analytics_body_code') ?? '') as string,
     };
   });

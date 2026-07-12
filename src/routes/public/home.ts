@@ -444,15 +444,16 @@ async function renderHomePage(c: any, lang: string): Promise<Response> {
 homeRoute.get('/', async (c) => {
   const site = c.get('site');
   if (!site) {
-    // No site resolved for this domain — show generic landing hint.
-    const adminDomain = c.env.ADMIN_DOMAIN || 'workercms.com';
+    // No site resolved for this domain — show a neutral placeholder.
+    // No admin/management link is exposed here (this page can appear on a
+    // misconfigured customer domain).
     return c.html(
       `<!DOCTYPE html><html><head><meta charset="utf-8"><title>WorkerCms</title>` +
         `<style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f1f5f9}` +
         `.card{background:white;padding:3rem;border-radius:1rem;box-shadow:0 4px 6px -1px rgb(0 0 0/0.1);text-align:center;max-width:500px}` +
-        `h1{color:#1e293b;margin-bottom:0.5rem}p{color:#64748b}a{color:#2563eb;text-decoration:none;font-weight:500}` +
+        `h1{color:#1e293b;margin-bottom:0.5rem}p{color:#64748b}` +
         `</style></head>` +
-        `<body><div class="card"><h1>WorkerCms</h1><p>Modern Multi-Site CMS</p><p><a href="https://${adminDomain}/">Yönetim Paneli →</a></p></div></body></html>`
+        `<body><div class="card"><h1>WorkerCms</h1><p>Modern Multi-Site CMS</p></div></body></html>`
     );
   }
   return renderHomePage(c, site.default_language || 'tr');
