@@ -752,24 +752,42 @@ export function GeneralSettings() {
           ? '<head> içine, analytics/izleme kodundan önce eklenen özel kod.'
           : 'Custom code injected into <head>, before the analytics/tracking code.'}
       >
-        <div>
-          <Label className="inline-flex items-center gap-2">
-            {lang === 'tr' ? '<head> İçine Eklenecek Kod (analytics öncesi)' : 'Code for <head> (before analytics)'}
-            <GlobalBadge settingKey="header_code" />
-            <ResetToGlobalButton settingKey="header_code" />
-          </Label>
-          <p className="text-xs text-muted-foreground mb-2">
-            {lang === 'tr'
-              ? 'Doğrulama meta etiketleri, preconnect, özel scriptler vb. Analytics kodundan önce yüklenir.'
-              : 'Verification meta tags, preconnect, custom scripts, etc. Loaded before the analytics code.'}
-          </p>
-          <Textarea
-            value={settings.header_code || ''}
-            onChange={(e) => updateSetting('header_code', e.target.value)}
-            rows={6}
-            className="font-mono text-xs"
-            placeholder={'<meta name="google-site-verification" content="..." />\n<link rel="preconnect" href="..." />'}
-          />
+        <div className="space-y-3">
+          {/* Enable / disable — keeps the code but stops injecting it */}
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+            <div>
+              <Label className="text-sm">{lang === 'tr' ? 'Header kodunu etkinleştir' : 'Enable header code'}</Label>
+              <p className="text-xs text-muted-foreground">
+                {lang === 'tr'
+                  ? 'Kapatınca kod silinmez; sadece siteye eklenmez.'
+                  : 'Turning this off keeps the code but stops injecting it.'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.header_code_enabled !== 'false'}
+              onCheckedChange={(checked) => updateSetting('header_code_enabled', checked ? 'true' : 'false')}
+            />
+          </div>
+
+          <div className={settings.header_code_enabled === 'false' ? 'opacity-50' : ''}>
+            <Label className="inline-flex items-center gap-2">
+              {lang === 'tr' ? '<head> İçine Eklenecek Kod (analytics öncesi)' : 'Code for <head> (before analytics)'}
+              <GlobalBadge settingKey="header_code" />
+              <ResetToGlobalButton settingKey="header_code" />
+            </Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              {lang === 'tr'
+                ? 'Doğrulama meta etiketleri, preconnect, özel scriptler vb. Analytics kodundan önce yüklenir.'
+                : 'Verification meta tags, preconnect, custom scripts, etc. Loaded before the analytics code.'}
+            </p>
+            <Textarea
+              value={settings.header_code || ''}
+              onChange={(e) => updateSetting('header_code', e.target.value)}
+              rows={6}
+              className="font-mono text-xs"
+              placeholder={'<meta name="google-site-verification" content="..." />\n<link rel="preconnect" href="..." />'}
+            />
+          </div>
         </div>
       </SectionCard>
 

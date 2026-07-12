@@ -463,8 +463,8 @@ const DEFAULT_ANALYTICS: AnalyticsConfig = { head_code: '', body_code: '' };
 export async function getAnalyticsSettings(db: D1Database, siteId: number, kv?: KVNamespace): Promise<AnalyticsConfig> {
   return cached(kv, `site:${siteId}:analytics`, 3600, async () => {
     const [siteRows, globalRows] = await Promise.all([
-      db.prepare("SELECT key, value FROM settings WHERE site_id = ? AND key IN ('analytics_head_code', 'analytics_body_code', 'header_code')").bind(siteId).all(),
-      db.prepare("SELECT key, value FROM global_settings WHERE key IN ('analytics_head_code', 'analytics_body_code', 'header_code')").all(),
+      db.prepare("SELECT key, value FROM settings WHERE site_id = ? AND key IN ('analytics_head_code', 'analytics_body_code', 'header_code', 'header_code_enabled')").bind(siteId).all(),
+      db.prepare("SELECT key, value FROM global_settings WHERE key IN ('analytics_head_code', 'analytics_body_code', 'header_code', 'header_code_enabled')").all(),
     ]);
 
     const siteMap = new Map((siteRows.results as any[]).map((r: any) => [r.key, r.value]));
@@ -472,8 +472,12 @@ export async function getAnalyticsSettings(db: D1Database, siteId: number, kv?: 
 
     // Custom header code is injected into <head> BEFORE the analytics/tracking
     // snippet, so verification meta tags, preconnects or scripts the tracking
-    // code relies on load first.
-    const headerCode = (siteMap.get('header_code') ?? globalMap.get('header_code') ?? '') as string;
+    // code relies on load first. It can be toggled off (header_code_enabled =
+    // 'false') to keep the saved code without injecting it.
+    const headerEnabled = (siteMap.get('header_code_enabled') ?? globalMap.get('header_code_enabled') ?? 'true') as string;
+    const headerCode = headerEnabled === 'false'
+      ? ''
+      : (siteMap.get('header_code') ?? globalMap.get('header_code') ?? '') as string;
     const analyticsHead = (siteMap.get('analytics_head_code') ?? globalMap.get('analytics_head_code') ?? '') as string;
 
     return {
