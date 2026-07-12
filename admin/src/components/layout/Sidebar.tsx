@@ -12,7 +12,7 @@ import {
   LayoutDashboard, FileText, Image, FolderTree, Tag, MessageSquare, Mail,
   Menu, Users, Settings, Plug, Globe, BarChart3, Upload, Database, LayoutGrid,
   Key, Shield, Zap, X, ChevronDown, Paintbrush, Code, ArrowRightLeft, Link2,
-  Rocket, Crown, Package, CreditCard, Sparkles, Bot, Boxes,
+  Rocket, Crown, Package, CreditCard, Bot, Boxes,
 } from 'lucide-react';
 
 // Simple nav items (not in accordion groups)
@@ -73,7 +73,7 @@ const navStructure: NavEntry[] = [
   },
   { key: 'nav.users', href: '/users', icon: Users, roles: ['admin', 'super_admin'] },
   { key: 'nav.analytics', href: '/analytics', icon: BarChart3 },
-  { key: 'nav.contety', href: '/contety', icon: Sparkles, roles: ['admin', 'super_admin'] },
+  // Contety Bot page/route still exists (/contety); only hidden from the menu.
   { key: 'nav.cmshub_bot', href: '/cmshub-bot', icon: Bot, roles: ['admin', 'super_admin'] },
   { key: 'nav.addons', href: '/addons', icon: Boxes, roles: ['super_admin'] },
   { key: 'nav.payments', href: '/payments', icon: CreditCard, roles: ['super_admin'] },
@@ -106,8 +106,9 @@ export function Sidebar() {
 
   // Track which accordion groups are open
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    // Auto-open group if current path matches a child
-    const initial: Record<string, boolean> = { 'nav.content': true }; // Content group open by default
+    // All groups start collapsed; a group only auto-opens when the current
+    // path is inside it. Manual toggles persist for the session.
+    const initial: Record<string, boolean> = {};
     navStructure.forEach((entry) => {
       if (isGroup(entry)) {
         const childMatch = entry.children.some((child) =>
