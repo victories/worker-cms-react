@@ -129,8 +129,12 @@ export function SiteList() {
   const confirmDelete = async () => {
     if (deleteId === null) return;
     try {
-      await api.request(`/sites/${deleteId}`, { method: 'DELETE' });
-      toast(lang === 'tr' ? 'Site silindi' : 'Site deleted', 'success');
+      const res: any = await api.request(`/sites/${deleteId}`, { method: 'DELETE' });
+      if (res && res.success === false) {
+        toast(res.error || (lang === 'tr' ? 'Silme başarısız' : 'Delete failed'), 'error');
+      } else {
+        toast(lang === 'tr' ? 'Site silindi' : 'Site deleted', 'success');
+      }
     } catch {
       toast(lang === 'tr' ? 'Silme başarısız' : 'Delete failed', 'error');
     }
