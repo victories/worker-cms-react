@@ -11,5 +11,6 @@ export function runGate(
     requireTurkish?: boolean;
     requireCountry?: boolean;
     requireNoProxy?: boolean;
+    blockMessage?: { tr: [string, string]; en: [string, string] } | null;
   }
 ): Promise<Response | null>;

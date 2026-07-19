@@ -79,7 +79,7 @@ export async function runGate(request, env, gopts = {}) {
   if (info.allowed) return null; // geç
 
   const wantsHtml = (request.headers.get("Accept") || "").includes("text/html");
-  return wantsHtml ? htmlMessage(info.failReason) : new Response("Forbidden", { status: 403 });
+  return wantsHtml ? htmlMessage(info.failReason, gopts.blockMessage) : new Response("Forbidden", { status: 403 });
 }
 
 async function evaluate(request, env, opts = {}) {
@@ -214,18 +214,27 @@ const MESAJLAR = {
               en: ["Verification Failed", "Access is unavailable because visitor information could not be verified."] },
 };
 
-function htmlMessage(reason) {
-  const m = MESAJLAR[reason] || MESAJLAR.error;
+const esc = (s) => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Özel mesaj (admin) doldurulmuşsa nedeni belli etmeden onu göster; boşsa
+// nedene göre varsayılan mesaj. custom = { tr:[baslik,metin], en:[baslik,metin] }.
+function htmlMessage(reason, custom) {
+  const useCustom = custom && custom.tr && custom.tr[0];
+  const m = useCustom ? custom : (MESAJLAR[reason] || MESAJLAR.error);
+  const enBlock = (m.en && m.en[0])
+    ? `<hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+    <h3 style="margin:0 0 6px;font-size:16px;color:#444;">${esc(m.en[0])}</h3>
+    <p style="margin:0;font-size:13px;color:#777;line-height:1.5;">${esc(m.en[1])}</p>`
+    : "";
   const body = `<!doctype html><html lang="tr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>${m.tr[0]}</title></head>
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(m.tr[0])}</title></head>
 <body style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f5f5f5;">
   <div style="text-align:center;padding:24px;max-width:460px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);">
     <div style="font-size:40px;margin-bottom:12px;">&#9888;&#65039;</div>
-    <h2 style="margin:0 0 8px;font-size:20px;color:#222;">${m.tr[0]}</h2>
-    <p style="margin:0 0 20px;font-size:15px;color:#555;line-height:1.5;">${m.tr[1]}</p>
-    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
-    <h3 style="margin:0 0 6px;font-size:16px;color:#444;">${m.en[0]}</h3>
-    <p style="margin:0;font-size:13px;color:#777;line-height:1.5;">${m.en[1]}</p>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#222;">${esc(m.tr[0])}</h2>
+    <p style="margin:0 0 20px;font-size:15px;color:#555;line-height:1.5;">${esc(m.tr[1])}</p>
+    ${enBlock}
   </div>
 </body></html>`;
   return new Response(body, { status: 403, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });

@@ -874,6 +874,40 @@ export function GeneralSettings() {
             />
           </div>
 
+          {/* Custom block message — editable, hides the reason */}
+          <div className="rounded-lg border p-3 space-y-2.5">
+            <div>
+              <Label className="text-sm">{lang === 'tr' ? 'Özel engelleme mesajı' : 'Custom block message'}</Label>
+              <p className="text-xs text-muted-foreground">
+                {lang === 'tr'
+                  ? 'Doldurulunca engellenen ziyaretçiye nedeni (mobil/VPN/ülke) belli etmeden bu gösterilir. Boş bırakılırsa varsayılan mesajlar kullanılır. İngilizce alanlar boşsa yalnızca Türkçe gösterilir.'
+                  : 'When filled, blocked visitors see this instead of the reason (device/VPN/country). Leave empty to use the defaults. If the English fields are empty, only Turkish is shown.'}
+              </p>
+            </div>
+            <Input
+              placeholder={lang === 'tr' ? 'Başlık (TR)' : 'Title (TR)'}
+              value={settings.gate_block_title_tr || ''}
+              onChange={(e) => updateSetting('gate_block_title_tr', e.target.value)}
+            />
+            <Textarea
+              rows={2}
+              placeholder={lang === 'tr' ? 'Metin (TR)' : 'Text (TR)'}
+              value={settings.gate_block_text_tr || ''}
+              onChange={(e) => updateSetting('gate_block_text_tr', e.target.value)}
+            />
+            <Input
+              placeholder="Title (EN)"
+              value={settings.gate_block_title_en || ''}
+              onChange={(e) => updateSetting('gate_block_title_en', e.target.value)}
+            />
+            <Textarea
+              rows={2}
+              placeholder="Text (EN)"
+              value={settings.gate_block_text_en || ''}
+              onChange={(e) => updateSetting('gate_block_text_en', e.target.value)}
+            />
+          </div>
+
           {/* Detailed system explanation */}
           <div className="rounded-lg border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-4">
             {lang === 'tr' ? (
