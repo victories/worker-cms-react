@@ -14,7 +14,9 @@
 //   };
 
 // ---------- AYARLAR ----------
-const IP_WHITELIST = ["192.30.138.178", "185.248.12.49"];
+// Muaf IP listesi. VARSAYILAN BOŞ — kimse (admin dahil) otomatik muaf değil,
+// herkes kapıya tabi olur (kullanıcı isteği). Gerekirse: const IP_WHITELIST = ["1.2.3.4"];
+const IP_WHITELIST = [];
 const PROXYCHECK_KEY = ""; // test için buraya yaz; prod'da "" bırak, env.PROXYCHECK_KEY kullanılır
 
 const RESIDENTIAL_RISK_THRESHOLD = 50;   // residential/CGNAT: bu risk ve üstünü engelle
