@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import type { Bindings, Variables } from './types';
+import { runGate } from './gate.js';
 import { siteResolver } from './middleware/siteResolver';
 import { corsMiddleware } from './middleware/cors';
 import { cspMiddleware } from './middleware/csp';
@@ -607,6 +608,32 @@ app.route('/', homeRoutes);      // / (default lang home), /:lang (non-default l
 app.route('/', llmsRoutes);      // /llms.txt, /:slug.md — before postRoutes so .md wins
 app.route('/', postRoutes);      // /:slug (default lang), /:lang/:slug (non-default — must be last)
 
+// Visitor gate exemptions. The gate (gate.js) only fronts PUBLIC customer-site
+// traffic. Admin panel, API/webhooks, media and the management/admin domain must
+// never be gated — otherwise desktop admins and server-to-server webhooks (which
+// aren't mobile/Turkish) would be blocked. Proxied customer requests carry the
+// real domain in `X-Site-Host`; a bare workers.dev/admin host with no such header
+// is our own admin/debug surface, so it is exempt too.
+function gateExempt(request: Request, env: Bindings): boolean {
+  const url = new URL(request.url);
+  const p = url.pathname;
+  if (
+    p === '/admin' || p.startsWith('/admin/') ||
+    p === '/api' || p.startsWith('/api/') ||
+    p.startsWith('/uploads/') ||
+    p.startsWith('/git/')
+  ) return true;
+
+  const xsh = (request.headers.get('x-site-host') || '').trim().toLowerCase().replace(/:\d+$/, '');
+  const wire = (request.headers.get('host') || '').toLowerCase().replace(/:\d+$/, '');
+  const effective = xsh || wire;
+  const admin = (env.ADMIN_DOMAIN || '').toLowerCase();
+  if (admin && (effective === admin || effective === `www.${admin}`)) return true;
+  // Bare workers.dev with no proxied customer domain = admin/debug access.
+  if (!xsh && wire.endsWith('.workers.dev')) return true;
+  return false;
+}
+
 export default {
   // Reverse-proxy host override. An upstream proxy (e.g. our OpenResty edge)
   // can route a customer domain to this worker over its `*.workers.dev`
@@ -614,7 +641,28 @@ export default {
   // rewrite the request URL so canonical links, redirects and `c.req.url`
   // reflect the customer domain; `siteResolver` reads `X-Site-Host` directly
   // for site resolution. All fronted domains are ours, so no shared secret.
-  fetch: (request: Request, env: Bindings, ctx: ExecutionContext) => {
+  fetch: async (request: Request, env: Bindings, ctx: ExecutionContext) => {
+    // Visitor gate. Two levels of control:
+    //  1) GATE_ENABLED === '1' — deployment master switch (only the gated
+    //     worker sets it, so other deploy targets pay zero overhead).
+    //  2) per-site `gate_enabled` setting — toggled from admin → Site Settings,
+    //     so each customer site turns its own gate on/off. Default off.
+    // Runs before the X-Site-Host rewrite; it only reads IP/country/UA/Accept
+    // headers, which are host-independent.
+    if (env.GATE_ENABLED === '1' && !gateExempt(request, env)) {
+      const gateHost = (request.headers.get('x-site-host') || request.headers.get('host') || '')
+        .trim().toLowerCase().replace(/:\d+$/, '');
+      if (gateHost) {
+        const row = await env.DB.prepare(
+          "SELECT st.value AS v FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key = 'gate_enabled' WHERE sd.domain = ?"
+        ).bind(gateHost).first<{ v: string }>();
+        if (row?.v === '1') {
+          const blocked = await runGate(request, env);
+          if (blocked) return blocked;
+        }
+      }
+    }
+
     const proxied = request.headers.get('x-site-host');
     if (proxied) {
       const clean = proxied.trim().toLowerCase().replace(/:\d+$/, '');

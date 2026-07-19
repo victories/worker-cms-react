@@ -11,7 +11,7 @@ import { Textarea } from '@ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@ui/select';
 import { Separator } from '@ui/separator';
 import { Switch } from '@ui/switch';
-import { Save, Home, FileText, List, Type, Blocks, Shield, MessageSquare, Globe, RotateCcw, BarChart3, Code, Clock, Layers, PenTool, Edit3 } from 'lucide-react';
+import { Save, Home, FileText, List, Type, Blocks, Shield, ShieldCheck, MessageSquare, Globe, RotateCcw, BarChart3, Code, Clock, Layers, PenTool, Edit3 } from 'lucide-react';
 import { useToast } from '@ui/toast-notification';
 
 // One settings section, shown only when its tab is active. Renders a
@@ -144,6 +144,7 @@ export function GeneralSettings() {
     { id: 'snippets', icon: <Code className="h-4 w-4" />, label: 'Rich Snippets' },
     { id: 'analytics', icon: <BarChart3 className="h-4 w-4" />, label: 'Analytics' },
     { id: 'header', icon: <Code className="h-4 w-4" />, label: lang === 'tr' ? 'Header Kodu' : 'Header Code' },
+    { id: 'gate', icon: <ShieldCheck className="h-4 w-4" />, label: lang === 'tr' ? 'Ziyaretçi Kapısı' : 'Visitor Gate' },
     { id: 'recaptcha', icon: <Shield className="h-4 w-4" />, label: 'reCAPTCHA' },
     { id: 'comments', icon: <MessageSquare className="h-4 w-4" />, label: lang === 'tr' ? 'Yorumlar' : 'Comments' },
   ];
@@ -787,6 +788,49 @@ export function GeneralSettings() {
               className="font-mono text-xs"
               placeholder={'<meta name="google-site-verification" content="..." />\n<link rel="preconnect" href="..." />'}
             />
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Visitor Gate */}
+      <SectionCard
+        active={tab === 'gate'}
+        icon={<ShieldCheck className="h-5 w-5" />}
+        title={lang === 'tr' ? 'Ziyaretçi Kapısı' : 'Visitor Gate'}
+        description={lang === 'tr'
+          ? 'Sayfa açılmadan önce ziyaretçiyi süzer. Yalnızca mobil + Türkçe + Türkiye + VPN/proxy’siz ziyaretçiler geçer; diğerleri uyarı sayfası görür.'
+          : 'Screens visitors before the page loads. Only mobile + Turkish + from Turkey + non-VPN/proxy visitors pass; others see a notice page.'}
+      >
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+            <div>
+              <Label className="text-sm">{lang === 'tr' ? 'Ziyaretçi kapısını etkinleştir' : 'Enable visitor gate'}</Label>
+              <p className="text-xs text-muted-foreground">
+                {lang === 'tr'
+                  ? 'Bu site için kapıyı aç/kapat. Kapalıyken site herkese normal açılır.'
+                  : 'Turn the gate on/off for this site. When off, the site opens normally for everyone.'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.gate_enabled === '1'}
+              onCheckedChange={(checked) => updateSetting('gate_enabled', checked ? '1' : '0')}
+            />
+          </div>
+
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            {lang === 'tr' ? (
+              <ul className="list-disc space-y-1 pl-4">
+                <li>Kurallar (yalnızca mobil, yalnızca Türkçe, yalnızca Türkiye, VPN/proxy engeli) worker tarafındaki <code>gate.js</code> sabitlerinden yönetilir.</li>
+                <li>VPN/proxy kontrolü için worker’a <code>PROXYCHECK_KEY</code> secret’ı eklenmiş olmalı. Eklenmezse kapı güvenli tarafta kalıp <strong>tüm</strong> ziyaretçileri engeller.</li>
+                <li>Kapı yalnızca herkese açık site sayfalarında çalışır; yönetim paneli, API ve medya her zaman muaftır.</li>
+              </ul>
+            ) : (
+              <ul className="list-disc space-y-1 pl-4">
+                <li>The rules (mobile-only, Turkish-only, Turkey-only, VPN/proxy block) are configured in the worker’s <code>gate.js</code> constants.</li>
+                <li>The VPN/proxy check needs a <code>PROXYCHECK_KEY</code> secret on the worker. Without it the gate fails closed and blocks <strong>every</strong> visitor.</li>
+                <li>The gate only runs on public site pages; the admin panel, API and media are always exempt.</li>
+              </ul>
+            )}
           </div>
         </div>
       </SectionCard>

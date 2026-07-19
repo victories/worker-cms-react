@@ -11,6 +11,11 @@ export interface Bindings {
   __STATIC_CONTENT: KVNamespace; // Auto-injected by wrangler [site] config
   DISPATCHER?: any; // Workers for Platforms dispatch namespace (optional)
   CACHE?: KVNamespace; // KV cache for public queries (optional)
+  // Visitor gate (gate.js) — only active where GATE_ENABLED === '1'
+  // (gated deployment only). See GATE_ENTEGRASYON.md.
+  GATE_ENABLED?: string;      // '1' turns the visitor gate on for this deployment
+  IPCACHE?: KVNamespace;      // caches proxycheck.io verdicts per IP
+  PROXYCHECK_KEY?: string;    // proxycheck.io API key (worker secret)
 }
 
 export interface Variables {
