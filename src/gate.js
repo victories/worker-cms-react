@@ -33,6 +33,18 @@ const REQUIRE_NO_PROXY = true;
 const BYPASS_PATHS = ["/health", "/favicon.ico"];
 // ------------------------------
 
+// Gerçek ziyaretçi IP'si. Kendi reverse-proxy'miz arkasında olduğumuzda
+// CF-Connecting-IP proxy'nin IP'sidir. Proxy asıl ziyaretçi IP'sini
+// `X-Forwarded-For`'un ilk kaydında iletir. (DİKKAT: Cloudflare `X-Real-IP`'yi
+// bağlanan IP'ye — yani proxy'ye — ezdiği için o header GÜVENİLMEZ.) Önünde
+// proxy olmayan doğrudan erişimde CF-Connecting-IP'ye düşülür.
+function clientIp(request) {
+  const xff = request.headers.get("X-Forwarded-For") || "";
+  const first = xff.split(",")[0].trim();
+  if (first) return first;
+  return request.headers.get("CF-Connecting-IP") || null;
+}
+
 // Dönüş: null (geç, CMS devam etsin) | Response (engellendi, bunu döndür)
 export async function runGate(request, env) {
   const url = new URL(request.url);
@@ -45,8 +57,13 @@ export async function runGate(request, env) {
   // Debug: /__info  (proxy sorgusu yapmaz) | /__info?check=1 (ham skoru gösterir)
   if (url.pathname === "/__info") {
     const info = await evaluate(request, env, { skipProxy: true });
+    // Ham header'lar — proxy'nin hangi header ile ziyaretçi IP'sini ilettiğini
+    // görmek için. `ip` = clientIp() ile çözülen gerçek ziyaretçi IP'si.
+    info.cf_connecting_ip = request.headers.get("CF-Connecting-IP") || null;
+    info.x_real_ip = request.headers.get("X-Real-IP") || null;
+    info.x_forwarded_for = request.headers.get("X-Forwarded-For") || null;
     if (url.searchParams.get("check") === "1") {
-      const ip = request.headers.get("CF-Connecting-IP");
+      const ip = clientIp(request);
       info.proxycheck = await queryProxycheck(ip, env);
       info.whitelisted = IP_WHITELIST.includes(ip);
     }
@@ -61,8 +78,6 @@ export async function runGate(request, env) {
 }
 
 async function evaluate(request, env, opts = {}) {
-  const country = request.cf?.country || "XX";
-
   const ua = request.headers.get("User-Agent") || "";
   const chMobile = request.headers.get("Sec-CH-UA-Mobile");
   const isMobile = chMobile === "?1" || /Android|iPhone|iPad|iPod|Mobile|Windows Phone|Opera Mini/i.test(ua);
@@ -71,15 +86,19 @@ async function evaluate(request, env, opts = {}) {
   const primaryLang = acceptLang.split(",")[0].trim().toLowerCase();
   const isTurkish = primaryLang.startsWith("tr");
 
+  const ip = clientIp(request);
+  // Proxy arkasında request.cf.country proxy'nin ülkesidir; gerçek ülke ziyaretçi
+  // IP'sinden (proxycheck) gelir. Ham fallback yalnızca skipProxy modu içindir.
+  let country = request.cf?.country || "XX";
   let failReason = null;
   let isProxy = false;
 
   if (REQUIRE_MOBILE && !isMobile) failReason = "device";
   else if (REQUIRE_TURKISH && !isTurkish) failReason = "language";
-  else if (REQUIRE_COUNTRY && country !== REQUIRE_COUNTRY) failReason = "country";
-  else if (REQUIRE_NO_PROXY && !opts.skipProxy) {
-    const verdict = await checkProxy(request, env);
-    if (verdict === "block") { failReason = "proxy"; isProxy = true; }
+  else if (!opts.skipProxy && (REQUIRE_COUNTRY || REQUIRE_NO_PROXY)) {
+    const v = await checkVisitor(ip, env);
+    if (v.country) country = v.country;
+    if (v.reason) { failReason = v.reason; isProxy = v.reason === "proxy"; }
   }
 
   return {
@@ -89,7 +108,7 @@ async function evaluate(request, env, opts = {}) {
     isProxy,
     allowed: failReason === null,
     failReason,
-    ip: request.headers.get("CF-Connecting-IP") || null,
+    ip,
   };
 }
 
@@ -112,49 +131,51 @@ async function queryProxycheck(ip, env) {
       type: e.type || null,
       provider: e.provider || null,
       risk: typeof e.risk === "number" ? e.risk : null,
+      isocode: e.isocode || null,
     };
   } catch (err) {
     return { ok: false, error: "fetch_failed" };
   }
 }
 
-async function checkProxy(request, env) {
-  const ip = request.headers.get("CF-Connecting-IP");
-  if (!ip) return "block";
-  if (IP_WHITELIST.includes(ip)) return "allow";
-  if (!resolveKey(env)) return "block";
+// Gerçek ziyaretçi IP'si için birleşik ülke + proxy/VPN kararı. proxy arkasında
+// request.cf.country güvenilmez olduğundan ülke de proxycheck'ten (isocode) gelir.
+// Dönüş: { verdict:"allow", country } | { reason:"country"|"proxy", country }
+async function checkVisitor(ip, env) {
+  if (!ip) return { reason: "proxy" };               // IP yoksa doğrulanamaz -> engelle
+  if (IP_WHITELIST.includes(ip)) return { verdict: "allow" };
+  if (!resolveKey(env)) return { reason: "proxy" };  // anahtar yoksa -> fail-closed
 
+  const cacheKey = "ipv:" + ip;
   if (env.IPCACHE) {
-    const cached = await env.IPCACHE.get("ip:" + ip);
-    if (cached === "block") return "block";
-    if (cached === "allow") return "allow";
+    const cached = await env.IPCACHE.get(cacheKey);
+    if (cached) { try { return JSON.parse(cached); } catch (e) { /* yok say */ } }
   }
 
   const q = await queryProxycheck(ip, env);
-  if (!q.ok) return "block"; // fail-closed
+  if (!q.ok) return { reason: "proxy" };             // API hatası -> fail-closed
 
-  let verdict, ttl = CACHE_RESIDENTIAL_TTL;
-  if (!q.proxy) {
-    verdict = "allow";
-  } else {
+  let result;
+  if (REQUIRE_COUNTRY && q.isocode && q.isocode !== REQUIRE_COUNTRY) {
+    result = { reason: "country", country: q.isocode };
+  } else if (REQUIRE_NO_PROXY && q.proxy) {
     const type = (q.type || "").toLowerCase();
     const risk = q.risk === null ? 100 : q.risk;
     const isResidential = type.includes("residential") || type.includes("wireless") || type.includes("cgnat");
-    if (isResidential) {
-      verdict = risk >= RESIDENTIAL_RISK_THRESHOLD ? "block" : "allow";
-      ttl = CACHE_RESIDENTIAL_TTL;
-    } else {
-      const blockDc = DATACENTER_ALWAYS_BLOCK || risk >= DATACENTER_RISK_THRESHOLD;
-      verdict = blockDc ? "block" : "allow";
-      ttl = blockDc ? null : CACHE_RESIDENTIAL_TTL;
-    }
+    const block = isResidential
+      ? risk >= RESIDENTIAL_RISK_THRESHOLD
+      : (DATACENTER_ALWAYS_BLOCK || risk >= DATACENTER_RISK_THRESHOLD);
+    result = block
+      ? { reason: "proxy", country: q.isocode }
+      : { verdict: "allow", country: q.isocode };
+  } else {
+    result = { verdict: "allow", country: q.isocode };
   }
 
   if (env.IPCACHE) {
-    const opts = ttl === null ? {} : { expirationTtl: ttl };
-    await env.IPCACHE.put("ip:" + ip, verdict, opts);
+    await env.IPCACHE.put(cacheKey, JSON.stringify(result), { expirationTtl: CACHE_RESIDENTIAL_TTL });
   }
-  return verdict;
+  return result;
 }
 
 const MESAJLAR = {
