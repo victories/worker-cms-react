@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import type { Bindings, Variables } from './types';
 import { runGate } from './gate.js';
+import { interstitialHtml, makeHumanCookie, hasValidHumanCookie, verifyTurnstile, safePath } from './turnstile';
 import { siteResolver } from './middleware/siteResolver';
 import { corsMiddleware } from './middleware/cors';
 import { cspMiddleware } from './middleware/csp';
@@ -649,13 +650,38 @@ export default {
     //     so each customer site turns its own gate on/off. Default off.
     // Runs before the X-Site-Host rewrite; it only reads IP/country/UA/Accept
     // headers, which are host-independent.
+    // Turnstile doğrulama ucu — interstitial'ın otomatik POST'unu karşılar.
+    // Gate'ten önce ele alınır (kendisi gate'e tabi değil). Token geçerliyse
+    // imzalı "insan" çerezi yazıp geldiği yola geri döner.
+    if (env.GATE_ENABLED === '1' && env.TURNSTILE_SECRET) {
+      const tsUrl = new URL(request.url);
+      if (tsUrl.pathname === '/__ts-verify' && request.method === 'POST') {
+        const form = await request.formData();
+        const token = String(form.get('cf-turnstile-response') || '');
+        const rp = safePath(String(form.get('rp') || '/'));
+        const vip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+          || request.headers.get('cf-connecting-ip') || undefined;
+        const ok = await verifyTurnstile(token, env.TURNSTILE_SECRET, vip);
+        if (ok) {
+          return new Response(null, {
+            status: 302,
+            headers: { Location: rp, 'Set-Cookie': await makeHumanCookie(env.TURNSTILE_SECRET), 'Cache-Control': 'no-store' },
+          });
+        }
+        return new Response(
+          '<!doctype html><meta charset="utf-8"><title>Doğrulama Başarısız</title><body style="font-family:sans-serif;text-align:center;padding:48px;color:#444"><div style="font-size:38px">&#9888;&#65039;</div><h2>Doğrulama Başarısız</h2><p style="color:#777">Bağlantınız doğrulanamadı. Lütfen tekrar deneyin.</p></body>',
+          { status: 403, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } }
+        );
+      }
+    }
+
     let gatedNoStore = false;
     if (env.GATE_ENABLED === '1' && !gateExempt(request, env)) {
       const gateHost = (request.headers.get('x-site-host') || request.headers.get('host') || '')
         .trim().toLowerCase().replace(/:\d+$/, '');
       if (gateHost) {
         const rows = await env.DB.prepare(
-          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy') WHERE sd.domain = ?"
+          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy','gate_turnstile') WHERE sd.domain = ?"
         ).bind(gateHost).all<{ key: string; value: string }>();
         const gs = new Map((rows.results || []).map((r) => [r.key, r.value]));
         if (gs.get('gate_enabled') === '1') {
@@ -668,6 +694,15 @@ export default {
             requireNoProxy: gs.get('gate_require_no_proxy') !== '0',
           });
           if (blocked) return blocked;
+          // Kurallar geçti. Turnstile açıksa ve geçerli "insan" çerezi yoksa,
+          // içerik yerine görünmez doğrulama sayfasını sun (token alan girer).
+          if (
+            gs.get('gate_turnstile') === '1' &&
+            env.TURNSTILE_SITE_KEY && env.TURNSTILE_SECRET &&
+            !(await hasValidHumanCookie(request, env.TURNSTILE_SECRET))
+          ) {
+            return interstitialHtml(env.TURNSTILE_SITE_KEY, new URL(request.url).pathname + new URL(request.url).search);
+          }
           // Ziyaretçi geçti AMA sayfa gate'e tabi: upstream proxy/CDN bu sayfayı
           // önbelleğe alıp ENGELLENMESİ gereken başka bir ziyaretçiye sunmasın
           // diye yanıtı önbelleklenemez işaretle (proxy her istekte gate'e uğrar).

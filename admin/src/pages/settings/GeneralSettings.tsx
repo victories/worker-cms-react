@@ -841,6 +841,22 @@ export function GeneralSettings() {
             </div>
           </div>
 
+          {/* Turnstile — invisible human check */}
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+            <div>
+              <Label className="text-sm">{lang === 'tr' ? 'İnsan doğrulama (Cloudflare Turnstile)' : 'Human check (Cloudflare Turnstile)'}</Label>
+              <p className="text-xs text-muted-foreground">
+                {lang === 'tr'
+                  ? 'Kuralları geçen ziyaretçiye, içerik açılmadan önce görünmez (tıklamasız) bot doğrulaması. Token alamayan bot/crawler giremez. Worker’da TURNSTILE_SITE_KEY + TURNSTILE_SECRET gerekir.'
+                  : 'After the rules pass, an invisible (no-click) bot check before content loads. Bots/crawlers that can’t earn a token are blocked. Requires TURNSTILE_SITE_KEY + TURNSTILE_SECRET on the worker.'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.gate_turnstile === '1'}
+              onCheckedChange={(checked) => updateSetting('gate_turnstile', checked ? '1' : '0')}
+            />
+          </div>
+
           {/* Ignore whitelist — for testing the gate as a real visitor */}
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div>
