@@ -817,20 +817,100 @@ export function GeneralSettings() {
             />
           </div>
 
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          {/* Detailed system explanation */}
+          <div className="rounded-lg border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-4">
             {lang === 'tr' ? (
-              <ul className="list-disc space-y-1 pl-4">
-                <li>Kurallar (yalnızca mobil, yalnızca Türkçe, yalnızca Türkiye, VPN/proxy engeli) worker tarafındaki <code>gate.js</code> sabitlerinden yönetilir.</li>
-                <li>VPN/proxy kontrolü için worker’a <code>PROXYCHECK_KEY</code> secret’ı eklenmiş olmalı. Eklenmezse kapı güvenli tarafta kalıp <strong>tüm</strong> ziyaretçileri engeller.</li>
-                <li>Kapı yalnızca herkese açık site sayfalarında çalışır; yönetim paneli, API ve medya her zaman muaftır.</li>
-              </ul>
+              <>
+                <div>
+                  <p className="font-semibold text-foreground text-sm mb-1">Sistem nasıl çalışır?</p>
+                  <p>Kapı açık olduğunda, sayfa CMS tarafından oluşturulmadan <strong>önce</strong> her istek değerlendirilir. Ziyaretçi aşağıdaki kontrolleri <strong>sırayla</strong> geçmek zorundadır; ilk başarısız kontrolde durur ve o kurala ait uyarı sayfası (HTTP 403) gösterilir. Tüm kontrolleri geçen ziyaretçiye site normal açılır ve iç linkler, formlar, görseller olağan şekilde çalışır.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Uygulanan kurallar (sırasıyla)</p>
+                  <ol className="list-decimal space-y-1 pl-4">
+                    <li><strong>Yalnızca mobil cihaz</strong> — cihaz <code>Sec-CH-UA-Mobile</code> başlığından ve User-Agent’tan tespit edilir. Masaüstü ziyaretçiler engellenir.</li>
+                    <li><strong>Yalnızca Türkçe</strong> — tarayıcının <code>Accept-Language</code> başlığı <code>tr</code> ile başlamalıdır.</li>
+                    <li><strong>Yalnızca Türkiye</strong> — Cloudflare’in tespit ettiği ülke (<code>TR</code>) kontrol edilir.</li>
+                    <li><strong>VPN / proxy yok</strong> — ziyaretçinin IP’si proxycheck.io ile sorgulanır. Datacenter/VPN her zaman engellenir; residential/mobil bağlantılar ise risk skoru 50 ve üzeriyse engellenir.</li>
+                  </ol>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Engellenen ziyaretçi ne görür?</p>
+                  <p>Nazik, iki dilli (TR/EN) bir bilgi sayfası — engellenme nedenine göre metin değişir (ör. “Yalnızca Mobil Cihazlar”, “Yalnızca Türkçe Hizmet”, “Bağlantı Doğrulanamadı”). Sayfa 403 durum koduyla döner ve arama motorlarında önbelleğe alınmaz.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Her zaman muaf tutulanlar</p>
+                  <p>Yönetim paneli (<code>/admin</code>), API ve webhook’lar (<code>/api</code>), medya dosyaları (<code>/uploads</code>) ve yönetim alan adı hiçbir zaman kapıya takılmaz. Böylece masaüstünden panele girişin ve ödeme/webhook çağrıları etkilenmez.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Önbellek ve muaf IP’ler</p>
+                  <p>Aynı IP için proxy/VPN sonucu tekrar tekrar sorulmaz; temiz sonuçlar 24 saat önbelleğe alınır (kota tasarrufu). Yöneticinin kendi IP’leri beyaz listededir ve tüm kontrollerden muaftır.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Kapsam ve kurulum</p>
+                  <p>Bu anahtar yalnızca <strong>bu siteyi</strong> etkiler; her siteyi ayrı ayrı açıp kapatabilirsin. Kurallar (mobil/dil/ülke/proxy eşikleri) ve muaf IP listesi worker tarafındaki <code>gate.js</code> dosyasından yönetilir.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">SEO / bot notu</p>
+                  <p>Kapı, Googlebot gibi tarayıcıları da (mobil değil / dil yok diye) engelleyebilir. Kampanya/erişim kısıtı amacıyla kullanıldığından bu beklenen davranıştır; sitenin Google’da indekslenmesini istiyorsan kapıyı bu sitede kapalı tut.</p>
+                </div>
+              </>
             ) : (
-              <ul className="list-disc space-y-1 pl-4">
-                <li>The rules (mobile-only, Turkish-only, Turkey-only, VPN/proxy block) are configured in the worker’s <code>gate.js</code> constants.</li>
-                <li>The VPN/proxy check needs a <code>PROXYCHECK_KEY</code> secret on the worker. Without it the gate fails closed and blocks <strong>every</strong> visitor.</li>
-                <li>The gate only runs on public site pages; the admin panel, API and media are always exempt.</li>
-              </ul>
+              <>
+                <div>
+                  <p className="font-semibold text-foreground text-sm mb-1">How the system works</p>
+                  <p>When the gate is on, every request is evaluated <strong>before</strong> the CMS renders the page. Visitors must pass the checks below <strong>in order</strong>; on the first failed check they stop and see a notice page (HTTP 403) for that rule. Visitors who pass all checks get the site normally — internal links, forms and images all work as usual.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Rules applied (in order)</p>
+                  <ol className="list-decimal space-y-1 pl-4">
+                    <li><strong>Mobile devices only</strong> — detected from the <code>Sec-CH-UA-Mobile</code> header and User-Agent. Desktop visitors are blocked.</li>
+                    <li><strong>Turkish only</strong> — the browser’s <code>Accept-Language</code> must start with <code>tr</code>.</li>
+                    <li><strong>Turkey only</strong> — Cloudflare’s detected country must be <code>TR</code>.</li>
+                    <li><strong>No VPN / proxy</strong> — the visitor’s IP is checked via proxycheck.io. Datacenter/VPN is always blocked; residential/mobile connections are blocked at risk score 50 or above.</li>
+                  </ol>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">What a blocked visitor sees</p>
+                  <p>A polite bilingual (TR/EN) notice page whose text depends on the reason (e.g. “Mobile Devices Only”, “Turkish Language Only”, “Connection Not Verified”). It returns HTTP 403 and is not cached by search engines.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Always exempt</p>
+                  <p>The admin panel (<code>/admin</code>), API and webhooks (<code>/api</code>), media files (<code>/uploads</code>) and the management domain are never gated — so your desktop admin access and payment/webhook calls are unaffected.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Caching and exempt IPs</p>
+                  <p>The proxy/VPN result for an IP is not re-queried repeatedly; clean results are cached for 24 hours (saves quota). The admin’s own IPs are whitelisted and skip all checks.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">Scope and setup</p>
+                  <p>This switch affects <strong>this site only</strong>; you can turn each site on/off independently. The rules (mobile/language/country/proxy thresholds) and the exempt-IP list are managed in the worker’s <code>gate.js</code> file.</p>
+                </div>
+
+                <div>
+                  <p className="font-medium text-foreground mb-1">SEO / bot note</p>
+                  <p>The gate may also block crawlers like Googlebot (not mobile / no language). This is expected for campaign/access-restriction use; if you want this site indexed by Google, keep the gate off for it.</p>
+                </div>
+              </>
             )}
+          </div>
+
+          {/* Critical requirement */}
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            {lang === 'tr'
+              ? <p><strong>Önemli:</strong> VPN/proxy kontrolü için worker’a <code>PROXYCHECK_KEY</code> secret’ı eklenmiş olmalıdır. Eklenmezse kapı güvenli tarafta kalıp (fail-closed) mobil + Türkçe ziyaretçiler dahil <strong>tüm</strong> ziyaretçileri engeller. Bu yüzden anahtarı eklemeden bu siteyi açma.</p>
+              : <p><strong>Important:</strong> the VPN/proxy check needs a <code>PROXYCHECK_KEY</code> secret on the worker. Without it the gate fails closed and blocks <strong>every</strong> visitor — including mobile + Turkish ones. Don’t enable this site until the key is set.</p>}
           </div>
         </div>
       </SectionCard>
