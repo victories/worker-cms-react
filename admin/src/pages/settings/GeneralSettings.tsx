@@ -817,6 +817,22 @@ export function GeneralSettings() {
             />
           </div>
 
+          {/* Ignore whitelist — for testing the gate as a real visitor */}
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+            <div>
+              <Label className="text-sm">{lang === 'tr' ? 'Muaf IP listesini (whitelist) yok say' : 'Ignore the exempt-IP whitelist'}</Label>
+              <p className="text-xs text-muted-foreground">
+                {lang === 'tr'
+                  ? 'Test için. Açıkken kendi muaf IP’lerin de kapıya tabi olur — kapıyı gerçek bir ziyaretçi gibi denemek için kullan.'
+                  : 'For testing. When on, your own exempt IPs are also gated — use it to experience the gate as a real visitor.'}
+              </p>
+            </div>
+            <Switch
+              checked={settings.gate_ignore_whitelist === '1'}
+              onCheckedChange={(checked) => updateSetting('gate_ignore_whitelist', checked ? '1' : '0')}
+            />
+          </div>
+
           {/* Detailed system explanation */}
           <div className="rounded-lg border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground space-y-4">
             {lang === 'tr' ? (

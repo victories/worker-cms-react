@@ -46,7 +46,9 @@ function clientIp(request) {
 }
 
 // Dönüş: null (geç, CMS devam etsin) | Response (engellendi, bunu döndür)
-export async function runGate(request, env) {
+// gopts.ignoreWhitelist: site bazlı ayar — açıksa IP_WHITELIST yok sayılır
+// (muaf IP'ler de kapıya tabi olur; test için).
+export async function runGate(request, env, gopts = {}) {
   const url = new URL(request.url);
 
   // Muaf yollar
@@ -73,7 +75,7 @@ export async function runGate(request, env) {
     return json(info);
   }
 
-  const info = await evaluate(request, env);
+  const info = await evaluate(request, env, { ignoreWhitelist: gopts.ignoreWhitelist });
   if (info.allowed) return null; // geç
 
   const wantsHtml = (request.headers.get("Accept") || "").includes("text/html");
@@ -99,7 +101,7 @@ async function evaluate(request, env, opts = {}) {
   if (REQUIRE_MOBILE && !isMobile) failReason = "device";
   else if (REQUIRE_TURKISH && !isTurkish) failReason = "language";
   else if (!opts.skipProxy && (REQUIRE_COUNTRY || REQUIRE_NO_PROXY)) {
-    const v = await checkVisitor(ip, env);
+    const v = await checkVisitor(ip, env, opts.ignoreWhitelist);
     if (v.country) country = v.country;
     if (v.reason) { failReason = v.reason; isProxy = v.reason === "proxy"; }
   }
@@ -144,9 +146,9 @@ async function queryProxycheck(ip, env) {
 // Gerçek ziyaretçi IP'si için birleşik ülke + proxy/VPN kararı. proxy arkasında
 // request.cf.country güvenilmez olduğundan ülke de proxycheck'ten (isocode) gelir.
 // Dönüş: { verdict:"allow", country } | { reason:"country"|"proxy", country }
-async function checkVisitor(ip, env) {
+async function checkVisitor(ip, env, ignoreWhitelist) {
   if (!ip) return { reason: "proxy" };               // IP yoksa doğrulanamaz -> engelle
-  if (IP_WHITELIST.includes(ip)) return { verdict: "allow" };
+  if (!ignoreWhitelist && IP_WHITELIST.includes(ip)) return { verdict: "allow" };
   if (!resolveKey(env)) return { reason: "proxy" };  // anahtar yoksa -> fail-closed
 
   const cacheKey = "ipv:" + ip;

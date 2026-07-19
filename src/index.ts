@@ -653,11 +653,12 @@ export default {
       const gateHost = (request.headers.get('x-site-host') || request.headers.get('host') || '')
         .trim().toLowerCase().replace(/:\d+$/, '');
       if (gateHost) {
-        const row = await env.DB.prepare(
-          "SELECT st.value AS v FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key = 'gate_enabled' WHERE sd.domain = ?"
-        ).bind(gateHost).first<{ v: string }>();
-        if (row?.v === '1') {
-          const blocked = await runGate(request, env);
+        const rows = await env.DB.prepare(
+          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist') WHERE sd.domain = ?"
+        ).bind(gateHost).all<{ key: string; value: string }>();
+        const gs = new Map((rows.results || []).map((r) => [r.key, r.value]));
+        if (gs.get('gate_enabled') === '1') {
+          const blocked = await runGate(request, env, { ignoreWhitelist: gs.get('gate_ignore_whitelist') === '1' });
           if (blocked) return blocked;
         }
       }
