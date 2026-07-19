@@ -695,12 +695,11 @@ export default {
               }
             : null;
           // Kurallar site bazlı; ayar yoksa varsayılan AÇIK ('0' ise kapalı).
-          // Cihaz izinleri ayrı: mobil varsayılan açık, masaüstü varsayılan kapalı.
-          // Eski `gate_require_mobile='0'` (masaüstü de girsin) geriye dönük desteklenir.
+          // Cihaz izinleri ayrı: mobil varsayılan AÇIK, masaüstü varsayılan KAPALI.
           const blocked = await runGate(request, env, {
             ignoreWhitelist: gs.get('gate_ignore_whitelist') === '1',
             allowMobile: gs.get('gate_allow_mobile') !== '0',
-            allowDesktop: gs.get('gate_allow_desktop') === '1' || gs.get('gate_require_mobile') === '0',
+            allowDesktop: gs.get('gate_allow_desktop') === '1',
             requireTurkish: gs.get('gate_require_turkish') !== '0',
             requireCountry: gs.get('gate_require_country') !== '0',
             requireNoProxy: gs.get('gate_require_no_proxy') !== '0',
