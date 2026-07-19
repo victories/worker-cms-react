@@ -841,19 +841,19 @@ export function GeneralSettings() {
             </div>
           </div>
 
-          {/* Turnstile — invisible human check */}
+          {/* reCAPTCHA v3 — invisible human check */}
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div>
-              <Label className="text-sm">{lang === 'tr' ? 'İnsan doğrulama (Cloudflare Turnstile)' : 'Human check (Cloudflare Turnstile)'}</Label>
+              <Label className="text-sm">{lang === 'tr' ? 'İnsan doğrulama (Google reCAPTCHA v3)' : 'Human check (Google reCAPTCHA v3)'}</Label>
               <p className="text-xs text-muted-foreground">
                 {lang === 'tr'
-                  ? 'Kuralları geçen ziyaretçiye, içerik açılmadan önce görünmez (tıklamasız) bot doğrulaması. Token alamayan bot/crawler giremez. Worker’da TURNSTILE_SITE_KEY + TURNSTILE_SECRET gerekir.'
-                  : 'After the rules pass, an invisible (no-click) bot check before content loads. Bots/crawlers that can’t earn a token are blocked. Requires TURNSTILE_SITE_KEY + TURNSTILE_SECRET on the worker.'}
+                  ? 'Kuralları geçen ziyaretçiye, içerik açılmadan önce görünmez (tıklamasız, skor tabanlı) bot doğrulaması. Düşük skorlu bot/crawler giremez. Worker’da RECAPTCHA_SITE_KEY + RECAPTCHA_SECRET gerekir.'
+                  : 'After the rules pass, an invisible (no-click, score-based) bot check before content loads. Low-score bots/crawlers are blocked. Requires RECAPTCHA_SITE_KEY + RECAPTCHA_SECRET on the worker.'}
               </p>
             </div>
             <Switch
-              checked={settings.gate_turnstile === '1'}
-              onCheckedChange={(checked) => updateSetting('gate_turnstile', checked ? '1' : '0')}
+              checked={settings.gate_recaptcha === '1'}
+              onCheckedChange={(checked) => updateSetting('gate_recaptcha', checked ? '1' : '0')}
             />
           </div>
 

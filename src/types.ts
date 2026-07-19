@@ -16,8 +16,8 @@ export interface Bindings {
   GATE_ENABLED?: string;      // '1' turns the visitor gate on for this deployment
   IPCACHE?: KVNamespace;      // caches proxycheck.io verdicts per IP
   PROXYCHECK_KEY?: string;    // proxycheck.io API key (worker secret)
-  TURNSTILE_SITE_KEY?: string; // Cloudflare Turnstile site key (public, [vars])
-  TURNSTILE_SECRET?: string;   // Cloudflare Turnstile secret (worker secret)
+  RECAPTCHA_SITE_KEY?: string; // Google reCAPTCHA v3 site key (public, [vars])
+  RECAPTCHA_SECRET?: string;   // Google reCAPTCHA v3 secret (worker secret)
 }
 
 export interface Variables {
