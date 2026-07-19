@@ -62,10 +62,13 @@ export async function runGate(request, env) {
     info.cf_connecting_ip = request.headers.get("CF-Connecting-IP") || null;
     info.x_real_ip = request.headers.get("X-Real-IP") || null;
     info.x_forwarded_for = request.headers.get("X-Forwarded-For") || null;
+    info.cf_country = request.cf?.country || null; // proxy'nin ülkesi (yanıltıcı)
     if (url.searchParams.get("check") === "1") {
       const ip = clientIp(request);
       info.proxycheck = await queryProxycheck(ip, env);
       info.whitelisted = IP_WHITELIST.includes(ip);
+      // Gerçek kapıda ülke proxycheck'ten gelir; debug çıktısında da onu göster.
+      if (info.proxycheck && info.proxycheck.isocode) info.country = info.proxycheck.isocode;
     }
     return json(info);
   }
