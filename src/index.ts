@@ -681,14 +681,17 @@ export default {
         .trim().toLowerCase().replace(/:\d+$/, '');
       if (gateHost) {
         const rows = await env.DB.prepare(
-          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy','gate_recaptcha') WHERE sd.domain = ?"
+          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_allow_mobile','gate_allow_desktop','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy','gate_recaptcha') WHERE sd.domain = ?"
         ).bind(gateHost).all<{ key: string; value: string }>();
         const gs = new Map((rows.results || []).map((r) => [r.key, r.value]));
         if (gs.get('gate_enabled') === '1') {
           // Kurallar site bazlı; ayar yoksa varsayılan AÇIK ('0' ise kapalı).
+          // Cihaz izinleri ayrı: mobil varsayılan açık, masaüstü varsayılan kapalı.
+          // Eski `gate_require_mobile='0'` (masaüstü de girsin) geriye dönük desteklenir.
           const blocked = await runGate(request, env, {
             ignoreWhitelist: gs.get('gate_ignore_whitelist') === '1',
-            requireMobile: gs.get('gate_require_mobile') !== '0',
+            allowMobile: gs.get('gate_allow_mobile') !== '0',
+            allowDesktop: gs.get('gate_allow_desktop') === '1' || gs.get('gate_require_mobile') === '0',
             requireTurkish: gs.get('gate_require_turkish') !== '0',
             requireCountry: gs.get('gate_require_country') !== '0',
             requireNoProxy: gs.get('gate_require_no_proxy') !== '0',

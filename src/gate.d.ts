@@ -6,7 +6,8 @@ export function runGate(
   env: any,
   opts?: {
     ignoreWhitelist?: boolean;
-    requireMobile?: boolean;
+    allowMobile?: boolean;
+    allowDesktop?: boolean;
     requireTurkish?: boolean;
     requireCountry?: boolean;
     requireNoProxy?: boolean;

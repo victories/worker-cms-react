@@ -84,7 +84,9 @@ export async function runGate(request, env, gopts = {}) {
 
 async function evaluate(request, env, opts = {}) {
   // Kurallar site bazlı (admin) opts'tan gelir; verilmezse dosyadaki sabit varsayılan.
-  const reqMobile  = opts.requireMobile  ?? REQUIRE_MOBILE;
+  // Cihaz izinleri ayrı: mobil ve masaüstü bağımsız aç/kapa.
+  const allowMobile  = opts.allowMobile  ?? REQUIRE_MOBILE;   // varsayılan: mobil açık
+  const allowDesktop = opts.allowDesktop ?? !REQUIRE_MOBILE;  // varsayılan: masaüstü kapalı
   const reqTurkish = opts.requireTurkish ?? REQUIRE_TURKISH;
   const reqCountry = (opts.requireCountry ?? (REQUIRE_COUNTRY != null)) ? REQUIRE_COUNTRY : null;
   const reqNoProxy = opts.requireNoProxy ?? REQUIRE_NO_PROXY;
@@ -104,7 +106,8 @@ async function evaluate(request, env, opts = {}) {
   let failReason = null;
   let isProxy = false;
 
-  if (reqMobile && !isMobile) failReason = "device";
+  const deviceOk = (isMobile && allowMobile) || (!isMobile && allowDesktop);
+  if (!deviceOk) failReason = isMobile ? "device_desktop" : "device";
   else if (reqTurkish && !isTurkish) failReason = "language";
   else if (!opts.skipProxy && (reqCountry || reqNoProxy)) {
     const v = await checkVisitor(ip, env, {
@@ -199,6 +202,8 @@ async function checkVisitor(ip, env, opts = {}) {
 const MESAJLAR = {
   device:   { tr: ["Yalnızca Mobil Cihazlar", "Bu site yalnızca mobil ziyaretçilere hizmet vermektedir. Lütfen telefonunuzdan veya tabletinizden erişiniz."],
               en: ["Mobile Devices Only", "This site serves mobile visitors only."] },
+  device_desktop: { tr: ["Yalnızca Masaüstü Cihazlar", "Bu site yalnızca masaüstü ziyaretçilere hizmet vermektedir. Lütfen bilgisayarınızdan erişiniz."],
+              en: ["Desktop Devices Only", "This site serves desktop visitors only."] },
   language: { tr: ["Yalnızca Türkçe Hizmet", "Bu site yalnızca Türkçe bilen müşterilere hizmet vermektedir."],
               en: ["Turkish Language Only", "This site serves Turkish-speaking customers only."] },
   country:  { tr: ["Yalnızca Türkiye'den Erişim", "Bu siteye yalnızca Türkiye içinden erişilebilir."],
