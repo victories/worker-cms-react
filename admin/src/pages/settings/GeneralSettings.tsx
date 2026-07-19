@@ -880,8 +880,8 @@ export function GeneralSettings() {
               <Label className="text-sm">{lang === 'tr' ? 'Özel engelleme mesajı' : 'Custom block message'}</Label>
               <p className="text-xs text-muted-foreground">
                 {lang === 'tr'
-                  ? 'Doldurulunca engellenen ziyaretçiye nedeni (mobil/VPN/ülke) belli etmeden bu gösterilir. Boş bırakılırsa varsayılan mesajlar kullanılır. İngilizce alanlar boşsa yalnızca Türkçe gösterilir.'
-                  : 'When filled, blocked visitors see this instead of the reason (device/VPN/country). Leave empty to use the defaults. If the English fields are empty, only Turkish is shown.'}
+                  ? 'Doldurulunca engellenen ziyaretçiye nedeni (mobil/VPN/ülke) belli etmeden bu gösterilir. Boş bırakılırsa engellenen ziyaretçi boş beyaz sayfa görür. İngilizce alanlar boşsa yalnızca Türkçe gösterilir.'
+                  : 'When filled, blocked visitors see this instead of the reason (device/VPN/country). Leave empty and blocked visitors get a blank white page. If the English fields are empty, only Turkish is shown.'}
               </p>
             </div>
             <Input
