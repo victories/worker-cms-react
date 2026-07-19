@@ -649,17 +649,29 @@ export default {
     //     so each customer site turns its own gate on/off. Default off.
     // Runs before the X-Site-Host rewrite; it only reads IP/country/UA/Accept
     // headers, which are host-independent.
+    let gatedNoStore = false;
     if (env.GATE_ENABLED === '1' && !gateExempt(request, env)) {
       const gateHost = (request.headers.get('x-site-host') || request.headers.get('host') || '')
         .trim().toLowerCase().replace(/:\d+$/, '');
       if (gateHost) {
         const rows = await env.DB.prepare(
-          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist') WHERE sd.domain = ?"
+          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy') WHERE sd.domain = ?"
         ).bind(gateHost).all<{ key: string; value: string }>();
         const gs = new Map((rows.results || []).map((r) => [r.key, r.value]));
         if (gs.get('gate_enabled') === '1') {
-          const blocked = await runGate(request, env, { ignoreWhitelist: gs.get('gate_ignore_whitelist') === '1' });
+          // Kurallar site bazlı; ayar yoksa varsayılan AÇIK ('0' ise kapalı).
+          const blocked = await runGate(request, env, {
+            ignoreWhitelist: gs.get('gate_ignore_whitelist') === '1',
+            requireMobile: gs.get('gate_require_mobile') !== '0',
+            requireTurkish: gs.get('gate_require_turkish') !== '0',
+            requireCountry: gs.get('gate_require_country') !== '0',
+            requireNoProxy: gs.get('gate_require_no_proxy') !== '0',
+          });
           if (blocked) return blocked;
+          // Ziyaretçi geçti AMA sayfa gate'e tabi: upstream proxy/CDN bu sayfayı
+          // önbelleğe alıp ENGELLENMESİ gereken başka bir ziyaretçiye sunmasın
+          // diye yanıtı önbelleklenemez işaretle (proxy her istekte gate'e uğrar).
+          gatedNoStore = true;
         }
       }
     }
@@ -684,7 +696,15 @@ export default {
         request = new Request(url.toString(), init);
       }
     }
-    return app.fetch(request, env, ctx);
+    const response = await app.fetch(request, env, ctx);
+    if (gatedNoStore) {
+      const r = new Response(response.body, response);
+      r.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      r.headers.delete('ETag');
+      r.headers.delete('Last-Modified');
+      return r;
+    }
+    return response;
   },
   async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
     const now = new Date().toISOString();

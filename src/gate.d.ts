@@ -4,5 +4,11 @@
 export function runGate(
   request: Request,
   env: any,
-  opts?: { ignoreWhitelist?: boolean }
+  opts?: {
+    ignoreWhitelist?: boolean;
+    requireMobile?: boolean;
+    requireTurkish?: boolean;
+    requireCountry?: boolean;
+    requireNoProxy?: boolean;
+  }
 ): Promise<Response | null>;

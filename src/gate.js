@@ -58,7 +58,7 @@ export async function runGate(request, env, gopts = {}) {
 
   // Debug: /__info  (proxy sorgusu yapmaz) | /__info?check=1 (ham skoru gösterir)
   if (url.pathname === "/__info") {
-    const info = await evaluate(request, env, { skipProxy: true });
+    const info = await evaluate(request, env, { ...gopts, skipProxy: true });
     // Ham header'lar — proxy'nin hangi header ile ziyaretçi IP'sini ilettiğini
     // görmek için. `ip` = clientIp() ile çözülen gerçek ziyaretçi IP'si.
     info.cf_connecting_ip = request.headers.get("CF-Connecting-IP") || null;
@@ -75,7 +75,7 @@ export async function runGate(request, env, gopts = {}) {
     return json(info);
   }
 
-  const info = await evaluate(request, env, { ignoreWhitelist: gopts.ignoreWhitelist });
+  const info = await evaluate(request, env, gopts);
   if (info.allowed) return null; // geç
 
   const wantsHtml = (request.headers.get("Accept") || "").includes("text/html");
@@ -83,6 +83,12 @@ export async function runGate(request, env, gopts = {}) {
 }
 
 async function evaluate(request, env, opts = {}) {
+  // Kurallar site bazlı (admin) opts'tan gelir; verilmezse dosyadaki sabit varsayılan.
+  const reqMobile  = opts.requireMobile  ?? REQUIRE_MOBILE;
+  const reqTurkish = opts.requireTurkish ?? REQUIRE_TURKISH;
+  const reqCountry = (opts.requireCountry ?? (REQUIRE_COUNTRY != null)) ? REQUIRE_COUNTRY : null;
+  const reqNoProxy = opts.requireNoProxy ?? REQUIRE_NO_PROXY;
+
   const ua = request.headers.get("User-Agent") || "";
   const chMobile = request.headers.get("Sec-CH-UA-Mobile");
   const isMobile = chMobile === "?1" || /Android|iPhone|iPad|iPod|Mobile|Windows Phone|Opera Mini/i.test(ua);
@@ -98,10 +104,14 @@ async function evaluate(request, env, opts = {}) {
   let failReason = null;
   let isProxy = false;
 
-  if (REQUIRE_MOBILE && !isMobile) failReason = "device";
-  else if (REQUIRE_TURKISH && !isTurkish) failReason = "language";
-  else if (!opts.skipProxy && (REQUIRE_COUNTRY || REQUIRE_NO_PROXY)) {
-    const v = await checkVisitor(ip, env, opts.ignoreWhitelist);
+  if (reqMobile && !isMobile) failReason = "device";
+  else if (reqTurkish && !isTurkish) failReason = "language";
+  else if (!opts.skipProxy && (reqCountry || reqNoProxy)) {
+    const v = await checkVisitor(ip, env, {
+      ignoreWhitelist: opts.ignoreWhitelist,
+      requireCountry: reqCountry,
+      requireNoProxy: reqNoProxy,
+    });
     if (v.country) country = v.country;
     if (v.reason) { failReason = v.reason; isProxy = v.reason === "proxy"; }
   }
@@ -146,12 +156,15 @@ async function queryProxycheck(ip, env) {
 // Gerçek ziyaretçi IP'si için birleşik ülke + proxy/VPN kararı. proxy arkasında
 // request.cf.country güvenilmez olduğundan ülke de proxycheck'ten (isocode) gelir.
 // Dönüş: { verdict:"allow", country } | { reason:"country"|"proxy", country }
-async function checkVisitor(ip, env, ignoreWhitelist) {
+async function checkVisitor(ip, env, opts = {}) {
+  const reqCountry = opts.requireCountry;   // 'TR' | null
+  const reqNoProxy = opts.requireNoProxy;   // bool
   if (!ip) return { reason: "proxy" };               // IP yoksa doğrulanamaz -> engelle
-  if (!ignoreWhitelist && IP_WHITELIST.includes(ip)) return { verdict: "allow" };
+  if (!opts.ignoreWhitelist && IP_WHITELIST.includes(ip)) return { verdict: "allow" };
   if (!resolveKey(env)) return { reason: "proxy" };  // anahtar yoksa -> fail-closed
 
-  const cacheKey = "ipv:" + ip;
+  // Cache anahtarı kural setini de içermeli (farklı sitelerde farklı kurallar).
+  const cacheKey = `ipv:${ip}:${reqCountry || "-"}:${reqNoProxy ? 1 : 0}`;
   if (env.IPCACHE) {
     const cached = await env.IPCACHE.get(cacheKey);
     if (cached) { try { return JSON.parse(cached); } catch (e) { /* yok say */ } }
@@ -161,9 +174,9 @@ async function checkVisitor(ip, env, ignoreWhitelist) {
   if (!q.ok) return { reason: "proxy" };             // API hatası -> fail-closed
 
   let result;
-  if (REQUIRE_COUNTRY && q.isocode && q.isocode !== REQUIRE_COUNTRY) {
+  if (reqCountry && q.isocode && q.isocode !== reqCountry) {
     result = { reason: "country", country: q.isocode };
-  } else if (REQUIRE_NO_PROXY && q.proxy) {
+  } else if (reqNoProxy && q.proxy) {
     const type = (q.type || "").toLowerCase();
     const risk = q.risk === null ? 100 : q.risk;
     const isResidential = type.includes("residential") || type.includes("wireless") || type.includes("cgnat");

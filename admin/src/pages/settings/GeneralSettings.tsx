@@ -817,6 +817,30 @@ export function GeneralSettings() {
             />
           </div>
 
+          {/* Pass rules — each rule can be toggled per site */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">{lang === 'tr' ? 'Geçiş kuralları' : 'Pass rules'}</p>
+            <div className="rounded-lg border divide-y">
+              {[
+                { k: 'gate_require_mobile',   tr: 'Sadece mobil cihazlar',   en: 'Mobile devices only',  trd: 'Kapatınca masaüstü de girer.',   end: 'Off lets desktop in too.' },
+                { k: 'gate_require_turkish',  tr: 'Sadece Türkçe tarayıcı',  en: 'Turkish browser only', trd: 'Tarayıcı dili tr ile başlamalı.', end: 'Browser language must start with tr.' },
+                { k: 'gate_require_country',  tr: "Sadece Türkiye'den",      en: 'From Turkey only',     trd: 'Ziyaretçi IP ülkesi TR olmalı.', end: 'Visitor IP country must be TR.' },
+                { k: 'gate_require_no_proxy', tr: 'VPN / proxy engelle',     en: 'Block VPN / proxy',    trd: 'Kapatınca VPN/proxy de girer.',  end: 'Off lets VPN/proxy in too.' },
+              ].map((r) => (
+                <div key={r.k} className="flex items-center justify-between gap-4 p-3">
+                  <div>
+                    <Label className="text-sm">{lang === 'tr' ? r.tr : r.en}</Label>
+                    <p className="text-xs text-muted-foreground">{lang === 'tr' ? r.trd : r.end}</p>
+                  </div>
+                  <Switch
+                    checked={settings[r.k] !== '0'}
+                    onCheckedChange={(checked) => updateSetting(r.k, checked ? '1' : '0')}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Ignore whitelist — for testing the gate as a real visitor */}
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div>
