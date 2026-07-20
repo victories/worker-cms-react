@@ -121,15 +121,35 @@ export const siteResolver = createMiddleware<{ Bindings: Bindings; Variables: Va
   const domain = host.toLowerCase().replace(/:\d+$/, ''); // Remove port for matching
   const domainWithPort = host.toLowerCase(); // Keep port for localhost matching
 
-  // Try exact match with port first (for localhost:8787), then without port
-  let siteDomain = await c.env.DB.prepare(
-    'SELECT sd.*, s.* FROM site_domains sd JOIN sites s ON sd.site_id = s.id WHERE sd.domain = ?'
-  ).bind(domainWithPort).first();
-
-  if (!siteDomain) {
+  // Domain -> site çözümü. KRİTİK: KV'de cache'le (pozitif + negatif). Aksi
+  // halde her istek (bot seli dahil) D1'e vurur ve D1 boğulur (2026-07-20 olayı).
+  let siteDomain: any = null;
+  let fromCache = false;
+  const kv = c.env.CACHE;
+  const cacheKey = `siteres:${domainWithPort}`;
+  if (kv) {
+    try {
+      const hit = await kv.get(cacheKey);
+      if (hit !== null) {
+        fromCache = true;
+        const p = JSON.parse(hit);
+        siteDomain = p && p.__none__ ? null : p;
+      }
+    } catch { /* KV hatası → D1'e düş */ }
+  }
+  if (!fromCache) {
     siteDomain = await c.env.DB.prepare(
       'SELECT sd.*, s.* FROM site_domains sd JOIN sites s ON sd.site_id = s.id WHERE sd.domain = ?'
-    ).bind(domain).first();
+    ).bind(domainWithPort).first();
+    if (!siteDomain) {
+      siteDomain = await c.env.DB.prepare(
+        'SELECT sd.*, s.* FROM site_domains sd JOIN sites s ON sd.site_id = s.id WHERE sd.domain = ?'
+      ).bind(domain).first();
+    }
+    if (kv) {
+      const toStore = siteDomain ? JSON.stringify(siteDomain) : '{"__none__":true}';
+      c.executionCtx.waitUntil(kv.put(cacheKey, toStore, { expirationTtl: 60 }));
+    }
   }
 
   if (!siteDomain) {

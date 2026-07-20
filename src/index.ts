@@ -680,10 +680,24 @@ export default {
       const gateHost = (request.headers.get('x-site-host') || request.headers.get('host') || '')
         .trim().toLowerCase().replace(/:\d+$/, '');
       if (gateHost) {
-        const rows = await env.DB.prepare(
-          "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_allow_mobile','gate_allow_desktop','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy','gate_recaptcha','gate_block_title_tr','gate_block_text_tr','gate_block_title_en','gate_block_text_en') WHERE sd.domain = ?"
-        ).bind(gateHost).all<{ key: string; value: string }>();
-        const gs = new Map((rows.results || []).map((r) => [r.key, r.value]));
+       try {
+        // Gate ayarlarını KV'de kısa süre cache'le — D1'i her istekte yorma
+        // (aksi halde sel altında D1 boğulur ve tüm site 500 verir).
+        let gsObj: Record<string, string> | null = null;
+        const ck = `gatecfg:${gateHost}`;
+        if (env.CACHE) {
+          const cached = await env.CACHE.get(ck);
+          if (cached) { try { gsObj = JSON.parse(cached); } catch { /* yok say */ } }
+        }
+        if (!gsObj) {
+          const rows = await env.DB.prepare(
+            "SELECT st.key, st.value FROM site_domains sd JOIN settings st ON st.site_id = sd.site_id AND st.key IN ('gate_enabled','gate_ignore_whitelist','gate_allow_mobile','gate_allow_desktop','gate_require_mobile','gate_require_turkish','gate_require_country','gate_require_no_proxy','gate_recaptcha','gate_block_title_tr','gate_block_text_tr','gate_block_title_en','gate_block_text_en') WHERE sd.domain = ?"
+          ).bind(gateHost).all<{ key: string; value: string }>();
+          gsObj = {};
+          for (const r of (rows.results || [])) gsObj[r.key] = r.value;
+          if (env.CACHE) ctx.waitUntil(env.CACHE.put(ck, JSON.stringify(gsObj), { expirationTtl: 30 }));
+        }
+        const gs = new Map(Object.entries(gsObj));
         if (gs.get('gate_enabled') === '1') {
           // Özel engelleme mesajı (admin) — TR başlığı doluysa nedeni belli
           // etmeden tüm engellerde bu gösterilir; boşsa varsayılan mesajlar.
@@ -720,6 +734,10 @@ export default {
           // diye yanıtı önbelleklenemez işaretle (proxy her istekte gate'e uğrar).
           gatedNoStore = true;
         }
+       } catch (e) {
+        // D1/KV hatası (ör. D1 aşırı yük) → kapıyı atla, site ayakta kalsın.
+        console.error('[gate] skipped:', (e as Error)?.message);
+       }
       }
     }
 
