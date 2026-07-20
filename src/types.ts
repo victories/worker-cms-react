@@ -18,6 +18,7 @@ export interface Bindings {
   PROXYCHECK_KEY?: string;    // proxycheck.io API key (worker secret)
   RECAPTCHA_SITE_KEY?: string; // Google reCAPTCHA v3 site key (public, [vars])
   RECAPTCHA_SECRET?: string;   // Google reCAPTCHA v3 secret (worker secret)
+  MAINTENANCE?: string;        // '1' → public HTML'e D1'siz "yükleniyor" sayfası (kill-switch)
 }
 
 export interface Variables {

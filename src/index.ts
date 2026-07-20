@@ -635,6 +635,25 @@ function gateExempt(request: Request, env: Bindings): boolean {
   return false;
 }
 
+// D1 aşırı-yük devre kesici. D1 boğulunca (queue dolu) render 500 verir; 500
+// upstream cache'e alınamadığı için sel sürekli D1'e vurup çökük tutar. Devre
+// kesici: D1 hatası görülünce kısa süre (cooldown) public HTML isteklerine D1'e
+// DOKUNMADAN, upstream'in cache'leyebileceği kısa-TTL bir "yükleniyor" sayfası
+// döneriz → sel micro-cache'te emilir → D1 kuyruğu boşalır → toparlar.
+let d1CooldownUntil = 0;
+function loadingResponse(): Response {
+  const html = '<!doctype html><html lang="tr"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<meta http-equiv="refresh" content="4"><meta name="robots" content="noindex">'
+    + '<title>Lütfen bekleyin</title><style>body{font-family:system-ui,-apple-system,sans-serif;'
+    + 'display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f8fafc;color:#475569}'
+    + '.c{text-align:center;padding:24px}.s{width:34px;height:34px;border:3px solid #e2e8f0;border-top-color:#64748b;'
+    + 'border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 16px}@keyframes sp{to{transform:rotate(360deg)}}</style>'
+    + '</head><body><div class="c"><div class="s"></div><p>Sayfa hazırlanıyor, lütfen birkaç saniye bekleyin…</p></div></body></html>';
+  // 200 + kısa max-age: upstream micro-cache mutlaka cache'lesin (503'ü cache'lemeyebilir).
+  return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=3' } });
+}
+
 export default {
   // Reverse-proxy host override. An upstream proxy (e.g. our OpenResty edge)
   // can route a customer domain to this worker over its `*.workers.dev`
@@ -643,6 +662,21 @@ export default {
   // reflect the customer domain; `siteResolver` reads `X-Site-Host` directly
   // for site resolution. All fronted domains are ours, so no shared secret.
   fetch: async (request: Request, env: Bindings, ctx: ExecutionContext) => {
+    // Sel kalkanı: `proxy.<ADMIN_DOMAIN>` fallback domenine X-Site-Host'SUZ gelen
+    // istekler gerçek müşteri trafiği DEĞİL (o daima X-Site-Host taşır). Bot seli
+    // bu bare domene vurup site çözemeden D1'i boğuyordu. D1'e dokunmadan ucuz,
+    // önbelleklenebilir yanıt ver (ACME/.well-known hariç — SSL doğrulaması için).
+    {
+      const rawHost = (request.headers.get('host') || '').toLowerCase().replace(/:\d+$/, '');
+      const fallback = `proxy.${(env.ADMIN_DOMAIN || 'fixyonet.com').toLowerCase()}`;
+      if (rawHost === fallback && !request.headers.get('x-site-host')) {
+        const p = new URL(request.url).pathname;
+        if (!p.startsWith('/.well-known/')) {
+          return new Response('OK', { status: 200, headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'public, max-age=600' } });
+        }
+      }
+    }
+
     // Visitor gate. Two levels of control:
     //  1) GATE_ENABLED === '1' — deployment master switch (only the gated
     //     worker sets it, so other deploy targets pay zero overhead).
@@ -673,6 +707,16 @@ export default {
           { status: 403, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } }
         );
       }
+    }
+
+    // Devre kesici: D1 cooldown'dayken public HTML isteğine D1'e vurmadan
+    // cache'lenebilir "yükleniyor" sayfası dön (sel micro-cache'te emilsin).
+    const wantsHtmlReq = (request.headers.get('Accept') || '').includes('text/html');
+    // MAINTENANCE='1' → TÜM public (muaf olmayan) isteklere D1'e HİÇ dokunmadan
+    // loading dön (botlar text/html göndermeyebilir; onları da yakala ki D1
+    // sıfır sorguyla toparlasın). Cooldown ise devre kesicinin otomatik hâli.
+    if (!gateExempt(request, env) && (env.MAINTENANCE === '1' || Date.now() < d1CooldownUntil)) {
+      return loadingResponse();
     }
 
     let gatedNoStore = false;
@@ -761,7 +805,21 @@ export default {
         request = new Request(url.toString(), init);
       }
     }
-    const response = await app.fetch(request, env, ctx);
+    let response: Response;
+    try {
+      response = await app.fetch(request, env, ctx);
+    } catch (e) {
+      // Worker seviyesinde yakalanmamış hata (ör. D1 throw) → devre kesiciyi tetikle.
+      d1CooldownUntil = Date.now() + 12000;
+      console.error('[fetch] threw, cooldown 12s:', (e as Error)?.message);
+      if (wantsHtmlReq) return loadingResponse();
+      throw e;
+    }
+    // CMS 5xx döndüyse (D1 aşırı yük vb.) → devre kesiciyi tetikle, sayfayı emilebilir yap.
+    if (response.status >= 500 && !gateExempt(request, env)) {
+      d1CooldownUntil = Date.now() + 12000;
+      return loadingResponse();
+    }
     if (gatedNoStore) {
       const r = new Response(response.body, response);
       r.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
